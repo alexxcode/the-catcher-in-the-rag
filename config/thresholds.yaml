@@ -1,0 +1,43 @@
+# ── bartleby abstention thresholds ────────────────────────────────────────────
+# bartleby runs without any LLM call (consumes retrieval scores + validator results).
+# Calibrate these on A09/A10 packages after the first retrieval baseline.
+# See SPEC §5: bartleby returns NO_EVIDENCE when any of these hold.
+#
+# TODO: Set final values after M3 calibration run. Initial values are guesses.
+
+bartleby:
+  # Minimum reranker score for a retrieved span to be considered "relevant"
+  min_relevance_score: 0.5   # TODO: calibrate on A09/A10
+
+  # Minimum BM25 score (used when reranker is absent)
+  min_bm25_score: 3.0        # TODO: calibrate
+
+  # Minimum dense similarity score
+  min_dense_score: 0.65      # TODO: calibrate
+
+  # If fewer than this many spans pass the relevance threshold → NO_EVIDENCE
+  min_evidence_spans: 1
+
+  # Maximum number of spans to pass to the clause LLM
+  top_k_to_llm: 5
+
+# ── Retrieval ─────────────────────────────────────────────────────────────────
+retrieval:
+  top_k_bm25: 20
+  top_k_dense: 20
+  top_k_reranked: 10   # passed to bartleby
+
+# ── Matching tolerances ───────────────────────────────────────────────────────
+# Deterministic 3-way match (Step 5). LLM never touches these decisions.
+matching:
+  unit_price_tolerance_pct: 0.01   # 1% — amounts within this are not flagged as A01
+  quantity_tolerance_pct: 0.0      # exact match for quantity (A02)
+  duplicate_window_days: 90        # look-back window for duplicate detection (A03)
+
+# ── Evaluation ────────────────────────────────────────────────────────────────
+eval:
+  # Recall@k values to report
+  recall_at_k: [1, 3, 5, 10]
+
+  # Proportion of eval packages to trace in Langfuse (stay under Hobby quota)
+  trace_sample_rate: 0.1   # trace 10% of packages during bulk eval

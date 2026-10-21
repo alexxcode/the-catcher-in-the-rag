@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  lint-and-test:
+    name: Lint & Test (offline)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Lint (ruff)
+        run: uv run ruff check src/ tests/ datagen/ evals/
+
+      - name: Format check (ruff)
+        run: uv run ruff format --check src/ tests/ datagen/ evals/
+
+      - name: Test (stub provider — no LLM calls)
+        run: uv run pytest tests/ -m "not real_llm" -q
+        env:
+          # Force stub provider in CI — no GCP credentials available here
+          LLM_PROVIDER: stub
+          EMBEDDING_PROVIDER: stub
+
+  # ── Terraform validate ────────────────────────────────────────────────────
+  # Validates syntax without initializing the GCS backend.
+  terraform-validate:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
+
+      - name: Terraform fmt check
+        run: terraform fmt -check -recursive infra/terraform/
+
+      - name: Terraform init (local backend for validation)
+        run: terraform -chdir=infra/terraform init -backend=false
+
+      - name: Terraform validate
+        run: terraform -chdir=infra/terraform validate
+
+  # ── Deploy (on push to main, requires WIF) ────────────────────────────────
+  # TODO (M5): Configure Workload Identity Federation for keyless auth.
+  # Steps:
+  #   1. Create WIF pool: gcloud iam workload-identity-pools create ...
+  #   2. Create WIF provider for GitHub Actions
+  #   3. Grant service account impersonation to the GitHub repo
+  #   4. Add secrets to GitHub Actions: WIF_PROVIDER, WIF_SERVICE_ACCOUNT
+  # Reference: https://cloud.google.com/blog/products/identity-security/enabling-keyless-authentication-from-github-actions
+  #
+  # deploy:
+  #   name: Deploy to Cloud Run
+  #   needs: [lint-and-test]
+  #   if: github.ref == 'refs/heads/main'
+  #   ...

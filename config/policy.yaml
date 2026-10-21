@@ -1,0 +1,28 @@
+# ── Policy engine configuration ───────────────────────────────────────────────
+# The policy engine makes approve/review/reject decisions deterministically.
+# LLM never makes these decisions. See SPEC §3 principle 1.
+
+# ── Approval thresholds (A08: amount above threshold) ─────────────────────────
+approval:
+  auto_approve_max_usd: 5000.0     # below this: auto-approve if no other findings
+  requires_review_max_usd: 50000.0 # above auto_approve: human review required
+  auto_reject_above_usd: 50000.0   # above this: auto-reject, escalate
+
+# ── Decision rules ────────────────────────────────────────────────────────────
+# Each anomaly class maps to a default decision.
+# "review" = human-in-the-loop queue; "reject" = hard stop; "approve" = pass.
+anomaly_decisions:
+  A01: "reject"    # unit price above contract rate
+  A02: "reject"    # quantity billed > received
+  A03: "reject"    # duplicate invoice
+  A04: "review"    # payment terms differ from contract
+  A05: "review"    # late-delivery penalty applicable
+  A06: "review"    # contract expired / auto-renewal triggered
+  A07: "reject"    # unknown vendor or no PO
+  A08: "review"    # amount above approval threshold (see approval block above)
+  A09: "review"    # clause absent → bartleby returned NO_EVIDENCE
+  A10: "approve"   # clean package
+
+# ── Multi-finding resolution ──────────────────────────────────────────────────
+# When multiple anomalies are found: escalate to the most severe decision.
+decision_priority: ["reject", "review", "approve"]
