@@ -1,7 +1,5 @@
-from __future__ import annotations
-
 from decimal import Decimal
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -9,7 +7,7 @@ from pydantic import BaseModel, Field
 from catcher_in_the_rag.schemas.common import Citation
 
 
-class AnomalyType(str, Enum):
+class AnomalyType(StrEnum):
     """Standardized anomaly taxonomy per Section 7 of the specification."""
 
     A01 = "A01"  # Unit price above contract rate (Match + clause)
@@ -47,7 +45,7 @@ class Finding(BaseModel):
     )
 
 
-class DecisionType(str, Enum):
+class DecisionType(StrEnum):
     """Final decision category for an invoice package."""
 
     APPROVE = "APPROVE"

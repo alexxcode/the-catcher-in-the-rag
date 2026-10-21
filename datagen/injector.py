@@ -45,7 +45,6 @@ def inject_anomaly(
             invoice.line_items[0] = new_item
             invoice.total_amount = sum((it.total_amount for it in invoice.line_items), Decimal("0"))
 
-            pricing_clause = next(c for c in contract.clauses if c.clause_type == "pricing")
             quote = f"{target_item.item_id} - {target_item.description}: Maximum Unit Rate of ${contract_rate:.2f} USD"
             span = contract.find_span(quote)
             if span:
@@ -95,7 +94,6 @@ def inject_anomaly(
             shorter_days = max(10, contract_days // 2)
             invoice.payment_due_date = invoice.invoice_date + timedelta(days=shorter_days)
 
-            terms_clause = next(c for c in contract.clauses if c.clause_type == "payment_terms")
             quote = f"payable Net {contract_days} days"
             span = contract.find_span(quote)
             if span:
@@ -115,7 +113,6 @@ def inject_anomaly(
             # A05: Late-delivery penalty applicable
             delay_days = 7
             receipt.delivery_date = po.expected_delivery_date + timedelta(days=delay_days)
-            penalty_clause = next(c for c in contract.clauses if c.clause_type == "penalties")
             quote = f"liquidated penalty of {contract.late_delivery_penalty_pct_per_day:.1f}% per calendar day of delay"
             span = contract.find_span(quote)
             if span:
@@ -137,9 +134,6 @@ def inject_anomaly(
             invoice.invoice_date = contract.expiration_date + timedelta(days=30)
             invoice.payment_due_date = invoice.invoice_date + timedelta(
                 days=contract.payment_terms_days
-            )
-            term_clause = next(
-                c for c in contract.clauses if c.clause_type == "term_and_termination"
             )
             quote = f'until {contract.expiration_date.isoformat()} ("Expiration Date")'
             span = contract.find_span(quote)

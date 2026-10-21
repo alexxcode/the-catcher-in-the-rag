@@ -34,9 +34,7 @@ class LineItem(BaseModel):
     @model_validator(mode="after")
     def compute_or_validate_total(self) -> LineItem:
         expected = (self.quantity * self.unit_price).quantize(Decimal("0.01"))
-        if self.total_amount != expected:
-            # Allow minor rounding tolerance of 0.02 or set exactly if default
-            if abs(self.total_amount - expected) > Decimal("0.02"):
-                msg = f"total_amount {self.total_amount} does not match qty * unit_price {expected}"
-                raise ValueError(msg)
+        if self.total_amount != expected and abs(self.total_amount - expected) > Decimal("0.02"):
+            msg = f"total_amount {self.total_amount} does not match qty * unit_price {expected}"
+            raise ValueError(msg)
         return self

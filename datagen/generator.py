@@ -171,7 +171,7 @@ def generate_dataset(
     pkg_index = 1
 
     for anomaly in AnomalyType:
-        for i in range(count_per_anomaly):
+        for _i in range(count_per_anomaly):
             seed = base_seed + (pkg_index * 1337)
             pkg_id = f"PKG-{pkg_index:04d}"
             pkg, labels = generate_package(seed=seed, anomaly=anomaly, package_id=pkg_id)
