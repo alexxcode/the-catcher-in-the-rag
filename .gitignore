@@ -59,6 +59,7 @@ override.tf.json
 # ── Data ──────────────────────────────────────────────────────────────────────
 data/raw/
 data/reports/
+data/synthetic/
 
 # ── Evaluation reports ────────────────────────────────────────────────────────
 evals/reports/
