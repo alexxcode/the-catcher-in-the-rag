@@ -12,16 +12,16 @@ provider "google-beta" {
 # ── Enable APIs ───────────────────────────────────────────────────────────────
 resource "google_project_service" "apis" {
   for_each = toset([
-    "run.googleapis.com",              # Cloud Run
-    "sqladmin.googleapis.com",         # Cloud SQL
+    "run.googleapis.com",
+    "sqladmin.googleapis.com",
     "sql-component.googleapis.com",
-    "secretmanager.googleapis.com",    # Secret Manager
-    "storage.googleapis.com",          # Cloud Storage
-    "artifactregistry.googleapis.com", # Artifact Registry
-    "aiplatform.googleapis.com",       # Vertex AI
+    "secretmanager.googleapis.com",
+    "storage.googleapis.com",
+    "artifactregistry.googleapis.com",
+    "aiplatform.googleapis.com",
     "iam.googleapis.com",
     "cloudresourcemanager.googleapis.com",
-    "iamcredentials.googleapis.com",   # Workload Identity Federation (CI)
+    "iamcredentials.googleapis.com",
   ])
 
   service                    = each.value
@@ -29,7 +29,7 @@ resource "google_project_service" "apis" {
   disable_dependent_services = false
 }
 
-# ── Cloud Storage: document & report buckets ──────────────────────────────────
+# ── Cloud Storage ─────────────────────────────────────────────────────────────
 resource "google_storage_bucket" "documents" {
   name                        = "${var.project_id}-documents"
   location                    = var.region
@@ -88,10 +88,10 @@ resource "google_sql_database_instance" "main" {
       value = "on"
     }
 
+    # Dev: public IP with no authorized networks (access via Cloud SQL Auth Proxy only).
+    # Prod: TODO replace with VPC private IP.
     ip_configuration {
-      # Cloud Run connects via Cloud SQL Auth Proxy (no public IP needed)
-      ipv4_enabled    = false
-      private_network = null  # TODO: add VPC when needed
+      ipv4_enabled = true
     }
 
     backup_configuration {
@@ -109,28 +109,33 @@ resource "google_sql_database" "catcher" {
   instance = google_sql_database_instance.main.name
 }
 
-# ── Secret Manager: runtime secrets ──────────────────────────────────────────
-# Actual secret values are set manually or via CI; Terraform manages the resource shell.
+# ── Secret Manager ────────────────────────────────────────────────────────────
 resource "google_secret_manager_secret" "langfuse_public_key" {
   secret_id = "langfuse-public-key"
+
   replication {
     auto {}
   }
+
   depends_on = [google_project_service.apis]
 }
 
 resource "google_secret_manager_secret" "langfuse_secret_key" {
   secret_id = "langfuse-secret-key"
+
   replication {
     auto {}
   }
+
   depends_on = [google_project_service.apis]
 }
 
 resource "google_secret_manager_secret" "db_password" {
   secret_id = "db-password"
+
   replication {
     auto {}
   }
+
   depends_on = [google_project_service.apis]
 }

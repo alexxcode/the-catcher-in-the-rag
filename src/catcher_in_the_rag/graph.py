@@ -11,6 +11,7 @@ Rules (SPEC §11):
   - Every node emits a trace span.
   - Never call a real LLM in tests; all nodes must work with the stub provider.
 """
+
 from __future__ import annotations
 
 # TODO (M2): Wire LangGraph state machine.

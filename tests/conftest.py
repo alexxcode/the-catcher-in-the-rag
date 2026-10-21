@@ -6,15 +6,21 @@ Rules (SPEC §11):
   - All tests run with the stub provider unless explicitly marked @pytest.mark.real_llm.
   - Real-LLM tests live under evals/ and are opt-in via `make eval`.
 """
+
 from __future__ import annotations
+
+import os
 
 import pytest
 
 
 @pytest.fixture(scope="session", autouse=True)
-def force_stub_provider(monkeypatch_session: pytest.MonkeyPatch) -> None:  # type: ignore[name-defined]
-    """Ensure the stub provider is always active during the test session."""
-    import os
+def force_stub_provider() -> None:
+    """Ensure the stub provider is always active during the test session.
+
+    Sets environment variables before any test runs. Using os.environ directly
+    (not monkeypatch) because monkeypatch is function-scoped in standard pytest.
+    """
     os.environ.setdefault("LLM_PROVIDER", "stub")
     os.environ.setdefault("EMBEDDING_PROVIDER", "stub")
 
