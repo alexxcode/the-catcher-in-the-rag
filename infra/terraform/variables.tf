@@ -19,5 +19,5 @@ variable "environment" {
 variable "db_instance_tier" {
   description = "Cloud SQL instance tier."
   type        = string
-  default     = "db-f1-micro" # cheapest; upgrade for prod
+  default     = "db-f1-micro"  # cheapest; upgrade for prod
 }
