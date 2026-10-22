@@ -100,7 +100,6 @@ def _create_test_package(is_a09: bool) -> tuple[ProcurementPackage, PackageLabel
                 total_amount=Decimal("50.00"),
             )
         ]
-        anomalies = ["A09"]
         inv_total = Decimal("50.00")
     else:
         inv_items = [
@@ -112,7 +111,6 @@ def _create_test_package(is_a09: bool) -> tuple[ProcurementPackage, PackageLabel
                 total_amount=Decimal("100.00"),
             )
         ]
-        anomalies = ["A10"]
         inv_total = Decimal("100.00")
 
     invoice = Invoice(
