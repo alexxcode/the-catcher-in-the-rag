@@ -1,10 +1,10 @@
 {
   "version": "0.4.0",
-  "timestamp": "2026-10-22T04:22:40.035373+00:00",
+  "timestamp": "2026-10-22T04:45:39.752683+00:00",
   "environment": "offline_stub",
   "config_name": "no-rag",
   "total_packages": 300,
-  "mean_latency_ms": 1.77,
+  "mean_latency_ms": 0.01,
   "decision_accuracy": 0.6,
   "false_positive_rate_a10": 0.0,
   "per_class": {
@@ -110,11 +110,11 @@
     }
   },
   "retrieval": {
-    "recall_at_1": 1.0,
-    "recall_at_3": 1.0,
-    "recall_at_5": 1.0,
-    "recall_at_10": 1.0,
-    "mrr": 1.0
+    "recall_at_1": 0.0,
+    "recall_at_3": 0.0,
+    "recall_at_5": 0.0,
+    "recall_at_10": 0.0,
+    "mrr": 0.0
   },
   "bartleby": {
     "total_a09": 30,
@@ -1332,7 +1332,7 @@
     }
   ],
   "metadata": {
-    "duration_seconds": 0.54,
+    "duration_seconds": 0.01,
     "mode": "no-rag"
   }
 }

@@ -36,14 +36,30 @@ class EvaluationRunner:
         labels: PackageLabels,
         k_values: list[int],
     ) -> tuple[dict[int, bool], float]:
-        """Measure whether expected clause spans appear in top-k retrieval and compute reciprocal rank."""
+        """Measure whether expected clause spans appear in top-k retrieval using realistic audit queries.
+
+        Decouples the retrieval query from the ground truth answer text (Phase 2 requirement).
+        """
         if not labels.expected_clause_spans:
             return (dict.fromkeys(k_values, True), 1.0)
 
         retriever = ContractRetriever(package.contract)
-        # Search using field names or expected text
-        queries = [span.text for span in labels.expected_clause_spans]
-        top_k_clauses = retriever.retrieve(" ".join(queries), top_k=max(k_values))
+
+        audit_topic_queries = {
+            AnomalyType.A01: "negotiated rate sheet maximum unit prices SKU rate ceilings",
+            AnomalyType.A04: "payment terms invoice due date net remittance schedule",
+            AnomalyType.A05: "liquidated damages delivery delay penalty calendar day deduction",
+            AnomalyType.A06: "term and termination agreement expiration date renewal",
+            AnomalyType.A09: "freight transportation expedited courier rush delivery fee surcharge authorization",
+        }
+        topic_queries = [
+            audit_topic_queries[a] for a in labels.anomalies if a in audit_topic_queries
+        ]
+        if not topic_queries:
+            topic_queries = ["contractual governing terms and conditions"]
+
+        search_query = " ".join(topic_queries)
+        top_k_clauses = retriever.retrieve(search_query, top_k=max(k_values))
 
         found_at_k: dict[int, bool] = dict.fromkeys(k_values, False)
         reciprocal_rank = 0.0
@@ -98,8 +114,8 @@ class EvaluationRunner:
         for pkg, labels in packages_with_labels:
             t0 = time.perf_counter()
 
-            # Retrieval benchmark
-            if labels.expected_clause_spans:
+            # Retrieval benchmark (only when contract retrieval is enabled)
+            if self.mode != "no-rag" and labels.expected_clause_spans:
                 hits, rr = self._evaluate_retrieval(pkg, labels, k_values)
                 total_retrieval_queries += 1
                 sum_mrr += rr

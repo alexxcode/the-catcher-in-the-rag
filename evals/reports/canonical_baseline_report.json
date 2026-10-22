@@ -1,10 +1,10 @@
 {
   "version": "0.4.0",
-  "timestamp": "2026-10-22T04:22:39.496080+00:00",
+  "timestamp": "2026-10-22T04:45:39.742500+00:00",
   "environment": "offline_stub",
   "config_name": "baseline",
   "total_packages": 300,
-  "mean_latency_ms": 9.1,
+  "mean_latency_ms": 16.74,
   "decision_accuracy": 1.0,
   "false_positive_rate_a10": 0.0,
   "per_class": {
@@ -131,7 +131,7 @@
   },
   "failure_cases": [],
   "metadata": {
-    "duration_seconds": 2.74,
+    "duration_seconds": 5.03,
     "mode": "baseline"
   }
 }

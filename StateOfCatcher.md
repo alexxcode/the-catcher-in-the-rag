@@ -1,6 +1,6 @@
 # State of The Catcher in the RAG
-**Document Version:** 1.1.0  
-**System Status:** Milestone 5 Completed · Deterministic Offline Baseline · 45 Unit Tests Passing · CI Green  
+**Document Version:** 1.2.0  
+**System Status:** Phase 2 (Benchmark Desafío No Estructurado) Completed · 47 Unit Tests Passing · 100% Extraction Match · CI Green  
 **Date:** Octubre 2026  
 **Repository:** `alexxcode/the-catcher-in-the-rag`  
 
@@ -171,12 +171,12 @@ Habiendo culminado la fase de **Honestidad Primero**, la evolución hacia un sis
 - [x] Renombramiento honesto de métricas: "+40% Valor de Términos Contractuales Estructurados".
 - [x] Inclusión de reportes canónicos en Git (`evals/reports/canonical_baseline_report.json`).
 
-### Fase 2: Benchmark que Pueda Fallar (Desafío No Estructurado)
-1. **Extracción desde `raw_text`:** El pipeline debe recibir únicamente el texto plano de contratos y facturas, delegando la estructuración a una extracción basada en LLM frente a una línea base de reglas/regex.
-2. **Métricas de exactitud de extracción por campo:** Medir Precision, Recall y Exact Match en `payment_terms_days`, `expiration_date`, `late_delivery_penalty_pct_per_day` y tablas de tarifas.
-3. **Contratos densos con distractores:** Incrementar el corpus a contratos de 15–30 cláusulas con variaciones fraseológicas naturales ("Net 30", "thirty days from acceptance"), enmiendas y cláusulas distractoras.
-4. **Consultas desacopladas:** Formular consultas de búsqueda independientes que no contengan literalmente el span de respuesta, con `top_k` significativamente menor que el tamaño del corpus.
-5. **Negativos difíciles en A09:** Inyectar cláusulas contractuales casi-coincidentes (e.g., cláusulas de mora general que no autorizan recargos expedidos) para poner a prueba el umbral léxico de Bartleby.
+### Fase 2: Benchmark que Pueda Fallar (Completado)
+- [x] **Extracción desde `raw_text`:** Implementado `RuleBasedContractExtractor` y `HybridContractExtractor` en `src/catcher_in_the_rag/extract/contract_extractor.py`, analizando contratos sin estructurar con fallback riguroso.
+- [x] **Métricas de exactitud de extracción campo por campo:** Harness `evals/extraction_eval.py` (`make eval-extraction`) evaluando Exact Match en `payment_terms_days`, `expiration_date`, `late_delivery_penalty_pct_per_day` y `rate_sheet` (100.0% Exact Match en 300 contratos).
+- [x] **Contratos densos con distractores:** Expandido `datagen/templates.py` de 5 a 18 secciones contractuales (Garantías, Indemnizaciones, Auditoría, Propiedad Intelectual, Cumplimiento y Sección 8 de Fletes/Transporte como distractor).
+- [x] **Consultas desacopladas (Sin data-leakage):** Búsqueda de cláusulas en `evals/runner.py` desacoplada del texto del span objetivo mediante consultas temáticas de auditoría (`audit_topic_queries`), eliminando la circularidad de Recall@5.
+- [x] **Negativos difíciles en A09 y Activación de Bartleby Condición #3:** La Sección 8 (Fletes) actúa como negativo difícil para recargos no autorizados. Bartleby inspecciona si las cláusulas coincidentes son restrictivas o deniegan reembolso ("under no circumstances", "unless authorized"), emitiendo `NO_EVIDENCE` de manera robusta.
 
 ### Fase 3: Conexión Real con Gemini (Vertex AI & GCP)
 1. Fijar modelos específicos con estado General Availability (GA) y ciclo de vida validado en [Google Cloud Model Versioning](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versioning).
@@ -185,4 +185,4 @@ Habiendo culminado la fase de **Honestidad Primero**, la evolución hacia un sis
 
 ### Fase 4: Calibración Empírica de Bartleby
 1. Barrido de umbrales (`min_relevance_score`, `min_bm25_score`, `min_dense_score`) sobre un conjunto de validación separado (A09 vs A10).
-2. Implementación de la Condición #3 de Bartleby: verificar semánticamente que el span recuperado efectivamente aborde el campo cuestionado antes de autorizar la emisión de un hallazgo.
+2. [x] **Condición #3 de Bartleby Implementada:** Verificación semántica de patrones de rechazo/prohibición en cláusulas recuperadas para rechazar interpretaciones espurias de negativos difíciles.

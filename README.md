@@ -123,6 +123,9 @@ make test
 # Run the full evaluation harness and ablation suite
 make eval-ablations
 
+# Run field-by-field unstructured contract extraction benchmark (Phase 2)
+make eval-extraction
+
 # Start the interactive Streamlit UI
 make run-ui
 

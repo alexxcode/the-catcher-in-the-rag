@@ -158,8 +158,60 @@ This Agreement is entered into as of {effective_date.isoformat()} ("Effective Da
     c4_body = f"""This Agreement shall remain in full force until {expiration_date.isoformat()} ("Expiration Date") unless terminated earlier. Upon the Expiration Date, this Agreement {renew_phrase} No new purchase orders or charges dated subsequent to expiration shall be recognized without a formal extension.
 """
 
-    c5_title = "Section 5. Governing Law and Severability"
-    c5_body = """This Agreement shall be construed in accordance with the laws of the State of Delaware, excluding its conflict of laws principles.
+    c5_title = "Section 5. Warranties and Standard of Performance"
+    c5_body = """Vendor warrants that all goods and equipment delivered hereunder shall be new, of merchantable quality, and free from defects in material, design, and workmanship for a minimum period of twelve (12) months following formal acceptance. All services shall be performed diligently by qualified personnel in accordance with highest commercial standards.
+"""
+
+    c6_title = "Section 6. Confidentiality and Non-Disclosure"
+    c6_body = """Each party agrees to safeguard and hold in strict confidence all proprietary, commercial, and technical information received from the disclosing party. Neither party shall disclose or disseminate confidential information to any third party without obtaining prior written authorization, except where mandated by applicable judicial process.
+"""
+
+    c7_title = "Section 7. Intellectual Property and Work Product"
+    c7_body = """Buyer shall retain sole, exclusive, and unencumbered ownership of all custom deliverables, specifications, drawings, and work product developed specifically for Buyer pursuant to any Purchase Order issued under this Agreement.
+"""
+
+    c8_title = "Section 8. Freight, Transportation and Delivery Protocol"
+    c8_body = """Vendor shall arrange and pay for all standard shipping, freight, carriage, and cartage to the delivery facility specified on the Purchase Order. Standard freight costs are fully incorporated into the rate ceilings established in Section 1. Buyer shall under no circumstances reimburse or pay for expedited courier fees, rush delivery surcharges, or emergency transport handling unless explicitly authorized in advance by a written change order executed by Buyer's Vice President of Procurement.
+"""
+
+    c9_title = "Section 9. Inspection, Acceptance and Rejection of Goods"
+    c9_body = """Buyer reserves the right to inspect all delivered items within ten (10) business days following physical receipt at Buyer's warehouse. Non-conforming, surplus, or damaged goods may be rejected by Buyer and held for removal or return at Vendor's sole expense and risk.
+"""
+
+    c10_title = "Section 10. Taxes and Remittance Protocol"
+    c10_body = """Prices set forth herein exclude applicable state sales or transaction privilege taxes. Vendor shall clearly itemize all lawful taxes on each individual invoice. Buyer shall not be liable for taxes based on Vendor's net income or corporate franchise.
+"""
+
+    c11_title = "Section 11. Indemnification and Defense"
+    c11_body = """Vendor shall defend, indemnify, and hold harmless Buyer, its parent corporation, affiliates, directors, and employees against all liabilities, judgments, settlements, losses, and legal costs arising from Vendor's negligence, willful misconduct, or infringement of third-party intellectual property.
+"""
+
+    c12_title = "Section 12. Limitation of Direct and Consequential Damages"
+    c12_body = """Except with respect to breaches of Section 6 (Confidentiality) or third-party indemnification obligations under Section 11, neither party shall be liable for indirect, incidental, or consequential damages. Total aggregate liability under any order shall not exceed the total contract value paid in the preceding twelve months.
+"""
+
+    c13_title = "Section 13. Insurance Requirements"
+    c13_body = """Vendor shall procure and maintain throughout the term of this Agreement Commercial General Liability insurance with limits not less than $2,000,000 per occurrence and statutory Worker's Compensation insurance covering all deployed personnel.
+"""
+
+    c14_title = "Section 14. Force Majeure and Excusable Delays"
+    c14_body = """Neither party shall be deemed in breach of this Agreement for failure or delay in performance resulting from acts of God, armed conflict, civil commotion, severe labor disputes, epidemics, or government embargos beyond reasonable foresight and control, provided written notice is delivered within forty-eight (48) hours.
+"""
+
+    c15_title = "Section 15. Subcontracting and Delegation Restrictions"
+    c15_body = """Vendor shall not subcontract, delegate, or assign any portion of its obligations under this Agreement to third-party entities without obtaining prior written approval from Buyer's authorized procurement manager.
+"""
+
+    c16_title = "Section 16. Books, Records and Audit Rights"
+    c16_body = """Vendor shall maintain complete and accurate books and billing records concerning all goods and services invoiced under this Agreement for at least three (3) years following final payment. Buyer or its independent auditors shall have the right to audit such records upon reasonable advance notice.
+"""
+
+    c17_title = "Section 17. Compliance with Laws and Anti-Corruption"
+    c17_body = """Vendor shall comply in all respects with applicable domestic and international laws, including export controls, fair labor standards, and the U.S. Foreign Corrupt Practices Act (FCPA). Vendor represents that no improper payments or gifts have been offered to Buyer personnel.
+"""
+
+    c18_title = "Section 18. Governing Law, Severability and Entire Agreement"
+    c18_body = """This Agreement shall be governed by and construed in accordance with the laws of the State of Delaware, without regard to its conflicts of laws principles. This Agreement, together with executed Purchase Orders, constitutes the entire agreement between the parties and supersedes all prior negotiations or proposals.
 """
 
     clauses_def = [
@@ -167,7 +219,20 @@ This Agreement is entered into as of {effective_date.isoformat()} ("Effective Da
         ("payment_terms", c2_title, c2_body),
         ("penalties", c3_title, c3_body),
         ("term_and_termination", c4_title, c4_body),
-        ("governing_law", c5_title, c5_body),
+        ("warranties", c5_title, c5_body),
+        ("confidentiality", c6_title, c6_body),
+        ("intellectual_property", c7_title, c7_body),
+        ("freight_and_carriage", c8_title, c8_body),
+        ("inspection_acceptance", c9_title, c9_body),
+        ("taxes_invoicing", c10_title, c10_body),
+        ("indemnification", c11_title, c11_body),
+        ("liability_cap", c12_title, c12_body),
+        ("insurance", c13_title, c13_body),
+        ("force_majeure", c14_title, c14_body),
+        ("subcontracting", c15_title, c15_body),
+        ("audit_rights", c16_title, c16_body),
+        ("compliance", c17_title, c17_body),
+        ("governing_law", c18_title, c18_body),
     ]
 
     full_text = header

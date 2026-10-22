@@ -10,6 +10,7 @@ from catcher_in_the_rag.schemas import (
     ProcurementPackage,
 )
 from datagen.generator import generate_dataset
+from evals.extraction_eval import ExtractionBenchmarkRunner, print_extraction_summary
 from evals.report_writer import print_summary_table, save_report
 from evals.runner import EvaluationRunner
 
@@ -62,6 +63,11 @@ def main() -> int:
         help="Run ablation experiments (baseline vs no-RAG)",
     )
     parser.add_argument(
+        "--eval-extraction",
+        action="store_true",
+        help="Run field-by-field contract extraction benchmark from raw text (Phase 2)",
+    )
+    parser.add_argument(
         "--sample-size",
         type=int,
         default=None,
@@ -110,6 +116,12 @@ def main() -> int:
         )
         print("  del contrato vs cotejo tripartito básico. Ver StateOfCatcher.md para detalles.]")
         print("=" * 78)
+
+    if args.eval_extraction:
+        print("\nRunning Field-by-Field Unstructured Contract Extraction Benchmark (Phase 2)...")
+        ext_runner = ExtractionBenchmarkRunner(extractor_type="rule")
+        ext_report = ext_runner.evaluate_dataset(dataset)
+        print_extraction_summary(ext_report)
 
     return 0
 

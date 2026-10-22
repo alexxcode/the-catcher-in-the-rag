@@ -49,9 +49,16 @@ class BartlebyGuard:
         retrieved_clauses: list[ScoredClause],
         query_topic: str | None = None,
     ) -> BartlebyAssessment:
-        """Evaluate candidate clauses against relevance thresholds."""
+        """Evaluate candidate clauses against relevance thresholds and authorization criteria.
+
+        Implements SPEC §5 (Bartleby Abstention Conditions):
+        Condition 1: No retrieved span passes the relevance threshold.
+        Condition 3: The cited span does not actually grant authorization (e.g. explicitly
+                     prohibits the fee or requires a written change order not present).
+        """
         passing = [c for c in retrieved_clauses if c.score >= self.min_relevance_score]
 
+        # Condition 1: Low relevance
         if len(passing) < self.min_evidence_spans:
             topic_msg = f" for '{query_topic}'" if query_topic else ""
             return BartlebyAssessment(
@@ -62,6 +69,38 @@ class BartlebyGuard:
                 ),
                 surviving_clauses=[],
             )
+
+        # Condition 3: Span does not actually grant authorization (e.g. denies or conditions on unprovided approval)
+        if query_topic:
+            denial_patterns = (
+                "under no circumstances reimburse",
+                "shall not reimburse",
+                "shall not be reimbursed",
+                "not authorized",
+                "no additional",
+                "unless explicitly authorized in advance",
+                "without prior written",
+                "without an executed written amendment",
+            )
+            # If all passing clauses explicitly deny or condition the fee without authorizing it
+            has_authorizing_clause = False
+            for c in passing:
+                text_lower = c.text.lower()
+                is_denied = any(pat in text_lower for pat in denial_patterns)
+                if not is_denied:
+                    has_authorizing_clause = True
+                    break
+
+            if not has_authorizing_clause:
+                return BartlebyAssessment(
+                    abstained=True,
+                    reason=(
+                        f"NO_EVIDENCE: Governing contract clause for '{query_topic}' explicitly "
+                        "denies authorization or conditions reimbursement on unexecuted change orders. "
+                        "I would prefer not to guess."
+                    ),
+                    surviving_clauses=[],
+                )
 
         return BartlebyAssessment(
             abstained=False,
