@@ -16,6 +16,12 @@ from evals.bakeoff import (
     print_bakeoff_summary,
     save_bakeoff_report,
 )
+from evals.calibrate_bartleby import (
+    BartlebyCalibrator,
+    apply_calibrated_thresholds,
+    print_calibration_summary,
+    save_calibration_report,
+)
 from evals.extraction_eval import ExtractionBenchmarkRunner, print_extraction_summary
 from evals.report_writer import print_summary_table, save_report
 from evals.runner import EvaluationRunner
@@ -77,6 +83,16 @@ def main() -> int:
         "--bakeoff",
         action="store_true",
         help="Run extraction bake-off: Flash vs Pro vs Rule-based baseline (Phase 3)",
+    )
+    parser.add_argument(
+        "--calibrate-bartleby",
+        action="store_true",
+        help="Run empirical threshold sweep for Bartleby on A09 vs non-A09 packages (Phase 4)",
+    )
+    parser.add_argument(
+        "--apply-calibration",
+        action="store_true",
+        help="Automatically apply optimal calibrated thresholds to config/thresholds.yaml",
     )
     parser.add_argument(
         "--sample-size",
@@ -149,6 +165,19 @@ def main() -> int:
         print_bakeoff_summary(bakeoff_results)
         bakeoff_file = save_bakeoff_report(bakeoff_results, output_dir=args.output)
         print(f"Bake-off report saved to: {bakeoff_file}")
+
+    if args.calibrate_bartleby:
+        print("\nRunning Empirical Calibration Sweep for Bartleby (Phase 4)...")
+        calibrator = BartlebyCalibrator(dataset=dataset)
+        cal_report = calibrator.run_sweep()
+        print_calibration_summary(cal_report)
+        cal_file = save_calibration_report(cal_report, output_dir=args.output)
+        print(f"Calibration report saved to: {cal_file}")
+
+        if args.apply_calibration:
+            applied = apply_calibrated_thresholds(cal_report)
+            if applied:
+                print("Applied optimal calibrated thresholds to config/thresholds.yaml.")
 
     return 0
 

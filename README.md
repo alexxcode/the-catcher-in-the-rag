@@ -129,6 +129,9 @@ make eval-extraction
 # Run model extraction bake-off (Flash vs Pro vs Baseline) (Phase 3)
 make eval-bakeoff
 
+# Run empirical threshold calibration sweep for Bartleby abstention (Phase 4)
+make calibrate-bartleby
+
 # Start the interactive Streamlit UI
 make run-ui
 

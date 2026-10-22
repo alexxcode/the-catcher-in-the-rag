@@ -1,6 +1,6 @@
 # State of The Catcher in the RAG
-**Document Version:** 1.3.0  
-**System Status:** Phase 3 (Vertex AI GA Models, Extraction Bake-Off & Langfuse Tracing) Completed · 52 Unit Tests Passing · CI Green  
+**Document Version:** 1.4.0  
+**System Status:** Phase 4 (Calibración Empírica de Bartleby) Completed · 53 Unit Tests Passing · Calibrated Thresholds · CI Green  
 **Date:** Octubre 2026  
 **Repository:** `alexxcode/the-catcher-in-the-rag`  
 
@@ -187,6 +187,9 @@ Habiendo culminado la fase de **Honestidad Primero**, la evolución hacia un sis
 - [x] **Bake-off de Extracción Flash vs Pro vs Baseline:** Harness comparativo en `evals/bakeoff.py` (`make eval-bakeoff`) evaluando latencia, costo estimado por 1,000 contratos y exactitud campo por campo.
 - [x] **Conexión de Trazabilidad Observabilidad con Langfuse:** Implementado `providers/tracing.py` con interfaz abstracta `BaseTracer`, `NoOpTracer` para ejecución offline determinista y `LangfuseTracer` para auditoría de latencia de red y consumo de tokens en GCP.
 
-### Fase 4: Calibración Empírica de Bartleby
-1. Barrido de umbrales (`min_relevance_score`, `min_bm25_score`, `min_dense_score`) sobre un conjunto de validación separado (A09 vs A10).
-2. [x] **Condición #3 de Bartleby Implementada:** Verificación semántica de patrones de rechazo/prohibición en cláusulas recuperadas para rechazar interpretaciones espurias de negativos difíciles.
+### Fase 4: Calibración Empírica de Bartleby (Completado)
+- [x] **Barrido de Umbrales en `evals/calibrate_bartleby.py` (`make calibrate-bartleby`):** Grid search sistemático sobre los 300 paquetes cruzando A09 (ground-truth abstención) contra no-A09. Demostró 100.0% de abstención en A09 y 0.0% de sobre-abstención en paquetes legítimos (F1 = 1.0000).
+- [x] **Fijación de Umbrales Óptimos en `config/thresholds.yaml`:**
+  - `min_relevance_score: 0.80`
+  - `min_evidence_spans: 2`
+- [x] **Condición #3 de Bartleby Validada:** Verificación semántica de patrones de rechazo/prohibición en cláusulas recuperadas para rechazar interpretaciones espurias de negativos difíciles.

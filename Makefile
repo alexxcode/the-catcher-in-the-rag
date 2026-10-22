@@ -6,7 +6,7 @@ PYTHON := uv run python
 PYTEST := uv run pytest
 RUFF   := uv run ruff
 
-.PHONY: help setup install lint format test eval eval-ablations eval-extraction eval-bakeoff run-api run-ui clean tf-init tf-plan tf-apply
+.PHONY: help setup install lint format test eval eval-ablations eval-extraction eval-bakeoff calibrate-bartleby run-api run-ui clean tf-init tf-plan tf-apply
 
 help:  ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -48,6 +48,9 @@ eval-extraction: ## Run field-by-field unstructured contract extraction benchmar
 
 eval-bakeoff: ## Run extraction bake-off (Flash vs Pro vs Baseline)
 	$(PYTHON) -m evals.run --bakeoff --sample-size 50 --output evals/reports/
+
+calibrate-bartleby: ## Run empirical threshold sweep for Bartleby abstention (Phase 4)
+	$(PYTHON) -m evals.run --calibrate-bartleby --output evals/reports/
 
 # ── Run (local dev) ───────────────────────────────────────────────────────────
 run-api: ## Start FastAPI dev server (port 8000)
