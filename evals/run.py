@@ -112,12 +112,15 @@ def main() -> int:
     if args.sample_size and args.sample_size < len(dataset):
         dataset = dataset[: args.sample_size]
 
-    print(f"Loaded {len(dataset)} package(s). Running baseline evaluation...")
-    runner = EvaluationRunner(mode="baseline")
-    baseline_report = runner.run_eval(dataset)
-    report_file = save_report(baseline_report, output_dir=args.output)
-    print_summary_table(baseline_report)
-    print(f"Baseline report saved to: {report_file}")
+    has_subcommand = args.eval_extraction or args.bakeoff or args.calibrate_bartleby
+
+    if not has_subcommand or args.ablations:
+        print(f"Loaded {len(dataset)} package(s). Running baseline evaluation...")
+        runner = EvaluationRunner(mode="baseline")
+        baseline_report = runner.run_eval(dataset)
+        report_file = save_report(baseline_report, output_dir=args.output)
+        print_summary_table(baseline_report)
+        print(f"Baseline report saved to: {report_file}")
 
     if args.ablations:
         print("\nRunning Ablation: No-RAG (Disabling Contract Retrieval & Clause Application)...")

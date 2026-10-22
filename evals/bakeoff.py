@@ -55,6 +55,10 @@ class ExtractionBakeOff:
 
     def evaluate_rule_based(self) -> CandidateResult:
         extractor = RuleBasedContractExtractor()
+        print(
+            f"\nEvaluating: Rule-Based Baseline (Regex/Parsing) | Sample size: {self.sample_size}",
+            flush=True,
+        )
         start = time.perf_counter()
         field_matches: dict[str, int] = {
             "payment_terms_days": 0,
@@ -133,6 +137,10 @@ class ExtractionBakeOff:
         # Strict LLM extractor: does NOT silently fallback to regex
         extractor = LLMContractExtractor(provider=llm)
 
+        print(
+            f"\nEvaluating: {display_name} (provider: {actual_provider_type}) | Sample size: {self.sample_size}",
+            flush=True,
+        )
         start = time.perf_counter()
         field_matches: dict[str, int] = {
             "payment_terms_days": 0,
@@ -146,7 +154,7 @@ class ExtractionBakeOff:
         total_prompt_tokens = 0
         total_completion_tokens = 0
 
-        for raw_text, gt_contract in self.contracts:
+        for idx, (raw_text, gt_contract) in enumerate(self.contracts):
             t0 = time.perf_counter()
             # Estimate token lengths: ~4 chars per token for prompt, ~500 tokens structured response
             est_prompt_tokens = max(1, len(raw_text) // 4)
@@ -154,6 +162,7 @@ class ExtractionBakeOff:
             total_prompt_tokens += est_prompt_tokens
             total_completion_tokens += est_completion_tokens
 
+            all_ok = False
             try:
                 extracted = extractor.extract(raw_text)
                 matches = evaluate_contract_extraction(extracted, gt_contract)
@@ -171,6 +180,11 @@ class ExtractionBakeOff:
                 out_data = {"error": str(err)}
 
             dt_ms = (time.perf_counter() - t0) * 1000
+            print(
+                f"  [{idx + 1}/{self.sample_size}] {gt_contract.contract_id}: "
+                f"{dt_ms:.0f}ms | perfect={all_ok} | err_count={error_count}",
+                flush=True,
+            )
             self.tracer.trace_execution(
                 name=f"extract_contract_{model_id}",
                 input_data={"length": len(raw_text)},
@@ -213,23 +227,23 @@ class ExtractionBakeOff:
         # 1. Baseline Rule-Based
         results.append(self.evaluate_rule_based())
 
-        # 2. Gemini 3.5 Flash (GA Active Model)
+        # 2. Gemini 2.5 Flash (GA Active Model on Vertex AI)
         results.append(
             self.evaluate_llm_candidate(
-                candidate_name="Gemini 3.5 Flash (GA Active)",
+                candidate_name="Gemini 2.5 Flash (GA Active)",
                 provider_type="vertex_ai",
-                model_id="gemini-3.5-flash",
+                model_id="gemini-2.5-flash",
                 prompt_cost_per_1m=0.075,
                 completion_cost_per_1m=0.30,
             )
         )
 
-        # 3. Gemini 3.1 Pro (GA Active Model)
+        # 3. Gemini 2.5 Pro (GA Active Model on Vertex AI)
         results.append(
             self.evaluate_llm_candidate(
-                candidate_name="Gemini 3.1 Pro (GA Active)",
+                candidate_name="Gemini 2.5 Pro (GA Active)",
                 provider_type="vertex_ai",
-                model_id="gemini-3.1-pro",
+                model_id="gemini-2.5-pro",
                 prompt_cost_per_1m=1.25,
                 completion_cost_per_1m=5.00,
             )

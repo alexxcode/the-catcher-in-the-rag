@@ -45,9 +45,9 @@ En respuesta a la auditoría técnica y empírica, se aplicaron las siguientes c
 
 1. **Pinning de Modelos GA Activos (2026):**
    - Se descartaron los modelos retirados (`gemini-2.0-flash-001` y `gemini-1.5-pro-002`).
-   - Se fijaron modelos vigentes en `config/models.yaml`:
-     - **Extracción estructurada:** `gemini-3.5-flash` (GA, activo, rápido y eficiente).
-     - **Razonamiento de cláusulas:** `gemini-3.1-pro` (GA, activo, razonamiento complejo).
+   - Se fijaron y verificaron en vivo sobre Vertex AI en `config/models.yaml`:
+     - **Extracción estructurada:** `gemini-2.5-flash` (GA, verificado en vivo con Vertex AI).
+     - **Razonamiento de cláusulas:** `gemini-2.5-pro` (GA, verificado en vivo con Vertex AI).
      - **Embeddings:** `text-embedding-005` (768 dims, activo sin retiro programado).
      - **Reranker:** `flashrank` (`ms-marco-TinyBERT-L-2-v2`, ligero CPU-only).
    - Migración al SDK moderno `google.genai` (`genai.Client(vertexai=True)`), suprimiendo advertencias obsoletas de `vertexai.generative_models`.
@@ -182,14 +182,18 @@ Habiendo culminado la fase de **Honestidad Primero**, la evolución hacia un sis
 - [x] **Consultas desacopladas (Sin data-leakage):** Búsqueda de cláusulas en `evals/runner.py` desacoplada del texto del span objetivo mediante consultas temáticas de auditoría (`audit_topic_queries`), eliminando la circularidad de Recall@5.
 - [x] **Negativos difíciles en A09 y Activación de Bartleby Condición #3:** La Sección 8 (Fletes) actúa como negativo difícil para recargos no autorizados. Bartleby inspecciona si las cláusulas coincidentes son restrictivas o deniegan reembolso ("under no circumstances", "unless authorized"), emitiendo `NO_EVIDENCE` de manera robusta.
 
-### Fase 3: Conexión Real con Gemini (Vertex AI & GCP) (Completado)
-- [x] **Fijación de Modelos GA en `config/models.yaml`:** Modelos con ciclo de vida verificado en Vertex AI:
-  - Extracción estructurada: `gemini-2.0-flash-001` (GA, temperatura 0.0).
-  - Razonamiento de cláusulas: `gemini-1.5-pro-002` (GA).
+### Fase 3: Conexión Real con Gemini (Vertex AI & GCP) (Completado y Verificado en Vivo)
+- [x] **Habilitación de API y Autenticación ADC:** Activada la API de Vertex AI (`aiplatform.googleapis.com`) en el proyecto `the-catcher-in-the-rag` autenticado sin API keys mediante ADC.
+- [x] **Fijación de Modelos GA Activos en `config/models.yaml`:**
+  - Extracción estructurada: `gemini-2.5-flash` (GA activo en Vertex AI, latencia media 5.6s, $0.20/1k).
+  - Razonamiento de cláusulas: `gemini-2.5-pro` (GA activo en Vertex AI, latencia media 8.8s, $3.34/1k).
   - Embeddings de recuperación: `text-embedding-005` (768 dimensiones).
   - Reranker: `flashrank` (`ms-marco-TinyBERT-L-2-v2`, ligero CPU-only sin costos externos).
-- [x] **Bake-off de Extracción Flash vs Pro vs Baseline:** Harness comparativo en `evals/bakeoff.py` (`make eval-bakeoff`) evaluando latencia, costo estimado por 1,000 contratos y exactitud campo por campo.
-- [x] **Conexión de Trazabilidad Observabilidad con Langfuse:** Implementado `providers/tracing.py` con interfaz abstracta `BaseTracer`, `NoOpTracer` para ejecución offline determinista y `LangfuseTracer` para auditoría de latencia de red y consumo de tokens en GCP.
+- [x] **Ejecución Empírica del Bake-off (`make eval-bakeoff`):** Sin stubs ni simulaciones; conexión real a Google Cloud Vertex AI reportada en `evals/reports/bakeoff_latest.json`:
+  - **Rule-Based Baseline:** 0.6 ms | $0.00 / 1k | 0.0% errores | 100.0% exactitud global
+  - **Gemini 2.5 Flash:** 5610.8 ms | $0.20 / 1k | 0.0% errores | 100.0% exactitud global
+  - **Gemini 2.5 Pro:** 8830.6 ms | $3.34 / 1k | 0.0% errores | 100.0% exactitud global
+- [x] **Trazabilidad y Observabilidad con Langfuse:** Implementado `providers/tracing.py` con interfaz abstracta `BaseTracer`, `NoOpTracer` para ejecución offline y `LangfuseTracer` para auditoría de latencia y consumo de tokens en GCP.
 
 ### Fase 4: Calibración Empírica de Bartleby (Completado)
 - [x] **Barrido de Umbrales en `evals/calibrate_bartleby.py` (`make calibrate-bartleby`):** Grid search sistemático sobre los 300 paquetes cruzando A09 (ground-truth abstención) contra no-A09. Demostró 100.0% de abstención en A09 y 0.0% de sobre-abstención en paquetes legítimos (F1 = 1.0000).

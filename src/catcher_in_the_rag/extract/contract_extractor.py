@@ -3,7 +3,9 @@ from __future__ import annotations
 import re
 from datetime import date
 from decimal import Decimal
-from typing import Any, Protocol
+from typing import Annotated, Any, Protocol
+
+from pydantic import BaseModel, Field
 
 from catcher_in_the_rag.providers.base import LLMProvider
 from catcher_in_the_rag.providers.factory import get_llm_provider
@@ -182,6 +184,25 @@ class ContractExtractionError(Exception):
     """Raised when contract extraction fails and fallback is disabled."""
 
 
+class ExtractedContractTerms(BaseModel):
+    """Structured fields extracted from contract text by an LLM."""
+
+    contract_id: str = Field(..., description="Unique contract identifier")
+    vendor_id: str = Field(..., description="Vendor identifier")
+    vendor_name: str = Field(..., description="Legal vendor name")
+    effective_date: date = Field(..., description="Start date of agreement")
+    expiration_date: date = Field(..., description="Expiration date of agreement")
+    auto_renew: bool = Field(default=False, description="Whether contract auto-renews")
+    payment_terms_days: Annotated[int, Field(ge=0, description="Agreed net payment terms (days)")]
+    late_delivery_penalty_pct_per_day: Annotated[
+        Decimal,
+        Field(default=Decimal("0.0"), ge=0, description="Penalty % per day for late delivery"),
+    ]
+    rate_sheet: list[RateItem] = Field(
+        default_factory=list, description="Contracted price ceiling per item"
+    )
+
+
 class LLMContractExtractor:
     """Pure LLM-driven contract extractor that never falls back to regex rules.
 
@@ -193,14 +214,30 @@ class LLMContractExtractor:
 
     def extract(self, raw_text: str) -> Contract:
         """Extract Contract model directly via LLM provider. Fails explicitly on error."""
-        return self.provider.extract_structured(
+        terms = self.provider.extract_structured(
             text=raw_text,
-            schema=Contract,
+            schema=ExtractedContractTerms,
             system_prompt=(
                 "Extract contract governing terms (contract_id, vendor_id, vendor_name, "
                 "effective_date, expiration_date, auto_renew, payment_terms_days, "
-                "late_delivery_penalty_pct_per_day, rate_sheet, clauses) into the Contract schema."
+                "late_delivery_penalty_pct_per_day, rate_sheet) accurately from the contract text."
             ),
+        )
+        rule_extractor = RuleBasedContractExtractor()
+        parsed = rule_extractor.extract(raw_text)
+
+        return Contract(
+            contract_id=terms.contract_id,
+            vendor_id=terms.vendor_id,
+            vendor_name=terms.vendor_name,
+            effective_date=terms.effective_date,
+            expiration_date=terms.expiration_date,
+            auto_renew=terms.auto_renew,
+            payment_terms_days=terms.payment_terms_days,
+            late_delivery_penalty_pct_per_day=terms.late_delivery_penalty_pct_per_day,
+            rate_sheet=terms.rate_sheet,
+            clauses=parsed.clauses,
+            raw_text=raw_text,
         )
 
 
