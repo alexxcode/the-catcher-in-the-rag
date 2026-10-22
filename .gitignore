@@ -62,7 +62,8 @@ data/reports/
 data/synthetic/
 
 # ── Evaluation reports ────────────────────────────────────────────────────────
-evals/reports/
+evals/reports/*
+!evals/reports/.gitkeep
 
 # ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
