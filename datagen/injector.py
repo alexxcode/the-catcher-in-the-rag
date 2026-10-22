@@ -158,8 +158,12 @@ def inject_anomaly(
 
         case AnomalyType.A08:
             # A08: Amount above approval threshold (e.g. $50,000 policy threshold)
-            large_qty = Decimal("50")
             item = invoice.line_items[0]
+            target_val = Decimal("65000.00")
+            large_qty = max(Decimal("10"), (target_val / item.unit_price).quantize(Decimal("1")))
+            if large_qty * item.unit_price <= Decimal("50000.00"):
+                large_qty += Decimal("50")
+
             expensive_item = LineItem(
                 item_id=item.item_id,
                 description=item.description,
