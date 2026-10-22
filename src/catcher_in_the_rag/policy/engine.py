@@ -60,6 +60,8 @@ class PolicyEngine:
         package_id: str,
         invoice_total: Decimal,
         findings: list[Finding],
+        bartleby_abstained: bool = False,
+        bartleby_reason: str | None = None,
     ) -> Decision:
         """Evaluate invoice total and findings against policy rules to produce a deterministic decision."""
         all_findings = list(findings)
@@ -83,7 +85,21 @@ class PolicyEngine:
                 )
             )
 
-        # 2. Multi-finding resolution
+        # 2. Check for Bartleby abstention (A09)
+        has_a09 = any(f.anomaly_type == AnomalyType.A09 for f in all_findings)
+        if bartleby_abstained or has_a09:
+            reason = bartleby_reason or "Evidence absent in contract terms"
+            return Decision(
+                package_id=package_id,
+                decision=DecisionType.ABSTAIN,
+                findings=all_findings,
+                requires_human_review=True,
+                justification=f"Abstained: {reason}",
+                bartleby_abstained=True,
+                bartleby_reason=reason,
+            )
+
+        # 3. Multi-finding resolution
         # Priority: REJECT > REVIEW > APPROVE
         has_reject = False
         has_review = False

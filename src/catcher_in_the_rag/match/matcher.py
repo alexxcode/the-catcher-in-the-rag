@@ -107,6 +107,10 @@ def run_three_way_match(
         )
 
     for inv_item in invoice.line_items:
+        # Surcharges and contractual fees (e.g. FEE-*) are governed by contract RAG, not physical goods receipts
+        if inv_item.item_id.startswith("FEE-") or inv_item.item_id.startswith("SRG-"):
+            continue
+
         qty_received = receipt_qty_map.get(inv_item.item_id)
         if qty_received is None:
             # Item was not received at all
@@ -145,6 +149,9 @@ def run_three_way_match(
     po_rate_map: dict[str, Decimal] = {p.item_id: p.unit_price for p in po.line_items}
 
     for inv_item in invoice.line_items:
+        if inv_item.item_id.startswith("FEE-") or inv_item.item_id.startswith("SRG-"):
+            continue
+
         contract_rate = rate_map.get(inv_item.item_id) or po_rate_map.get(inv_item.item_id)
         if contract_rate is not None:
             max_allowed = (contract_rate * (Decimal("1.0") + price_tolerance_pct)).quantize(
