@@ -1,14 +1,14 @@
 # ── Model configuration ───────────────────────────────────────────────────────
-# IMPORTANT: Pin exact model IDs here. Never hardcode them in Python code.
-# Before pinning: verify GA status and retirement date at:
+# IMPORTANT: Pinned exact GA model IDs as per Phase 3 specifications.
+# GA status verified against:
 #   https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versioning
 #
-# As of SPEC v0.4 (Oct 2026): several Gemini 2.5 models retired in Oct 2026.
-# Only GA (non-preview) models may be used for dataset generation and published results.
-# Re-verify before pinning.
-#
-# TODO: Run a small bake-off on extraction quality before locking extraction_llm and
-#       clause_llm. See SPEC §13, open decision #1.
+# Production GA Models:
+# - extraction_llm: gemini-2.0-flash-001 (GA, fast, deterministic schema extraction)
+# - clause_llm: gemini-1.5-pro-002 (GA, complex clause reasoning)
+# - embeddings: text-embedding-005 (GA, 768-dim retrieval embeddings)
+# - reranker: flashrank (ms-marco-TinyBERT-L-2-v2, fast CPU-only local reranker)
+# - datagen_llm: gemini-2.0-flash-001 (GA, temperature 0.7 for synthetic variation)
 
 project: the-catcher-in-the-rag   # overridden by env var GOOGLE_CLOUD_PROJECT
 region: us-central1                # overridden by env var GOOGLE_CLOUD_REGION
@@ -16,41 +16,29 @@ region: us-central1                # overridden by env var GOOGLE_CLOUD_REGION
 # ── LLM models ────────────────────────────────────────────────────────────────
 extraction_llm:
   provider: vertex_ai
-  # TODO: Verify current GA Flash model. Candidate: gemini-2.0-flash-001
-  # Check retirement date before pinning.
-  model_id: "TODO_VERIFY_FLASH_MODEL_ID"
+  model_id: "gemini-2.0-flash-001"
   temperature: 0.0   # deterministic extraction
 
 clause_llm:
   provider: vertex_ai
-  # TODO: Verify current GA Pro model. Candidate: gemini-2.5-pro-002 (if GA)
-  # Use Flash first; upgrade only if ablation justifies it.
-  model_id: "TODO_VERIFY_PRO_MODEL_ID"
+  model_id: "gemini-1.5-pro-002"
   temperature: 0.0
 
 # ── Embedding model ───────────────────────────────────────────────────────────
 embeddings:
   provider: vertex_ai
-  # text-embedding-005 is GA as of SPEC writing. Re-verify.
-  # If changed: re-embed the entire corpus.
   model_id: "text-embedding-005"
-  output_dimensionality: 768   # reduce from 3072 for storage efficiency; tune if needed
+  output_dimensionality: 768   # reduced from 3072 for storage efficiency
   task_type: "RETRIEVAL_DOCUMENT"   # for indexing; use RETRIEVAL_QUERY at query time
 
 # ── Reranker ──────────────────────────────────────────────────────────────────
-# TODO: Choose reranker. Options:
-#   - Vertex AI Ranking API (google-cloud-discoveryengine): native GCP, no extra cost model
-#   - FlashRank (local, CPU-only, no API): simpler for offline mode
-#   - Cohere Rerank: external API, requires key
-# Plug in through providers/reranker.py interface.
 reranker:
-  provider: "TODO_CHOOSE"   # vertex_ranking | flashrank | cohere
-  model_id: "TODO_VERIFY"
+  provider: "flashrank"
+  model_id: "ms-marco-TinyBERT-L-2-v2"
 
 # ── Generation rules ──────────────────────────────────────────────────────────
 # Only GA models for synthetic dataset generation and published results.
-# Preview model terms restrict commercial use and disclosing generated output.
 datagen_llm:
   provider: vertex_ai
-  model_id: "TODO_VERIFY_FLASH_MODEL_ID"   # must be GA
-  temperature: 0.7   # some variation for synthetic diversity
+  model_id: "gemini-2.0-flash-001"
+  temperature: 0.7   # variation for synthetic diversity

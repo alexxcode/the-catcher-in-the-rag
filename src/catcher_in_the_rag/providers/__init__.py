@@ -7,13 +7,23 @@ from catcher_in_the_rag.providers.factory import (
     load_model_config,
 )
 from catcher_in_the_rag.providers.stub import StubEmbeddingProvider, StubLLMProvider
+from catcher_in_the_rag.providers.tracing import (
+    BaseTracer,
+    LangfuseTracer,
+    NoOpTracer,
+    get_tracer,
+)
 
 __all__ = [
+    "BaseTracer",
     "EmbeddingProvider",
     "LLMProvider",
+    "LangfuseTracer",
+    "NoOpTracer",
     "StubEmbeddingProvider",
     "StubLLMProvider",
     "get_embedding_provider",
     "get_llm_provider",
+    "get_tracer",
     "load_model_config",
 ]

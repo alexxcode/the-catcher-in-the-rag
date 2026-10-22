@@ -126,6 +126,9 @@ make eval-ablations
 # Run field-by-field unstructured contract extraction benchmark (Phase 2)
 make eval-extraction
 
+# Run model extraction bake-off (Flash vs Pro vs Baseline) (Phase 3)
+make eval-bakeoff
+
 # Start the interactive Streamlit UI
 make run-ui
 

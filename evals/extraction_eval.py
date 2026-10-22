@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel
 
 from catcher_in_the_rag.extract.contract_extractor import (
@@ -19,6 +21,31 @@ class ContractFieldAccuracy(BaseModel):
     auto_renew_match: bool
     rate_sheet_match: bool
     perfect_match: bool
+
+
+def evaluate_contract_extraction(
+    extracted: Any,
+    gt_contract: Any,
+) -> dict[str, bool]:
+    """Helper to compare extracted contract fields against ground truth."""
+    terms_ok = extracted.payment_terms_days == gt_contract.payment_terms_days
+    exp_ok = extracted.expiration_date == gt_contract.expiration_date
+    pen_ok = (
+        extracted.late_delivery_penalty_pct_per_day == gt_contract.late_delivery_penalty_pct_per_day
+    )
+    renew_ok = extracted.auto_renew == gt_contract.auto_renew
+
+    gt_rates = {r.item_id: r.max_unit_price for r in gt_contract.rate_sheet}
+    ext_rates = {r.item_id: r.max_unit_price for r in extracted.rate_sheet}
+    rates_ok = gt_rates == ext_rates
+
+    return {
+        "payment_terms_days": terms_ok,
+        "expiration_date": exp_ok,
+        "late_delivery_penalty_pct_per_day": pen_ok,
+        "auto_renew": renew_ok,
+        "rate_sheet": rates_ok,
+    }
 
 
 class ExtractionReport(BaseModel):

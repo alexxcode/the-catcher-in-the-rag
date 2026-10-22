@@ -26,7 +26,10 @@ def load_model_config() -> dict[str, Any]:
     return {}
 
 
-def get_llm_provider(provider_type: str | None = None) -> LLMProvider:
+def get_llm_provider(
+    provider_type: str | None = None,
+    model_id: str | None = None,
+) -> LLMProvider:
     """Get configured LLM provider (defaults to stub for offline execution and tests)."""
     p_type = provider_type or os.getenv("LLM_PROVIDER", "stub")
 
@@ -38,7 +41,7 @@ def get_llm_provider(provider_type: str | None = None) -> LLMProvider:
         from catcher_in_the_rag.providers.gemini import GeminiProvider
 
         cfg = load_model_config()
-        return GeminiProvider(config=cfg)
+        return GeminiProvider(config=cfg, model_id=model_id)
 
     msg = f"Unknown LLM provider type: {p_type}. Expected 'stub', 'vertex_ai', 'gemini', or 'real'."
     raise ValueError(msg)

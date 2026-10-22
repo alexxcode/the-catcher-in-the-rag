@@ -18,7 +18,11 @@ class GeminiProvider(LLMProvider):
     https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versioning
     """
 
-    def __init__(self, config: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        config: dict[str, Any] | None = None,
+        model_id: str | None = None,
+    ) -> None:
         self.config = config or {}
         self.project = os.getenv(
             "GOOGLE_CLOUD_PROJECT", self.config.get("project", "the-catcher-in-the-rag")
@@ -26,7 +30,7 @@ class GeminiProvider(LLMProvider):
         self.region = os.getenv("GOOGLE_CLOUD_REGION", self.config.get("region", "us-central1"))
         ext_cfg = self.config.get("extraction_llm", {})
         # Configured model or GA default candidate
-        model_candidate = ext_cfg.get("model_id")
+        model_candidate = model_id or ext_cfg.get("model_id")
         if not model_candidate or "TODO" in str(model_candidate):
             model_candidate = "gemini-2.0-flash-001"
         self.model_id = model_candidate
@@ -71,6 +75,10 @@ class GeminiProvider(LLMProvider):
         )
         response = self._client.generate_content(prompt, generation_config=gen_config)
         raw_json = (response.text or "").strip()
+        if raw_json.startswith("```json"):
+            raw_json = raw_json.removeprefix("```json").removesuffix("```").strip()
+        elif raw_json.startswith("```"):
+            raw_json = raw_json.removeprefix("```").removesuffix("```").strip()
         return schema.model_validate_json(raw_json)
 
     def generate_text(

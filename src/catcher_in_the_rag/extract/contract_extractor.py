@@ -174,8 +174,12 @@ class RuleBasedContractExtractor:
 class HybridContractExtractor:
     """Extractor capable of routing to LLM provider with fallback to rule-based parser."""
 
-    def __init__(self, provider: LLMProvider | None = None) -> None:
-        self.provider = provider or get_llm_provider()
+    def __init__(
+        self,
+        provider: LLMProvider | None = None,
+        llm_provider: LLMProvider | None = None,
+    ) -> None:
+        self.provider = provider or llm_provider or get_llm_provider()
         self.rule_extractor = RuleBasedContractExtractor()
 
     def extract(self, raw_text: str) -> Contract:

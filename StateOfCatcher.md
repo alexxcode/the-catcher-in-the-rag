@@ -1,6 +1,6 @@
 # State of The Catcher in the RAG
-**Document Version:** 1.2.0  
-**System Status:** Phase 2 (Benchmark Desafío No Estructurado) Completed · 47 Unit Tests Passing · 100% Extraction Match · CI Green  
+**Document Version:** 1.3.0  
+**System Status:** Phase 3 (Vertex AI GA Models, Extraction Bake-Off & Langfuse Tracing) Completed · 52 Unit Tests Passing · CI Green  
 **Date:** Octubre 2026  
 **Repository:** `alexxcode/the-catcher-in-the-rag`  
 
@@ -178,10 +178,14 @@ Habiendo culminado la fase de **Honestidad Primero**, la evolución hacia un sis
 - [x] **Consultas desacopladas (Sin data-leakage):** Búsqueda de cláusulas en `evals/runner.py` desacoplada del texto del span objetivo mediante consultas temáticas de auditoría (`audit_topic_queries`), eliminando la circularidad de Recall@5.
 - [x] **Negativos difíciles en A09 y Activación de Bartleby Condición #3:** La Sección 8 (Fletes) actúa como negativo difícil para recargos no autorizados. Bartleby inspecciona si las cláusulas coincidentes son restrictivas o deniegan reembolso ("under no circumstances", "unless authorized"), emitiendo `NO_EVIDENCE` de manera robusta.
 
-### Fase 3: Conexión Real con Gemini (Vertex AI & GCP)
-1. Fijar modelos específicos con estado General Availability (GA) y ciclo de vida validado en [Google Cloud Model Versioning](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versioning).
-2. Ejecutar un *bake-off* de extracción controlada entre modelos Flash y Pro, cuantificando trade-offs de costo, latencia y fidelidad de citas.
-3. Conectar trazas en vivo a Langfuse para auditoría de latencia de red y consumo de tokens.
+### Fase 3: Conexión Real con Gemini (Vertex AI & GCP) (Completado)
+- [x] **Fijación de Modelos GA en `config/models.yaml`:** Modelos con ciclo de vida verificado en Vertex AI:
+  - Extracción estructurada: `gemini-2.0-flash-001` (GA, temperatura 0.0).
+  - Razonamiento de cláusulas: `gemini-1.5-pro-002` (GA).
+  - Embeddings de recuperación: `text-embedding-005` (768 dimensiones).
+  - Reranker: `flashrank` (`ms-marco-TinyBERT-L-2-v2`, ligero CPU-only sin costos externos).
+- [x] **Bake-off de Extracción Flash vs Pro vs Baseline:** Harness comparativo en `evals/bakeoff.py` (`make eval-bakeoff`) evaluando latencia, costo estimado por 1,000 contratos y exactitud campo por campo.
+- [x] **Conexión de Trazabilidad Observabilidad con Langfuse:** Implementado `providers/tracing.py` con interfaz abstracta `BaseTracer`, `NoOpTracer` para ejecución offline determinista y `LangfuseTracer` para auditoría de latencia de red y consumo de tokens en GCP.
 
 ### Fase 4: Calibración Empírica de Bartleby
 1. Barrido de umbrales (`min_relevance_score`, `min_bm25_score`, `min_dense_score`) sobre un conjunto de validación separado (A09 vs A10).

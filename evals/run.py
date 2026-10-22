@@ -10,6 +10,11 @@ from catcher_in_the_rag.schemas import (
     ProcurementPackage,
 )
 from datagen.generator import generate_dataset
+from evals.bakeoff import (
+    ExtractionBakeOff,
+    print_bakeoff_summary,
+    save_bakeoff_report,
+)
 from evals.extraction_eval import ExtractionBenchmarkRunner, print_extraction_summary
 from evals.report_writer import print_summary_table, save_report
 from evals.runner import EvaluationRunner
@@ -68,6 +73,11 @@ def main() -> int:
         help="Run field-by-field contract extraction benchmark from raw text (Phase 2)",
     )
     parser.add_argument(
+        "--bakeoff",
+        action="store_true",
+        help="Run extraction bake-off: Flash vs Pro vs Rule-based baseline (Phase 3)",
+    )
+    parser.add_argument(
         "--sample-size",
         type=int,
         default=None,
@@ -122,6 +132,22 @@ def main() -> int:
         ext_runner = ExtractionBenchmarkRunner(extractor_type="rule")
         ext_report = ext_runner.evaluate_dataset(dataset)
         print_extraction_summary(ext_report)
+
+    if args.bakeoff:
+        print("\nRunning Model Extraction Bake-Off (Phase 3: Flash vs Pro vs Rule Baseline)...")
+        contracts_to_evaluate: list[tuple[str, Any]] = [
+            (pkg.contract.raw_text, pkg.contract)
+            for pkg, _ in dataset
+            if pkg.contract and pkg.contract.raw_text
+        ]
+        bakeoff_runner = ExtractionBakeOff(
+            contracts=contracts_to_evaluate,
+            sample_size=args.sample_size or 50,
+        )
+        bakeoff_results = bakeoff_runner.run_bakeoff()
+        print_bakeoff_summary(bakeoff_results)
+        bakeoff_file = save_bakeoff_report(bakeoff_results, output_dir=args.output)
+        print(f"Bake-off report saved to: {bakeoff_file}")
 
     return 0
 
