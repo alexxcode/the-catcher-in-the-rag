@@ -10,6 +10,7 @@ Tracing rules:
 
 from __future__ import annotations
 
+import contextlib
 import os
 from abc import ABC, abstractmethod
 from typing import Any
@@ -123,7 +124,7 @@ class LangfuseTracer(BaseTracer):
         client = self._ensure_client()
         if not client:
             return
-        try:
+        with contextlib.suppress(Exception):
             trace = client.trace(
                 name=name,
                 input=input_data,
@@ -133,8 +134,6 @@ class LangfuseTracer(BaseTracer):
             )
             if latency_ms is not None:
                 trace.update(metadata={"latency_ms": latency_ms})
-        except Exception:
-            pass
 
     def trace_generation(
         self,
@@ -149,7 +148,7 @@ class LangfuseTracer(BaseTracer):
         client = self._ensure_client()
         if not client:
             return
-        try:
+        with contextlib.suppress(Exception):
             trace = client.trace(name=f"trace-{name}", tags=["llm-generation"])
             trace.generation(
                 name=name,
@@ -159,16 +158,12 @@ class LangfuseTracer(BaseTracer):
                 usage=usage,
                 metadata={"latency_ms": latency_ms, **(metadata or {})},
             )
-        except Exception:
-            pass
 
     def flush(self) -> None:
         client = self._ensure_client()
         if client:
-            try:
+            with contextlib.suppress(Exception):
                 client.flush()
-            except Exception:
-                pass
 
 
 def get_tracer(sample_rate: float = 1.0) -> BaseTracer:

@@ -4,6 +4,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from catcher_in_the_rag.schemas import (
     PackageLabels,

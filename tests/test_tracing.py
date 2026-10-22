@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from catcher_in_the_rag.providers.tracing import (
     BaseTracer,
     LangfuseTracer,
@@ -17,7 +19,7 @@ def test_noop_tracer_methods() -> None:
     tracer.flush()
 
 
-def test_get_tracer_defaults_to_noop(monkeypatch) -> None:
+def test_get_tracer_defaults_to_noop(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
     monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
     tracer = get_tracer()
