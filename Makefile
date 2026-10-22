@@ -22,11 +22,11 @@ install: ## Sync dependencies without recreating venv
 
 # ── Quality ───────────────────────────────────────────────────────────────────
 lint: ## Run ruff linter
-	$(RUFF) check src/ tests/ datagen/ evals/
+	$(RUFF) check src/ tests/ datagen/ evals/ ui/
 
 format: ## Run ruff formatter
-	$(RUFF) format src/ tests/ datagen/ evals/
-	$(RUFF) check --fix src/ tests/ datagen/ evals/
+	$(RUFF) format src/ tests/ datagen/ evals/ ui/
+	$(RUFF) check --fix src/ tests/ datagen/ evals/ ui/
 	@command -v terraform >/dev/null 2>&1 && terraform fmt -recursive infra/terraform/ || true
 
 # ── Tests ─────────────────────────────────────────────────────────────────────

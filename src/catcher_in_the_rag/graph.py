@@ -184,11 +184,11 @@ def build_audit_graph(
     return graph
 
 
-def run_audit(
+def audit_pipeline(
     source: str | dict[str, Any] | Path | ProcurementPackage,
     llm_provider: LLMProvider | None = None,
-) -> Decision:
-    """Convenience helper to run full audit pipeline on a package and return the final Decision."""
+) -> AuditState:
+    """Run full audit pipeline on a package and return the full final AuditState."""
     compiled = build_audit_graph(llm_provider=llm_provider).compile()
     init_state: AuditState = {}
     if isinstance(source, ProcurementPackage):
@@ -197,5 +197,14 @@ def run_audit(
     else:
         init_state["raw_input"] = source
 
-    final_state = compiled.invoke(init_state)
+    final_state: AuditState = compiled.invoke(init_state)
+    return final_state
+
+
+def run_audit(
+    source: str | dict[str, Any] | Path | ProcurementPackage,
+    llm_provider: LLMProvider | None = None,
+) -> Decision:
+    """Convenience helper to run full audit pipeline on a package and return the final Decision."""
+    final_state = audit_pipeline(source=source, llm_provider=llm_provider)
     return final_state["decision"]

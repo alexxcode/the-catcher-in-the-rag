@@ -1,0 +1,31 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile
+    container_name: catcher-rag-api
+    ports:
+      - "8000:8000"
+    command: ["uvicorn", "catcher_in_the_rag.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      - PYTHONUNBUFFERED=1
+      - APP_ENV=production
+    volumes:
+      - ./data/synthetic:/app/data/synthetic:ro
+      - ./evals/reports:/app/evals/reports:ro
+
+  ui:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile
+    container_name: catcher-rag-ui
+    ports:
+      - "8501:8501"
+    command: ["streamlit", "run", "ui/app.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - api
+    volumes:
+      - ./data/synthetic:/app/data/synthetic:ro
+      - ./evals/reports:/app/evals/reports:ro
