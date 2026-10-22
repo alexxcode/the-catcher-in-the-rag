@@ -16,11 +16,15 @@ def test_candidate_result_structure() -> None:
     res = CandidateResult(
         candidate_name="Test Model",
         model_id="test-id",
+        provider_type="vertex_ai",
         sample_size=10,
         mean_latency_ms=12.5,
         estimated_cost_per_1k_usd=0.50,
+        error_count=0,
+        error_rate=0.0,
         field_accuracies={"payment_terms_days": 1.0, "rate_sheet": 1.0},
         overall_perfect_accuracy=1.0,
+        is_simulated=False,
     )
     assert res.candidate_name == "Test Model"
     assert res.overall_perfect_accuracy == 1.0

@@ -42,8 +42,16 @@ class AuditState(TypedDict, total=False):
 NodeFn = Callable[[AuditState], dict[str, Any]]
 
 
-def create_extract_node(extractor: DocumentExtractor) -> NodeFn:
-    """Factory for the extraction graph node."""
+def create_extract_node(
+    extractor: DocumentExtractor,
+    extract_contract_from_text: bool = True,
+) -> NodeFn:
+    """Factory for the extraction graph node.
+
+    When extract_contract_from_text is True (default), extracts governing contract
+    terms directly from raw_text via DocumentExtractor rather than relying on
+    pre-structured input fields.
+    """
 
     def extract_node(state: AuditState) -> dict[str, Any]:
         raw = state.get("raw_input")
@@ -51,6 +59,20 @@ def create_extract_node(extractor: DocumentExtractor) -> NodeFn:
             pkg = state["package"]
         else:
             pkg = extractor.extract_package(raw)
+
+        if extract_contract_from_text and pkg.contract and pkg.contract.raw_text:
+            extracted_contract = extractor.extract_contract(pkg.contract.raw_text)
+            updated_contract = pkg.contract.model_copy(
+                update={
+                    "payment_terms_days": extracted_contract.payment_terms_days,
+                    "expiration_date": extracted_contract.expiration_date,
+                    "late_delivery_penalty_pct_per_day": extracted_contract.late_delivery_penalty_pct_per_day,
+                    "auto_renew": extracted_contract.auto_renew,
+                    "rate_sheet": extracted_contract.rate_sheet,
+                }
+            )
+            pkg = pkg.model_copy(update={"contract": updated_contract})
+
         return {
             "package_id": pkg.package_id,
             "package": pkg,
@@ -146,6 +168,7 @@ class SimplePipeline:
 def build_audit_graph(
     llm_provider: LLMProvider | None = None,
     policy_engine: PolicyEngine | None = None,
+    extract_contract_from_text: bool = True,
 ) -> StateGraph | SimplePipeline:
     """Build and wire the LangGraph state machine for document auditing."""
     provider = llm_provider or get_llm_provider()
@@ -153,7 +176,9 @@ def build_audit_graph(
     policy = policy_engine or PolicyEngine()
     terms_evaluator = ContractTermsEvaluator()
 
-    extract_fn = create_extract_node(extractor)
+    extract_fn = create_extract_node(
+        extractor, extract_contract_from_text=extract_contract_from_text
+    )
     apply_terms_fn = create_apply_terms_node(terms_evaluator)
     policy_fn = create_policy_node(policy)
 
@@ -187,9 +212,13 @@ def build_audit_graph(
 def audit_pipeline(
     source: str | dict[str, Any] | Path | ProcurementPackage,
     llm_provider: LLMProvider | None = None,
+    extract_contract_from_text: bool = True,
 ) -> AuditState:
     """Run full audit pipeline on a package and return the full final AuditState."""
-    compiled = build_audit_graph(llm_provider=llm_provider).compile()
+    compiled = build_audit_graph(
+        llm_provider=llm_provider,
+        extract_contract_from_text=extract_contract_from_text,
+    ).compile()
     init_state: AuditState = {}
     if isinstance(source, ProcurementPackage):
         init_state["package"] = source
@@ -204,7 +233,12 @@ def audit_pipeline(
 def run_audit(
     source: str | dict[str, Any] | Path | ProcurementPackage,
     llm_provider: LLMProvider | None = None,
+    extract_contract_from_text: bool = True,
 ) -> Decision:
     """Convenience helper to run full audit pipeline on a package and return the final Decision."""
-    final_state = audit_pipeline(source=source, llm_provider=llm_provider)
+    final_state = audit_pipeline(
+        source=source,
+        llm_provider=llm_provider,
+        extract_contract_from_text=extract_contract_from_text,
+    )
     return final_state["decision"]

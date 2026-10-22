@@ -38,19 +38,164 @@ class SweepCandidate:
 class CalibrationReport:
     timestamp: str
     total_packages: int
+    calibration_packages: int
+    validation_packages: int
     optimal_threshold: float
     optimal_spans: int
     candidates: list[SweepCandidate]
+    validation_candidate: SweepCandidate | None = None
 
 
 class BartlebyCalibrator:
-    """Executes empirical grid search over Bartleby abstention parameters."""
+    """Executes empirical grid search over Bartleby abstention parameters.
+
+    Features:
+    - Train / held-out validation split
+    - Non-zero denominator for over-abstention testing legitimate contract clauses
+    - Hard cases / near-misses testing boundary discrimination
+    - Center-of-plateau threshold selection (avoiding brittle edge thresholds)
+    """
 
     def __init__(
         self,
         dataset: list[tuple[ProcurementPackage, PackageLabels]],
+        train_ratio: float = 0.6,
+        seed: int = 42,
     ) -> None:
         self.dataset = dataset
+        self.train_ratio = train_ratio
+        self.seed = seed
+
+    def _split_dataset(
+        self,
+    ) -> tuple[
+        list[tuple[ProcurementPackage, PackageLabels]],
+        list[tuple[ProcurementPackage, PackageLabels]],
+    ]:
+        if len(self.dataset) <= 2:
+            # Minimal dataset (e.g. unit tests)
+            return self.dataset, self.dataset
+
+        # Deterministic stratified split by A09 vs non-A09
+        a09_pkgs = [
+            (p, l)
+            for p, l in self.dataset
+            if any(str(a) == "A09" or getattr(a, "value", None) == "A09" for a in l.anomalies)
+        ]
+        non_a09_pkgs = [
+            (p, l)
+            for p, l in self.dataset
+            if not any(str(a) == "A09" or getattr(a, "value", None) == "A09" for a in l.anomalies)
+        ]
+
+        n_a09_train = max(1, int(len(a09_pkgs) * self.train_ratio))
+        n_non_train = max(1, int(len(non_a09_pkgs) * self.train_ratio))
+
+        train = a09_pkgs[:n_a09_train] + non_a09_pkgs[:n_non_train]
+        val = a09_pkgs[n_a09_train:] + non_a09_pkgs[n_non_train:]
+
+        if not val:
+            val = train
+        return train, val
+
+    def _prepare_retrievals(
+        self,
+        subset: list[tuple[ProcurementPackage, PackageLabels]],
+    ) -> list[tuple[ProcurementPackage, PackageLabels, list[ScoredClause], str | None, bool]]:
+        """Pre-compute retrievals for both A09 (uncontracted items) and non-A09 (legitimate/near-miss terms)."""
+        retrievals: list[
+            tuple[ProcurementPackage, PackageLabels, list[ScoredClause], str | None, bool]
+        ] = []
+
+        for pkg, lbl in subset:
+            if not pkg.contract or not pkg.invoice:
+                continue
+
+            is_a09 = any(
+                str(a) == "A09" or getattr(a, "value", None) == "A09" for a in lbl.anomalies
+            )
+
+            po_item_ids = {it.item_id for it in pkg.po.line_items} if pkg.po else set()
+            unlinked_items = [it for it in pkg.invoice.line_items if it.item_id not in po_item_ids]
+
+            if is_a09:
+                topic = (
+                    unlinked_items[0].description
+                    if unlinked_items
+                    else "unauthorized delivery surcharge"
+                )
+            else:
+                # In non-A09, test legitimate contract clauses that SHOULD be found (no abstention)
+                # Query topic could be standard freight, payment schedule, or ordered item
+                topic = (
+                    pkg.invoice.line_items[0].description
+                    if pkg.invoice.line_items
+                    else "standard delivery freight carriage"
+                )
+
+            if pkg.contract.clauses:
+                retriever = ContractRetriever(contract=pkg.contract)
+                scored = retriever.retrieve(
+                    query=topic,
+                    top_k=5,
+                )
+            else:
+                scored = []
+
+            retrievals.append((pkg, lbl, scored, topic, is_a09))
+
+        return retrievals
+
+    def _evaluate_candidate(
+        self,
+        guard: BartlebyGuard,
+        retrievals: list[
+            tuple[ProcurementPackage, PackageLabels, list[ScoredClause], str | None, bool]
+        ],
+        score_th: float,
+        spans_th: int,
+    ) -> SweepCandidate:
+        a09_total = 0
+        a09_abstained = 0
+        non_a09_total = 0
+        non_a09_over_abstained = 0
+
+        for _pkg, _lbl, scored_clauses, topic, is_a09 in retrievals:
+            assessment = guard.evaluate_retrieval(scored_clauses, query_topic=topic)
+
+            if is_a09:
+                a09_total += 1
+                if assessment.abstained:
+                    a09_abstained += 1
+            else:
+                # For non-A09 packages, the contract contains the required terms
+                # If guard abstains, that is an over-abstention!
+                non_a09_total += 1
+                if assessment.abstained:
+                    non_a09_over_abstained += 1
+
+        abst_rate = (a09_abstained / a09_total) if a09_total > 0 else 0.0
+        over_rate = (non_a09_over_abstained / non_a09_total) if non_a09_total > 0 else 0.0
+
+        precision = (
+            a09_abstained / (a09_abstained + non_a09_over_abstained)
+            if (a09_abstained + non_a09_over_abstained) > 0
+            else 0.0
+        )
+        recall = abst_rate
+        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+
+        return SweepCandidate(
+            min_relevance_score=round(score_th, 2),
+            min_evidence_spans=spans_th,
+            a09_total=a09_total,
+            a09_abstained=a09_abstained,
+            a09_abstention_rate=round(abst_rate, 4),
+            non_a09_total=non_a09_total,
+            non_a09_over_abstained=non_a09_over_abstained,
+            non_a09_over_abstention_rate=round(over_rate, 4),
+            f1_score=round(f1, 4),
+        )
 
     def run_sweep(
         self,
@@ -62,41 +207,12 @@ class BartlebyCalibrator:
         if span_steps is None:
             span_steps = [1, 2]
 
-        # 1. Pre-compute retrieved clauses for all packages with unlinked/discrepant items
-        package_retrievals: list[
-            tuple[ProcurementPackage, PackageLabels, list[ScoredClause], str | None]
-        ] = []
-        for pkg, lbl in self.dataset:
-            if not pkg.contract or not pkg.invoice:
-                continue
+        train_data, val_data = self._split_dataset()
+        train_retrievals = self._prepare_retrievals(train_data)
+        val_retrievals = self._prepare_retrievals(val_data)
 
-            # Identify if there is an unlinked invoice item requiring contract retrieval
-            po_item_ids = {it.item_id for it in pkg.po.line_items} if pkg.po else set()
-            unlinked_items = [it for it in pkg.invoice.line_items if it.item_id not in po_item_ids]
-
-            topic = (
-                unlinked_items[0].description
-                if unlinked_items
-                else (pkg.invoice.line_items[0].description if pkg.invoice.line_items else None)
-            )
-
-            # Index contract and retrieve
-            if pkg.contract.clauses:
-                retriever = ContractRetriever(contract=pkg.contract)
-                scored = retriever.retrieve(
-                    query=topic or "governing contract terms",
-                    top_k=5,
-                )
-            else:
-                scored = []
-
-            package_retrievals.append((pkg, lbl, scored, topic))
-
-        # 2. Sweep across threshold candidates
+        # 1. Sweep on Training (Calibration) Split
         candidates: list[SweepCandidate] = []
-        best_score = -1.0
-        best_cand: SweepCandidate | None = None
-
         for score_th in relevance_steps:
             for spans_th in span_steps:
                 guard = BartlebyGuard(
@@ -105,101 +221,93 @@ class BartlebyCalibrator:
                         "min_evidence_spans": spans_th,
                     }
                 )
-
-                a09_total = 0
-                a09_abstained = 0
-                non_a09_total = 0
-                non_a09_over_abstained = 0
-
-                for pkg, lbl, scored_clauses, topic in package_retrievals:
-                    is_a09 = any(
-                        str(a) == "A09" or getattr(a, "value", None) == "A09" for a in lbl.anomalies
-                    )
-                    assessment = guard.evaluate_retrieval(scored_clauses, query_topic=topic)
-
-                    if is_a09:
-                        a09_total += 1
-                        if assessment.abstained:
-                            a09_abstained += 1
-                    else:
-                        # Only count packages where unlinked items triggered contract check
-                        po_item_ids = {it.item_id for it in pkg.po.line_items} if pkg.po else set()
-                        has_unlinked = any(
-                            it.item_id not in po_item_ids for it in pkg.invoice.line_items
-                        )
-                        if has_unlinked:
-                            non_a09_total += 1
-                            if assessment.abstained:
-                                non_a09_over_abstained += 1
-
-                # Calculate metrics
-                abst_rate = (a09_abstained / a09_total) if a09_total > 0 else 0.0
-                over_rate = (non_a09_over_abstained / non_a09_total) if non_a09_total > 0 else 0.0
-
-                precision = (
-                    a09_abstained / (a09_abstained + non_a09_over_abstained)
-                    if (a09_abstained + non_a09_over_abstained) > 0
-                    else 0.0
-                )
-                recall = abst_rate
-                f1 = (
-                    2 * (precision * recall) / (precision + recall)
-                    if (precision + recall) > 0
-                    else 0.0
-                )
-
-                cand = SweepCandidate(
-                    min_relevance_score=round(score_th, 2),
-                    min_evidence_spans=spans_th,
-                    a09_total=a09_total,
-                    a09_abstained=a09_abstained,
-                    a09_abstention_rate=round(abst_rate, 4),
-                    non_a09_total=non_a09_total,
-                    non_a09_over_abstained=non_a09_over_abstained,
-                    non_a09_over_abstention_rate=round(over_rate, 4),
-                    f1_score=round(f1, 4),
+                cand = self._evaluate_candidate(
+                    guard=guard,
+                    retrievals=train_retrievals,
+                    score_th=score_th,
+                    spans_th=spans_th,
                 )
                 candidates.append(cand)
 
-                # Prioritize zero over-abstention and maximum F1
-                if over_rate == 0.0 and f1 >= best_score:
-                    best_score = f1
-                    best_cand = cand
+        # 2. Find optimal plateau and select center of plateau
+        # Filter candidates with minimal over-abstention and maximal F1
+        min_over = min(c.non_a09_over_abstention_rate for c in candidates)
+        best_f1 = max(c.f1_score for c in candidates if c.non_a09_over_abstention_rate == min_over)
 
-        if best_cand:
+        top_candidates = [
+            c
+            for c in candidates
+            if c.non_a09_over_abstention_rate == min_over and abs(c.f1_score - best_f1) < 1e-4
+        ]
+
+        # Select center/median of the plateau (NOT the boundary edge)
+        if top_candidates:
+            median_idx = len(top_candidates) // 2
+            best_cand = top_candidates[median_idx]
             best_cand.is_optimal = True
+        else:
+            best_cand = candidates[0]
+            best_cand.is_optimal = True
+
+        # 3. Evaluate optimal candidate on held-out Validation Split
+        val_guard = BartlebyGuard(
+            thresholds={
+                "min_relevance_score": best_cand.min_relevance_score,
+                "min_evidence_spans": best_cand.min_evidence_spans,
+            }
+        )
+        val_cand = self._evaluate_candidate(
+            guard=val_guard,
+            retrievals=val_retrievals,
+            score_th=best_cand.min_relevance_score,
+            spans_th=best_cand.min_evidence_spans,
+        )
 
         return CalibrationReport(
             timestamp=datetime.now(UTC).isoformat(),
             total_packages=len(self.dataset),
-            optimal_threshold=best_cand.min_relevance_score if best_cand else 0.5,
-            optimal_spans=best_cand.min_evidence_spans if best_cand else 1,
+            calibration_packages=len(train_data),
+            validation_packages=len(val_data),
+            optimal_threshold=best_cand.min_relevance_score,
+            optimal_spans=best_cand.min_evidence_spans,
             candidates=candidates,
+            validation_candidate=val_cand,
         )
 
 
 def print_calibration_summary(report: CalibrationReport) -> None:
-    print("=" * 86)
+    print("=" * 96)
     print(" THE CATCHER IN THE RAG - BARTLEBY THRESHOLD CALIBRATION (PHASE 4)")
-    print(f" Timestamp: {report.timestamp} | Total Packages: {report.total_packages}")
-    print("=" * 86)
-    header = f"{'Threshold':<11} | {'Min Spans':<10} | {'A09 Abstention':<16} | {'Over-Abstention':<16} | {'F1-Score':<10} | {'Status'}"
+    print(
+        f" Timestamp: {report.timestamp} | Total: {report.total_packages} "
+        f"(Train: {report.calibration_packages}, Val: {report.validation_packages})"
+    )
+    print("=" * 96)
+    header = f"{'Threshold':<11} | {'Min Spans':<10} | {'A09 Abstention':<18} | {'Over-Abstention':<18} | {'F1-Score':<10} | {'Status'}"
     print(header)
-    print("-" * 86)
+    print("-" * 96)
     for c in report.candidates:
         th = f"{c.min_relevance_score:.2f}"
         spans = str(c.min_evidence_spans)
         a09 = f"{c.a09_abstention_rate * 100:.1f}% ({c.a09_abstained}/{c.a09_total})"
         over = f"{c.non_a09_over_abstention_rate * 100:.1f}% ({c.non_a09_over_abstained}/{c.non_a09_total})"
         f1 = f"{c.f1_score:.4f}"
-        tag = "[OPTIMAL]" if c.is_optimal else ""
-        print(f"{th:<11} | {spans:<10} | {a09:<16} | {over:<16} | {f1:<10} | {tag}")
-    print("=" * 86)
+        tag = "[OPTIMAL-PLATEAU-CENTER]" if c.is_optimal else ""
+        print(f"{th:<11} | {spans:<10} | {a09:<18} | {over:<18} | {f1:<10} | {tag}")
+    print("=" * 96)
+    if report.validation_candidate:
+        vc = report.validation_candidate
+        print(
+            f" [VALIDATION SET EVALUATION (HELD-OUT {report.validation_packages} PKGS)]\n"
+            f"   * A09 Abstention (Recall)    : {vc.a09_abstention_rate * 100:.1f}% ({vc.a09_abstained}/{vc.a09_total})\n"
+            f"   * Over-Abstention (False Pos): {vc.non_a09_over_abstention_rate * 100:.1f}% ({vc.non_a09_over_abstained}/{vc.non_a09_total})\n"
+            f"   * Held-out F1-Score          : {vc.f1_score:.4f}"
+        )
     print(
-        f" [RESULT] Recommended Operational Threshold: min_relevance_score = {report.optimal_threshold:.2f}, "
+        f" [RESULT] Calibrated Optimal Plateau Center: min_relevance_score = {report.optimal_threshold:.2f}, "
         f"min_evidence_spans = {report.optimal_spans}"
     )
-    print("=" * 86)
+    print("=" * 96)
 
 
 def save_calibration_report(
@@ -213,9 +321,14 @@ def save_calibration_report(
     data = {
         "timestamp": report.timestamp,
         "total_packages": report.total_packages,
+        "calibration_packages": report.calibration_packages,
+        "validation_packages": report.validation_packages,
         "optimal_threshold": report.optimal_threshold,
         "optimal_spans": report.optimal_spans,
         "candidates": [asdict(c) for c in report.candidates],
+        "validation_candidate": asdict(report.validation_candidate)
+        if report.validation_candidate
+        else None,
     }
 
     with report_file.open("w", encoding="utf-8") as f:

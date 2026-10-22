@@ -115,6 +115,7 @@ def render_contract_text(
     late_penalty_pct: Decimal = Decimal("1.0"),
     auto_renew: bool = False,
     include_penalties_clause: bool = True,
+    style: str = "standard",
 ) -> tuple[str, list[dict[str, str | int]]]:
     """Render full legal contract text and compute exact character offsets for each clause."""
     renew_phrase = (
@@ -123,10 +124,16 @@ def render_contract_text(
         else "shall expire unconditionally on the Expiration Date without automatic renewal."
     )
 
-    rates_text_lines = []
-    for sku, desc, price in rate_items:
-        rates_text_lines.append(f"  * {sku} - {desc}: Maximum Unit Rate of ${price:.2f} USD")
-    rates_block = "\n".join(rates_text_lines)
+    if style == "diverse":
+        rates_text_lines = []
+        for sku, desc, price in rate_items:
+            rates_text_lines.append(f"  * Item [{sku}] ({desc}): Agreed Cap of ${price:.2f}")
+        rates_block = "\n".join(rates_text_lines)
+    else:
+        rates_text_lines = []
+        for sku, desc, price in rate_items:
+            rates_text_lines.append(f"  * {sku} - {desc}: Maximum Unit Rate of ${price:.2f} USD")
+        rates_block = "\n".join(rates_text_lines)
 
     header = f"""MASTER SERVICES AND PROCUREMENT AGREEMENT
 Contract Reference: {contract_id}
@@ -143,19 +150,31 @@ This Agreement is entered into as of {effective_date.isoformat()} ("Effective Da
 """
 
     c2_title = "Section 2. Payment Terms and Invoicing"
-    c2_body = f"""All invoices must reference a valid Purchase Order number issued by Buyer. Undisputed invoices shall be payable Net {payment_terms_days} days from the date of confirmed invoice receipt. Any invoice demanding earlier remittance or contrary terms is non-compliant and shall be held for review.
+    if style == "diverse":
+        c2_body = f"""All invoices must reference a valid Purchase Order number issued by Buyer. Proper invoices shall become due and payable within {payment_terms_days} calendar days following confirmed invoice presentation and acceptance. Any invoice demanding earlier remittance is non-compliant.
+"""
+    else:
+        c2_body = f"""All invoices must reference a valid Purchase Order number issued by Buyer. Undisputed invoices shall be payable Net {payment_terms_days} days from the date of confirmed invoice receipt. Any invoice demanding earlier remittance or contrary terms is non-compliant and shall be held for review.
 """
 
     c3_title = "Section 3. Delivery and Late Delivery Penalties"
     if include_penalties_clause:
-        c3_body = f"""Time is of the essence for all deliveries under this Agreement. In the event of unexcused late delivery beyond the scheduled delivery date specified in the Purchase Order, Vendor agrees to a liquidated penalty of {late_penalty_pct:.1f}% per calendar day of delay, calculated upon the total value of the delayed goods. Such penalty shall be deducted from the invoice total prior to payment.
+        if style == "diverse":
+            c3_body = f"""Timely fulfillment is critical. For any unexcused late delivery past the Purchase Order scheduled arrival, Vendor shall incur liquidated compensation of {late_penalty_pct:.1f}% per day of delay, calculated upon the total delayed consignment value.
+"""
+        else:
+            c3_body = f"""Time is of the essence for all deliveries under this Agreement. In the event of unexcused late delivery beyond the scheduled delivery date specified in the Purchase Order, Vendor agrees to a liquidated penalty of {late_penalty_pct:.1f}% per calendar day of delay, calculated upon the total value of the delayed goods. Such penalty shall be deducted from the invoice total prior to payment.
 """
     else:
         c3_body = """Vendor shall use commercially reasonable efforts to meet scheduled delivery timelines. Deliveries are subject to standard delivery terms.
 """
 
     c4_title = "Section 4. Term and Termination"
-    c4_body = f"""This Agreement shall remain in full force until {expiration_date.isoformat()} ("Expiration Date") unless terminated earlier. Upon the Expiration Date, this Agreement {renew_phrase} No new purchase orders or charges dated subsequent to expiration shall be recognized without a formal extension.
+    if style == "diverse":
+        c4_body = f"""This Agreement shall govern all commercial engagements until {expiration_date.isoformat()} ("Expiration Date") unless terminated for cause. Upon the Expiration Date, this Agreement {renew_phrase}
+"""
+    else:
+        c4_body = f"""This Agreement shall remain in full force until {expiration_date.isoformat()} ("Expiration Date") unless terminated earlier. Upon the Expiration Date, this Agreement {renew_phrase} No new purchase orders or charges dated subsequent to expiration shall be recognized without a formal extension.
 """
 
     c5_title = "Section 5. Warranties and Standard of Performance"

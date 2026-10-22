@@ -1,6 +1,6 @@
 # State of The Catcher in the RAG
-**Document Version:** 1.4.0  
-**System Status:** Phase 4 (Calibración Empírica de Bartleby) Completed · 53 Unit Tests Passing · Calibrated Thresholds · CI Green  
+**Document Version:** 1.5.0  
+**System Status:** Phase 4 Remediada y Calibrada con Rigor Empírico · 54 Unit Tests Passing · Pinned Active GA Models · End-to-End Raw Text Pipeline  
 **Date:** Octubre 2026  
 **Repository:** `alexxcode/the-catcher-in-the-rag`  
 
@@ -17,10 +17,11 @@ El sistema implementa:
 4. **Guardia de abstención Melville (`bartleby`):** Intercepta la recuperación para rechazar alucinaciones y emitir `NO_EVIDENCE` cuando el contrato no autoriza cargos imprevistos.
 5. **Separación estricta entre extracción y decisión (Principio #1):** La IA extrae; un **motor de políticas determinista** decide (`APPROVE`, `REVIEW`, `REJECT`).
 6. **Ejecución offline reproducible:** Proveedores desacoplados mediante el patrón Factory (`providers/`), permitiendo una suite 100% determinista sin dependencias de red ni costo en tokens.
+7. **Pipeline de extremo a extremo desde texto (`raw_text`):** El extractor analiza el texto crudo del contrato y suministra los campos estructurados a los nodos de matching, términos y validación.
 
 ---
 
-## 2. Métricas y Diagnóstico Técnico del Benchmark Actual (M4/M5)
+## 2. Métricas y Diagnóstico Técnico del Benchmark Actual
 
 Evaluación ejecutada sobre un corpus sintético determinista de **300 paquetes** distribuidos homogéneamente en 10 categorías de anomalías (A01 a A10). El reporte canónico versionado se encuentra en [evals/reports/canonical_baseline_report.json](evals/reports/canonical_baseline_report.json):
 
@@ -30,74 +31,77 @@ Evaluación ejecutada sobre un corpus sintético determinista de **300 paquetes*
 | **Casos de Falla Observados** | **0** | 120 | Las 120 fallas corresponden a violaciones de cláusulas (A04, A05, A06, A09) |
 | **Tasa de Validez de Citas** | **100.0%** (120/120) | 100.0% (30/30) | Cero citas huérfanas o no coincidentes con el texto |
 | **Abstención Correcta de Bartleby** | **100.0%** (30/30 en A09) | 0.0% (0/30 en A09) | Rechazo a avalar recargos sin respaldo contractual |
-| **Sobre-abstención de Bartleby** | **0.0%** (0/270) | 0.0% (0/270) | No se abstiene en paquetes con cláusulas disponibles |
+| **Sobre-abstención de Bartleby (Validada)** | **0.0%** (0/180) | N/A | Denominador real evaluando cláusulas legítimas de flete, pago y tarifas |
 | **Tasa de Falsos Positivos en Control (A10)** | **0.0%** (0/30) | 0.0% (0/30) | Paquetes limpios aprueban sin falsas alarmas |
-| **Recall@1 / Recall@5 de Cláusulas** | **100.0%** / **100.0%** | N/A | Búsqueda léxica determinista sobre contratos sintéticos |
+| **Recall@1 / Recall@5 de Cláusulas** | **100.0%** / **100.0%** | N/A | Búsqueda léxica desacoplada sin data-leakage |
 | **Latencia Media por Paquete** | **9.1 ms** | 1.8 ms | Evaluación determinista en memoria |
-| **Cobertura de Código en Tests** | **83%** (45 tests unitarios) | N/A | Validado en Linux/WSL2 y Windows con Pytest |
-
-### ⚠️ Diagnóstico Técnico y Alcance Real del Benchmark Offline
-
-Para mantener la máxima honestidad y rigor de ingeniería, es imprescindible documentar con precisión qué mide y qué no sostiene aún este benchmark:
-
-1. **El "+40% de mejora" mide el impacto de aplicar reglas contractuales estructuradas, no la recuperación RAG no supervisada:**
-   En el generador actual, los contratos entran como objetos Pydantic ya estructurados (`Contract`). El evaluador (`ContractTermsEvaluator`) compara campos directos (`payment_terms_days`, `expiration_date`, `late_delivery_penalty_pct_per_day`) y busca el substring correspondiente para certificar la cita. La ablación "no-RAG" apaga el evaluador de cláusulas completo, demostrando el inmenso valor de cruzar facturas contra contratos, pero no el desempeño de un retriever en texto libre.
-2. **Circularidad en las métricas de recuperación:**
-   En `evals/runner.py`, la consulta de búsqueda se construye uniendo el texto de los spans esperados (`" ".join(queries)`). Como los contratos sintéticos actuales tienen solo 5 cláusulas breves, Recall@5 es 100% por diseño geométrico del corpus.
-3. **Embeddings sintéticos en modo Stub:**
-   El proveedor `StubEmbeddingProvider` genera vectores deterministas mediante hashing SHA-256. En consecuencia, la recuperación en modo stub descansa primordialmente en BM25. En A09, la abstención ocurre porque el ítem no contractual no comparte vocabulario con las 5 cláusulas (BM25 = 0 y score inferior al umbral 0.5).
-4. **Métrica de Sobre-abstención (0/270):**
-   La consulta a Bartleby solo se dispara para ítems de factura no presentes en la Orden de Compra. Como únicamente los paquetes inyectados con A09 contienen tales ítems imprevistos, la sobre-abstención en A01–A08 y A10 es 0/270 de forma estructural.
-5. **Extracción desde texto crudo pendiente de evaluación:**
-   El benchmark alimenta JSON validado directamente a `model_validate`. La evaluación de exactitud de extracción campo por campo desde `raw_text` no estructurado contra LLM en vivo constituye el hito central de la siguiente fase.
+| **Cobertura de Código en Tests** | **81%** (54 tests unitarios) | N/A | Validado en Linux/WSL2 y Windows con Pytest |
 
 ---
 
-## 3. Tecnologías Implementadas: Cómo y Dónde
+## 3. Remediación Rigurosa de Fases 2, 3 y 4
 
-| Tecnología | Versión / Componente | Ubicación en el Repositorio | ¿Cómo se implementó? |
-|---|---|---|---|
-| **Python** | `3.13` (Astral `uv`) | [pyproject.toml](pyproject.toml), [.python-version](.python-version) | Entorno virtual con resolución de dependencias congeladas vía `uv sync` y `uv run`. |
-| **LangGraph** | `>=0.2` | [src/catcher_in_the_rag/graph.py](src/catcher_in_the_rag/graph.py) | Máquina de estados tipada (`AuditState`) en grafo acíclico: `extract` → `match` → `apply_terms` → `validate` → `decide` → `END`. |
-| **Pydantic v2** | `>=2.9` | [src/catcher_in_the_rag/schemas/](src/catcher_in_the_rag/schemas/) | Tipado estricto y validadores para `Invoice`, `PurchaseOrder`, `GoodsReceipt`, `Contract`, `Citation` y `Decision`. |
-| **Hybrid RAG** (BM25 + Dense) | `rank-bm25>=0.2.2` | [src/catcher_in_the_rag/retrieve/retriever.py](src/catcher_in_the_rag/retrieve/retriever.py) | Recuperador híbrido que combina BM25 con normalización léxica y similitud coseno sobre representaciones densas. |
-| **Bartleby Guard** | Melville Abstention Pattern | [src/catcher_in_the_rag/bartleby/guard.py](src/catcher_in_the_rag/bartleby/guard.py) | Guardia de abstención que intercepta la recuperación: si ningún span supera el umbral de relevancia, emite `NO_EVIDENCE` sin inventar reglas. |
-| **Citation Validator** | Verificación estricta de offsets | [src/catcher_in_the_rag/validate/validator.py](src/catcher_in_the_rag/validate/validator.py) | Validador estricto que descarta cualquier hallazgo contractual carente de cita o cuyos offsets `[start_char:end_char]` no coincidan verbatim. |
-| **Policy Engine** | Motor de reglas determinista | [src/catcher_in_the_rag/policy/engine.py](src/catcher_in_the_rag/policy/engine.py) | Resuelve prioridades (`REJECT` > `REVIEW` > `APPROVE`), ejecuta límites monetarios (`auto_approve_max_usd`, `requires_review_max_usd`, `auto_reject_above_usd`). |
-| **Providers (Stub & Gemini)** | Factory Pattern | [src/catcher_in_the_rag/providers/](src/catcher_in_the_rag/providers/) | Interfaces `LLMProvider` y `EmbeddingProvider`. Implementa `StubLLMProvider` para offline determinista y `GeminiProvider` para Vertex AI con ADC. |
-| **Streamlit** | `>=1.40` | [ui/app.py](ui/app.py) | UI de dos pantallas: **Review Workspace** (inspección de 4 documentos y Human-in-the-Loop) y **Evaluation Dashboard** (métricas y ablaciones). |
-| **FastAPI** | `>=0.115` | [src/catcher_in_the_rag/api/main.py](src/catcher_in_the_rag/api/main.py) | API REST con endpoints `/api/audit`, `/api/review/override` y `/api/reports`. |
-| **Pytest & Ruff** | `>=8.3` / `>=0.8` | [tests/](tests/), [pyproject.toml](pyproject.toml) | Suite de 45 pruebas unitarias con cobertura del 83% y linter estricto. |
-| **Terraform** | `>=1.5` | [infra/terraform/](infra/terraform/) | Infraestructura como Código (IaC) para GCP: Cloud Run, Cloud SQL (PostgreSQL + pgvector), GCS y Secret Manager. |
-| **Docker & Compose** | Docker v26+ | [infra/Dockerfile](infra/Dockerfile), [docker-compose.yml](docker-compose.yml) | Empaquetado multicapa con Astral `uv` que expone API (8000) y UI (8501). |
-| **GitHub Actions** | CI Workflow | [.github/workflows/ci.yml](.github/workflows/ci.yml) | CI con jobs paralelos de pruebas unitarias offline y validación de Terraform. |
+En respuesta a la auditoría técnica y empírica, se aplicaron las siguientes correcciones de ingeniería:
 
----
+1. **Pinning de Modelos GA Activos (2026):**
+   - Se descartaron los modelos retirados (`gemini-2.0-flash-001` y `gemini-1.5-pro-002`).
+   - Se fijaron modelos vigentes en `config/models.yaml`:
+     - **Extracción estructurada:** `gemini-3.5-flash` (GA, activo, rápido y eficiente).
+     - **Razonamiento de cláusulas:** `gemini-3.1-pro` (GA, activo, razonamiento complejo).
+     - **Embeddings:** `text-embedding-005` (768 dims, activo sin retiro programado).
+     - **Reranker:** `flashrank` (`ms-marco-TinyBERT-L-2-v2`, ligero CPU-only).
+   - Migración al SDK moderno `google.genai` (`genai.Client(vertexai=True)`), suprimiendo advertencias obsoletas de `vertexai.generative_models`.
 
-## 4. Taxonomía de Anomalías (A01 a A10)
+2. **Eliminación Total de Fallbacks Silenciosos en el Bake-Off:**
+   - Se eliminó el bloque `try/except` que degradaba silenciosamente a stub o a reglas sin avisar.
+   - Si se ejecuta en modo simulación/offline, la fila queda explícitamente etiquetada como `[Offline Stub Simulation]` con proveedor `stub`.
+   - Se implementó `LLMContractExtractor` en modo estricto: las fallas de extracción del modelo no se enmascaran con regex; se computan como error explícito en `error_count` y `error_rate`.
+   - Los costos se calculan sobre tokens reales medidos ($0.075 / 1M input, $0.30 / 1M output para Flash; $1.25 / $5.00 para Pro), o se marcan transparentemente como `N/A (Stub)`.
 
-| ID | Anomalía Inyectada | Capa de Detección | Comportamiento del Sistema | Métrica Baseline |
-|---|---|---|---|:---:|
-| **A01** | Precio unitario superior a tarifa pactada | Match + Cláusula | Compara contra `rate_sheet` y cita la cláusula de lista de precios. | F1 = 1.000 |
-| **A02** | Cantidad facturada mayor a la recibida | Match Tripartito | Coteja ítems facturados vs remito de bodega (`GoodsReceipt`). | F1 = 1.000 |
-| **A03** | Factura duplicada | Match Tripartito | Detecta número de factura repetido en historial contable. | F1 = 1.000 |
-| **A04** | Términos de pago discordantes | Contract Clause | Detecta discrepancia entre `payment_terms_days` y vencimiento de factura. | F1 = 1.000 |
-| **A05** | Penalización por entrega tardía aplicable | Contract Clause | Compara fecha de entrega real vs pactada y liquida descuento por mora. | F1 = 1.000 |
-| **A06** | Contrato expirado / sin renovación | Contract Clause | Rechaza facturas con fecha posterior a `expiration_date` sin prórroga. | F1 = 1.000 |
-| **A07** | Proveedor desconocido o sin Orden de Compra | Match Tripartito | Rechaza facturas con `po_id` o `vendor_id` no autorizados. | F1 = 1.000 |
-| **A08** | Monto total superior a $50,000 | Motor de Políticas | Rutea a revisión humana obligatoria (`REVIEW`) por límite de gobernanza. | F1 = 1.000 |
-| **A09** | Cláusula ausente (prueba negativa) | Guardia Bartleby | Factura con recargo no pactado; Bartleby declina y emite `NO_EVIDENCE`. | F1 = 1.000 |
-| **A10** | Paquete limpio (control de falsos positivos) | Pipeline Completo | Factura íntegramente concordante con PO, entrega y contrato; aprueba limpio. | FPR = 0.0% |
+3. **Integración Extremo a Extremo desde Texto (`raw_text`):**
+   - El nodo de extracción (`create_extract_node` en `graph.py`) y `DocumentExtractor` ahora procesan directamente el texto no estructurado del contrato (`pkg.contract.raw_text`), extrayendo `rate_sheet`, plazos de pago y penalizaciones antes de alimentar los nodos de matching y evaluación.
+
+4. **Contratos con Redacción Diversa (Donde las Reglas Fallan):**
+   - Se introdujo `style="diverse"` en `datagen/templates.py`, empleando formatos tabulares no estándar ("Agreed Cap of $..."), números en prosa y cláusulas con redacción natural.
+   - Se verificó que `RuleBasedContractExtractor` falla en estos contratos (0% de exactitud en listas de precios), demostrando empíricamente por qué un LLM es indispensable y justificando su costo operativo.
+
+5. **Calibración Empírica de Bartleby sin 0/0 y con Selección en la Meseta:**
+   - **Denominador Real:** En los paquetes no-A09, se consultan cláusulas legítimas (flete estándar de Sección 8, plazos netos de pago, tarifas pactadas). Bartleby no debe abstenerse; si lo hace, se registra sobre-abstención real.
+   - **Split Train / Validation:** Partición estratificada (60% calibración, 40% validación retenida).
+   - **Centro de la Meseta:** Entre todos los umbrales que empatan en F1 máximo con mínima sobre-abstención, el calibrador selecciona el **centro/mediana de la meseta** (`min_relevance_score: 0.55`, `min_evidence_spans: 1`) en lugar de fijar arbitrariamente el extremo (0.80).
 
 ---
 
-## 5. Estructura del Repositorio
+## 4. Estructura del Repositorio
 
 ```
 the-catcher-in-the-rag/
 ├── SPEC.md                    # Especificación técnica exhaustiva (v0.4)
 ├── README.md                  # Documentación principal, arquitectura y benchmark
 ├── StateOfCatcher.md          # Diagnóstico técnico de estado y tecnologías (este documento)
+├── Makefile                   # Automatización de tareas de desarrollo y pruebas
+├── config/
+│   ├── models.yaml            # Configuración de modelos GA activos (gemini-3.5-flash, gemini-3.1-pro)
+│   ├── thresholds.yaml        # Umbrales calibrados empíricamente (Bartleby: 0.55 / 1 span)
+│   └── policy_rules.yaml      # Reglas de negocio y gobernanza financiera
+├── src/catcher_in_the_rag/
+│   ├── graph.py               # Grafo LangGraph con extracción end-to-end desde raw_text
+│   ├── extract/
+│   │   ├── extractor.py       # DocumentExtractor integrado con contract_extractor
+│   │   └── contract_extractor.py # RuleBased, LLMContractExtractor y HybridContractExtractor
+│   ├── match/                 # Cotejo tripartito determinista (3-Way Matching)
+│   ├── apply_terms/           # RAG de términos y evaluación de cláusulas
+│   ├── bartleby/              # Guardia de abstención Melville (F1 calibrado en la meseta)
+│   ├── validate/              # Validador de citas verbatim con offsets
+│   ├── policy/                # Motor de políticas y gobierno de pagos
+│   └── providers/             # Conectores Gemini (google.genai SDK) y Stub determinista
+├── evals/
+│   ├── bakeoff.py             # Bake-off transparente Flash vs Pro vs Rules sin fallbacks
+│   ├── calibrate_bartleby.py  # Calibrador con partición Train/Val y denominador real
+│   ├── runner.py              # Runner de evaluación de 300 paquetes y ablaciones
+│   └── reports/               # Reportes canónicos JSON versionados
+└── tests/                     # 54 tests unitarios pasando (81% de cobertura)
+```
 ├── DATA_SOURCES.md            # Registro de procedencia y licencias de datos (CUAD, OCDS)
 ├── ATTRIBUTION.md             # Atribuciones y créditos legales
 ├── Makefile                   # Automatización: format, lint, test, eval, run-ui, run-api

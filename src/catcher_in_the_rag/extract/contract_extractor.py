@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from datetime import date
 from decimal import Decimal
+from typing import Any, Protocol
 
 from catcher_in_the_rag.providers.base import LLMProvider
 from catcher_in_the_rag.providers.factory import get_llm_provider
@@ -17,6 +18,12 @@ WORD_TO_DAYS = {
     "sixty": 60,
     "ninety": 90,
 }
+
+
+class BaseContractExtractor(Protocol):
+    """Protocol defining interface for contract text extractors."""
+
+    def extract(self, raw_text: str) -> Contract: ...
 
 
 class RuleBasedContractExtractor:
@@ -171,28 +178,86 @@ class RuleBasedContractExtractor:
         )
 
 
+class ContractExtractionError(Exception):
+    """Raised when contract extraction fails and fallback is disabled."""
+
+
+class LLMContractExtractor:
+    """Pure LLM-driven contract extractor that never falls back to regex rules.
+
+    Used for measuring genuine LLM extraction performance without masking failures.
+    """
+
+    def __init__(self, provider: LLMProvider | None = None) -> None:
+        self.provider = provider or get_llm_provider()
+
+    def extract(self, raw_text: str) -> Contract:
+        """Extract Contract model directly via LLM provider. Fails explicitly on error."""
+        return self.provider.extract_structured(
+            text=raw_text,
+            schema=Contract,
+            system_prompt=(
+                "Extract contract governing terms (contract_id, vendor_id, vendor_name, "
+                "effective_date, expiration_date, auto_renew, payment_terms_days, "
+                "late_delivery_penalty_pct_per_day, rate_sheet, clauses) into the Contract schema."
+            ),
+        )
+
+
 class HybridContractExtractor:
-    """Extractor capable of routing to LLM provider with fallback to rule-based parser."""
+    """Extractor capable of routing to LLM provider with explicit, transparent fallback metrics."""
 
     def __init__(
         self,
         provider: LLMProvider | None = None,
         llm_provider: LLMProvider | None = None,
+        fallback_to_rules: bool = True,
     ) -> None:
         self.provider = provider or llm_provider or get_llm_provider()
         self.rule_extractor = RuleBasedContractExtractor()
+        self.fallback_to_rules = fallback_to_rules
+        self.llm_attempts: int = 0
+        self.llm_successes: int = 0
+        self.fallbacks_used: int = 0
+        self.last_method_used: str = "none"
 
     def extract(self, raw_text: str) -> Contract:
-        """Extract Contract model from unstructured raw text."""
+        """Extract Contract model from unstructured raw text.
+
+        Tracks attempts, successes, and fallbacks transparently.
+        """
+        self.llm_attempts += 1
         try:
-            return self.provider.extract_structured(
+            contract = self.provider.extract_structured(
                 text=raw_text,
                 schema=Contract,
                 system_prompt=(
-                    "Extract contract governing terms (payment_terms_days, expiration_date, "
+                    "Extract contract governing terms (contract_id, vendor_id, vendor_name, "
+                    "effective_date, expiration_date, auto_renew, payment_terms_days, "
                     "late_delivery_penalty_pct_per_day, rate_sheet, clauses) into the Contract schema."
                 ),
             )
-        except Exception:
-            # Fallback to deterministic regex-driven baseline
+            self.llm_successes += 1
+            self.last_method_used = "llm"
+            return contract
+        except Exception as err:
+            if not self.fallback_to_rules:
+                self.last_method_used = "failed"
+                msg = f"LLM contract extraction failed and fallback is disabled: {err}"
+                raise ContractExtractionError(msg) from err
+
+            self.fallbacks_used += 1
+            self.last_method_used = "fallback_rule"
             return self.rule_extractor.extract(raw_text)
+
+    def get_telemetry(self) -> dict[str, Any]:
+        """Return transparent operational telemetry."""
+        return {
+            "llm_attempts": self.llm_attempts,
+            "llm_successes": self.llm_successes,
+            "fallbacks_used": self.fallbacks_used,
+            "fallback_rate": (
+                (self.fallbacks_used / self.llm_attempts) if self.llm_attempts > 0 else 0.0
+            ),
+            "last_method_used": self.last_method_used,
+        }

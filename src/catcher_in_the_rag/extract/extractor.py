@@ -4,6 +4,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from catcher_in_the_rag.extract.contract_extractor import (
+    BaseContractExtractor,
+    HybridContractExtractor,
+)
 from catcher_in_the_rag.providers.base import LLMProvider
 from catcher_in_the_rag.providers.factory import get_llm_provider
 from catcher_in_the_rag.schemas import (
@@ -18,8 +22,15 @@ from catcher_in_the_rag.schemas import (
 class DocumentExtractor:
     """Extracts structured Pydantic procurement models from JSON, dict, or text using an LLM provider."""
 
-    def __init__(self, provider: LLMProvider | None = None) -> None:
+    def __init__(
+        self,
+        provider: LLMProvider | None = None,
+        contract_extractor: BaseContractExtractor | None = None,
+    ) -> None:
         self.provider = provider or get_llm_provider()
+        self.contract_extractor = contract_extractor or HybridContractExtractor(
+            llm_provider=self.provider
+        )
 
     def extract_package(
         self, source: str | dict[str, Any] | Path | ProcurementPackage
@@ -83,9 +94,5 @@ class DocumentExtractor:
         )
 
     def extract_contract(self, text: str) -> Contract:
-        """Extract a structured Contract from raw text."""
-        return self.provider.extract_structured(
-            text=text,
-            schema=Contract,
-            system_prompt="Extract contract clauses and rate sheet into the Contract schema.",
-        )
+        """Extract a structured Contract from raw text using the contract extractor."""
+        return self.contract_extractor.extract(text)

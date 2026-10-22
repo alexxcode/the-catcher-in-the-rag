@@ -1,8 +1,8 @@
 bartleby:
-  min_relevance_score: 0.8
+  min_relevance_score: 0.55
   min_bm25_score: 3.0
   min_dense_score: 0.65
-  min_evidence_spans: 2
+  min_evidence_spans: 1
   top_k_to_llm: 5
 retrieval:
   top_k_bm25: 20

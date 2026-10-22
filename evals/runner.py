@@ -27,8 +27,13 @@ from evals.metrics import (
 class EvaluationRunner:
     """Evaluates the audit pipeline against ground-truth labeled packages."""
 
-    def __init__(self, mode: str = "baseline") -> None:
+    def __init__(
+        self,
+        mode: str = "baseline",
+        extract_contract_from_text: bool = True,
+    ) -> None:
         self.mode = mode  # baseline | no-rag | no-bartleby
+        self.extract_contract_from_text = extract_contract_from_text
 
     def _evaluate_retrieval(
         self,
@@ -133,7 +138,10 @@ class EvaluationRunner:
                     findings=match_findings,
                 )
             else:
-                decision = run_audit(pkg)
+                decision = run_audit(
+                    pkg,
+                    extract_contract_from_text=self.extract_contract_from_text,
+                )
 
             t_elapsed_ms = (time.perf_counter() - t0) * 1000.0
             latencies.append(t_elapsed_ms)

@@ -32,24 +32,44 @@ class GeminiProvider(LLMProvider):
         # Configured model or GA default candidate
         model_candidate = model_id or ext_cfg.get("model_id")
         if not model_candidate or "TODO" in str(model_candidate):
-            model_candidate = "gemini-2.0-flash-001"
+            model_candidate = "gemini-3.5-flash"
         self.model_id = model_candidate
         self.temperature = float(ext_cfg.get("temperature", 0.0))
         self._client: Any = None
+        self._genai_client: Any = None
+        self._use_genai: bool = False
 
     def _ensure_init(self) -> None:
-        if self._client is not None:
+        if self._client is not None or self._genai_client is not None:
             return
-        try:
-            import vertexai
-            from vertexai.generative_models import GenerativeModel
 
-            vertexai.init(project=self.project, location=self.region)
-            self._client = GenerativeModel(self.model_id)
+        # 1. Try modern Google Gen AI SDK first (replaces deprecated vertexai.generative_models)
+        try:
+            from google import genai
+
+            self._genai_client = genai.Client(
+                vertexai=True, project=self.project, location=self.region
+            )
+            self._use_genai = True
+            return
+        except Exception:
+            self._use_genai = False
+
+        # 2. Fall back to vertexai with deprecation warning suppressed
+        try:
+            import warnings
+
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning, module="vertexai")
+                import vertexai
+                from vertexai.generative_models import GenerativeModel
+
+                vertexai.init(project=self.project, location=self.region)
+                self._client = GenerativeModel(self.model_id)
         except ImportError as err:
             msg = (
-                "google-cloud-aiplatform is required to run GeminiProvider. "
-                "Ensure google-cloud-aiplatform is installed and ADC is configured "
+                "google-genai or google-cloud-aiplatform is required to run GeminiProvider. "
+                "Ensure google-genai is installed and ADC is configured "
                 "via `gcloud auth application-default login`, or use LLM_PROVIDER=stub for offline mode."
             )
             raise ImportError(msg) from err
@@ -62,19 +82,37 @@ class GeminiProvider(LLMProvider):
     ) -> T:
         """Extract structured data conforming to a Pydantic schema using Gemini structured outputs."""
         self._ensure_init()
-        from vertexai.generative_models import GenerationConfig
 
         prompt = (
             f"{system_prompt or 'Extract the structured document fields accurately from the input text.'}\n\n"
             f"Input text:\n{text}\n\n"
             f"Respond strictly in valid JSON adhering to schema: {schema.model_json_schema()}"
         )
-        gen_config = GenerationConfig(
-            temperature=self.temperature,
-            response_mime_type="application/json",
-        )
-        response = self._client.generate_content(prompt, generation_config=gen_config)
-        raw_json = (response.text or "").strip()
+
+        if self._use_genai:
+            response = self._genai_client.models.generate_content(
+                model=self.model_id,
+                contents=prompt,
+                config={
+                    "temperature": self.temperature,
+                    "response_mime_type": "application/json",
+                },
+            )
+            raw_json = (response.text or "").strip()
+        else:
+            import warnings
+
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning, module="vertexai")
+                from vertexai.generative_models import GenerationConfig
+
+                gen_config = GenerationConfig(
+                    temperature=self.temperature,
+                    response_mime_type="application/json",
+                )
+                response = self._client.generate_content(prompt, generation_config=gen_config)
+                raw_json = (response.text or "").strip()
+
         if raw_json.startswith("```json"):
             raw_json = raw_json.removeprefix("```json").removesuffix("```").strip()
         elif raw_json.startswith("```"):
@@ -88,12 +126,25 @@ class GeminiProvider(LLMProvider):
     ) -> str:
         """Generate text completion from Gemini."""
         self._ensure_init()
-        from vertexai.generative_models import GenerationConfig
-
         full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
-        gen_config = GenerationConfig(temperature=self.temperature)
-        response = self._client.generate_content(full_prompt, generation_config=gen_config)
-        return response.text or ""
+
+        if self._use_genai:
+            response = self._genai_client.models.generate_content(
+                model=self.model_id,
+                contents=full_prompt,
+                config={"temperature": self.temperature},
+            )
+            return response.text or ""
+
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning, module="vertexai")
+            from vertexai.generative_models import GenerationConfig
+
+            gen_config = GenerationConfig(temperature=self.temperature)
+            response = self._client.generate_content(full_prompt, generation_config=gen_config)
+            return response.text or ""
 
 
 class GeminiEmbeddingProvider(EmbeddingProvider):

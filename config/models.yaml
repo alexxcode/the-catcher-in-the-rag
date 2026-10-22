@@ -3,12 +3,12 @@
 # GA status verified against:
 #   https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versioning
 #
-# Production GA Models:
-# - extraction_llm: gemini-2.0-flash-001 (GA, fast, deterministic schema extraction)
-# - clause_llm: gemini-1.5-pro-002 (GA, complex clause reasoning)
-# - embeddings: text-embedding-005 (GA, 768-dim retrieval embeddings)
+# Production Active GA Models (2026 Lifecycle Catalog):
+# - extraction_llm: gemini-3.5-flash (Active GA, high throughput, low latency)
+# - clause_llm: gemini-3.1-pro (Active GA, deep legal reasoning)
+# - embeddings: text-embedding-005 (Active GA, no retirement date, 768 dims)
 # - reranker: flashrank (ms-marco-TinyBERT-L-2-v2, fast CPU-only local reranker)
-# - datagen_llm: gemini-2.0-flash-001 (GA, temperature 0.7 for synthetic variation)
+# - datagen_llm: gemini-3.5-flash (Active GA, temperature 0.7 for synthetic variation)
 
 project: the-catcher-in-the-rag   # overridden by env var GOOGLE_CLOUD_PROJECT
 region: us-central1                # overridden by env var GOOGLE_CLOUD_REGION
@@ -16,12 +16,12 @@ region: us-central1                # overridden by env var GOOGLE_CLOUD_REGION
 # ── LLM models ────────────────────────────────────────────────────────────────
 extraction_llm:
   provider: vertex_ai
-  model_id: "gemini-2.0-flash-001"
+  model_id: "gemini-3.5-flash"
   temperature: 0.0   # deterministic extraction
 
 clause_llm:
   provider: vertex_ai
-  model_id: "gemini-1.5-pro-002"
+  model_id: "gemini-3.1-pro"
   temperature: 0.0
 
 # ── Embedding model ───────────────────────────────────────────────────────────
@@ -40,5 +40,5 @@ reranker:
 # Only GA models for synthetic dataset generation and published results.
 datagen_llm:
   provider: vertex_ai
-  model_id: "gemini-2.0-flash-001"
+  model_id: "gemini-3.5-flash"
   temperature: 0.7   # variation for synthetic diversity

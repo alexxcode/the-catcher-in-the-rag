@@ -16,7 +16,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from catcher_in_the_rag.extract.contract_extractor import (
-    HybridContractExtractor,
     RuleBasedContractExtractor,
 )
 from catcher_in_the_rag.providers.factory import get_llm_provider
@@ -29,11 +28,15 @@ from evals.extraction_eval import evaluate_contract_extraction
 class CandidateResult:
     candidate_name: str
     model_id: str
+    provider_type: str
     sample_size: int
     mean_latency_ms: float
     estimated_cost_per_1k_usd: float
+    error_count: int
+    error_rate: float
     field_accuracies: dict[str, float]
     overall_perfect_accuracy: float
+    is_simulated: bool = False
 
 
 class ExtractionBakeOff:
@@ -43,9 +46,11 @@ class ExtractionBakeOff:
         self,
         contracts: list[tuple[str, Contract]],
         sample_size: int = 50,
+        allow_simulation_fallback: bool = True,
     ) -> None:
         self.contracts = contracts[:sample_size]
         self.sample_size = len(self.contracts)
+        self.allow_simulation_fallback = allow_simulation_fallback
         self.tracer = get_tracer(sample_rate=0.2)
 
     def evaluate_rule_based(self) -> CandidateResult:
@@ -87,11 +92,15 @@ class ExtractionBakeOff:
         return CandidateResult(
             candidate_name="Rule-Based Baseline (Regex/Parsing)",
             model_id="deterministic-rules",
+            provider_type="rule_based",
             sample_size=self.sample_size,
             mean_latency_ms=round(mean_lat, 2),
             estimated_cost_per_1k_usd=0.00,
+            error_count=0,
+            error_rate=0.0,
             field_accuracies={k: round(v / self.sample_size, 4) for k, v in field_matches.items()},
             overall_perfect_accuracy=round(perfect_count / self.sample_size, 4),
+            is_simulated=False,
         )
 
     def evaluate_llm_candidate(
@@ -99,15 +108,31 @@ class ExtractionBakeOff:
         candidate_name: str,
         provider_type: str,
         model_id: str,
-        cost_per_1k: float,
+        prompt_cost_per_1m: float = 0.075,
+        completion_cost_per_1m: float = 0.30,
     ) -> CandidateResult:
+        from catcher_in_the_rag.extract.contract_extractor import LLMContractExtractor
+
+        is_simulated = False
+        actual_provider_type = provider_type
+        display_name = candidate_name
+
         try:
             llm = get_llm_provider(provider_type=provider_type, model_id=model_id)
-        except Exception:
-            # Fall back to offline stub representation if Vertex AI / ADC is not reachable
+        except Exception as e:
+            if not self.allow_simulation_fallback:
+                raise RuntimeError(
+                    f"Failed to connect to LLM provider {provider_type} for model {model_id}: {e}"
+                ) from e
+            # Transparently label as offline simulation stub
             llm = get_llm_provider(provider_type="stub")
+            actual_provider_type = "stub"
+            is_simulated = True
+            display_name = f"{candidate_name} [Offline Stub Simulation]"
 
-        extractor = HybridContractExtractor(llm_provider=llm)
+        # Strict LLM extractor: does NOT silently fallback to regex
+        extractor = LLMContractExtractor(provider=llm)
+
         start = time.perf_counter()
         field_matches: dict[str, int] = {
             "payment_terms_days": 0,
@@ -117,39 +142,69 @@ class ExtractionBakeOff:
             "rate_sheet": 0,
         }
         perfect_count = 0
+        error_count = 0
+        total_prompt_tokens = 0
+        total_completion_tokens = 0
 
         for raw_text, gt_contract in self.contracts:
             t0 = time.perf_counter()
-            extracted = extractor.extract(raw_text)
+            # Estimate token lengths: ~4 chars per token for prompt, ~500 tokens structured response
+            est_prompt_tokens = max(1, len(raw_text) // 4)
+            est_completion_tokens = 250
+            total_prompt_tokens += est_prompt_tokens
+            total_completion_tokens += est_completion_tokens
+
+            try:
+                extracted = extractor.extract(raw_text)
+                matches = evaluate_contract_extraction(extracted, gt_contract)
+                all_ok = True
+                for k, ok in matches.items():
+                    if ok:
+                        field_matches[k] += 1
+                    else:
+                        all_ok = False
+                if all_ok:
+                    perfect_count += 1
+                out_data = extracted.model_dump(mode="json")
+            except Exception as err:
+                error_count += 1
+                out_data = {"error": str(err)}
+
             dt_ms = (time.perf_counter() - t0) * 1000
             self.tracer.trace_execution(
                 name=f"extract_contract_{model_id}",
                 input_data={"length": len(raw_text)},
-                output_data={"extracted": extracted.model_dump(mode="json")},
+                output_data=out_data,
                 latency_ms=dt_ms,
-                tags=["bake-off", model_id],
+                tags=["bake-off", model_id, actual_provider_type],
             )
-            matches = evaluate_contract_extraction(extracted, gt_contract)
-            all_ok = True
-            for k, ok in matches.items():
-                if ok:
-                    field_matches[k] += 1
-                else:
-                    all_ok = False
-            if all_ok:
-                perfect_count += 1
 
         total_time_ms = (time.perf_counter() - start) * 1000
         mean_lat = total_time_ms / max(1, self.sample_size)
+        err_rate = error_count / max(1, self.sample_size)
+
+        if is_simulated:
+            cost_per_1k = 0.00
+        else:
+            cost_per_contract = (total_prompt_tokens / max(1, self.sample_size)) * (
+                prompt_cost_per_1m / 1_000_000
+            ) + (total_completion_tokens / max(1, self.sample_size)) * (
+                completion_cost_per_1m / 1_000_000
+            )
+            cost_per_1k = round(cost_per_contract * 1000, 2)
 
         return CandidateResult(
-            candidate_name=candidate_name,
+            candidate_name=display_name,
             model_id=model_id,
+            provider_type=actual_provider_type,
             sample_size=self.sample_size,
             mean_latency_ms=round(mean_lat, 2),
             estimated_cost_per_1k_usd=cost_per_1k,
+            error_count=error_count,
+            error_rate=round(err_rate, 4),
             field_accuracies={k: round(v / self.sample_size, 4) for k, v in field_matches.items()},
             overall_perfect_accuracy=round(perfect_count / self.sample_size, 4),
+            is_simulated=is_simulated,
         )
 
     def run_bakeoff(self) -> list[CandidateResult]:
@@ -158,23 +213,25 @@ class ExtractionBakeOff:
         # 1. Baseline Rule-Based
         results.append(self.evaluate_rule_based())
 
-        # 2. Gemini Flash (gemini-2.0-flash-001)
+        # 2. Gemini 3.5 Flash (GA Active Model)
         results.append(
             self.evaluate_llm_candidate(
-                candidate_name="Gemini 2.0 Flash (GA Candidate)",
+                candidate_name="Gemini 3.5 Flash (GA Active)",
                 provider_type="vertex_ai",
-                model_id="gemini-2.0-flash-001",
-                cost_per_1k=0.35,  # Approx $0.35 per 1,000 contracts
+                model_id="gemini-3.5-flash",
+                prompt_cost_per_1m=0.075,
+                completion_cost_per_1m=0.30,
             )
         )
 
-        # 3. Gemini Pro (gemini-1.5-pro-002)
+        # 3. Gemini 3.1 Pro (GA Active Model)
         results.append(
             self.evaluate_llm_candidate(
-                candidate_name="Gemini 1.5 Pro (GA Candidate)",
+                candidate_name="Gemini 3.1 Pro (GA Active)",
                 provider_type="vertex_ai",
-                model_id="gemini-1.5-pro-002",
-                cost_per_1k=3.50,  # Approx $3.50 per 1,000 contracts
+                model_id="gemini-3.1-pro",
+                prompt_cost_per_1m=1.25,
+                completion_cost_per_1m=5.00,
             )
         )
 
@@ -183,23 +240,25 @@ class ExtractionBakeOff:
 
 
 def print_bakeoff_summary(results: list[CandidateResult]) -> None:
-    print("=" * 86)
+    print("=" * 100)
     print(" THE CATCHER IN THE RAG - EXTRACTION BAKE-OFF COMPARISON (PHASE 3)")
     print(f" Timestamp: {datetime.now(UTC).isoformat()}")
-    print("=" * 86)
-    header = f"{'Candidate':<35} | {'Latency':<9} | {'Cost/1k':<8} | {'Pmt Days':<8} | {'Rates':<8} | {'Overall':<8}"
+    print("=" * 100)
+    header = f"{'Candidate':<38} | {'Provider':<10} | {'Latency':<9} | {'Cost/1k':<8} | {'Err%':<6} | {'Pmt Days':<8} | {'Rates':<8} | {'Overall':<8}"
     print(header)
-    print("-" * 86)
+    print("-" * 100)
     for r in results:
         pmt = f"{r.field_accuracies.get('payment_terms_days', 0.0) * 100:.1f}%"
         rate = f"{r.field_accuracies.get('rate_sheet', 0.0) * 100:.1f}%"
         overall = f"{r.overall_perfect_accuracy * 100:.1f}%"
         lat = f"{r.mean_latency_ms:.1f} ms"
-        cost = f"${r.estimated_cost_per_1k_usd:.2f}"
+        cost = f"${r.estimated_cost_per_1k_usd:.2f}" if not r.is_simulated else "N/A (Stub)"
+        err = f"{r.error_rate * 100:.1f}%"
+        prov = "stub" if r.is_simulated else r.provider_type
         print(
-            f"{r.candidate_name:<35} | {lat:<9} | {cost:<8} | {pmt:<8} | {rate:<8} | {overall:<8}"
+            f"{r.candidate_name:<38} | {prov:<10} | {lat:<9} | {cost:<8} | {err:<6} | {pmt:<8} | {rate:<8} | {overall:<8}"
         )
-    print("=" * 86)
+    print("=" * 100)
 
 
 def save_bakeoff_report(

@@ -66,3 +66,34 @@ def test_hybrid_contract_extractor_fallback() -> None:
     assert contract.payment_terms_days == 30
     assert contract.late_delivery_penalty_pct_per_day == Decimal("0.5")
     assert len(contract.rate_sheet) == 1
+
+
+def test_diverse_contract_fails_rule_extractor() -> None:
+    """Demonstrate that rigid regex rules fail on independently/diversely phrased contracts.
+
+    Proves that 100% extraction is an artifact of rigid regex on identical templates,
+    and justifies why an LLM extractor is required for natural contracts.
+    """
+    rate_items = [
+        ("SKU-101", "Enterprise Workstation 32GB RAM", Decimal("1450.00")),
+    ]
+    raw_text, _ = render_contract_text(
+        contract_id="CTR-DIV-001",
+        vendor_name="Apex Systems",
+        vendor_id="VND-001",
+        effective_date=date(2025, 1, 1),
+        expiration_date=date(2026, 1, 1),
+        rate_items=rate_items,
+        payment_terms_days=45,
+        late_penalty_pct=Decimal("1.5"),
+        style="diverse",
+    )
+
+    rule_extractor = RuleBasedContractExtractor()
+    extracted = rule_extractor.extract(raw_text)
+
+    # Rigid regex expectations:
+    # 1. Rate sheet fails because diverse format is "Item [SKU] (Desc): Agreed Cap of $..."
+    assert len(extracted.rate_sheet) == 0
+    # 2. Payment terms fails because text says "payable within 45 calendar days" without "Net"
+    assert extracted.payment_terms_days == 30  # falls back to default 30 instead of 45
