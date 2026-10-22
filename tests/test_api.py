@@ -81,19 +81,22 @@ def clean_procurement_package() -> ProcurementPackage:
     )
     contract = Contract(
         contract_id="CTR-API-001",
-        title="Master Services Agreement",
+        vendor_id="VEND-ACME",
         vendor_name="Acme Industrial",
         effective_date=date(2025, 1, 1),
         expiration_date=date(2027, 1, 1),
-        payment_terms="NET30",
-        rates=[
+        auto_renew=False,
+        payment_terms_days=30,
+        late_delivery_penalty_pct_per_day=Decimal("0.01"),
+        rate_sheet=[
             RateItem(
                 item_id="ITEM-1",
                 description="Industrial Widget",
-                unit_rate=Decimal("100.00"),
+                max_unit_price=Decimal("100.00"),
             )
         ],
         clauses=[],
+        raw_text="This is the Master Services Agreement for Acme Industrial.",
     )
     return ProcurementPackage(
         package_id="PKG-API-TEST",

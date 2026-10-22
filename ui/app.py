@@ -435,7 +435,7 @@ if selected_screen == "📋 Review Workspace":
             col_c4.metric("Expiration", c.expiration_date.isoformat())
 
             st.markdown(
-                f"**Agreed Payment Terms:** `{c.payment_terms}` | **Auto-Renewal:** `{c.auto_renewal}`"
+                f"**Agreed Payment Terms:** `Net {c.payment_terms_days} days` | **Auto-Renewal:** `{c.auto_renew}`"
             )
 
             st.markdown("#### Contract Rates")
@@ -443,15 +443,17 @@ if selected_screen == "📋 Review Workspace":
                 {
                     "Item ID": r.item_id,
                     "Description": r.description,
-                    "Agreed Unit Rate": float(r.unit_rate),
+                    "Price Ceiling": float(r.max_unit_price),
                 }
-                for r in c.rates
+                for r in c.rate_sheet
             ]
             st.dataframe(rates, use_container_width=True)
 
             st.markdown("#### Governing Contract Clauses")
             for clause in c.clauses:
-                with st.expander(f"Clause {clause.clause_id}: {clause.title} ({clause.category})"):
+                with st.expander(
+                    f"Clause {clause.clause_id}: {clause.title} ({clause.clause_type})"
+                ):
                     st.write(clause.text)
 
         # ── Human Reviewer Action Box ─────────────────────────────────────────
