@@ -369,7 +369,7 @@ if selected_screen == "📋 Review Workspace":
             col_i4.metric("Total Billed", f"${inv.total_amount:,.2f}")
 
             st.markdown(
-                f"**Associated PO:** `{inv.po_id}` | **Payment Terms:** `{inv.payment_terms}` | **Due Date:** `{inv.due_date.isoformat()}`"
+                f"**Vendor ID:** `{inv.vendor_id}` | **Associated PO:** `{inv.po_id}` | **Payment Due:** `{inv.payment_due_date.isoformat()}`"
             )
 
             inv_items = [
@@ -385,15 +385,15 @@ if selected_screen == "📋 Review Workspace":
             st.dataframe(inv_items, use_container_width=True)
 
         with tab_po:
-            po = package.purchase_order
+            po = package.po
             col_p1, col_p2, col_p3, col_p4 = st.columns(4)
             col_p1.metric("PO ID", po.po_id)
             col_p2.metric("Vendor", po.vendor_name)
-            col_p3.metric("Issued Date", po.issued_date.isoformat())
+            col_p3.metric("Issue Date", po.issue_date.isoformat())
             col_p4.metric("PO Total", f"${po.total_amount:,.2f}")
 
             st.markdown(
-                f"**Contract Ref:** `{po.contract_id}` | **Payment Terms:** `{po.payment_terms}`"
+                f"**Contract Ref:** `{po.contract_id}` | **Vendor ID:** `{po.vendor_id}` | **Expected Delivery:** `{po.expected_delivery_date.isoformat()}`"
             )
             po_items = [
                 {
@@ -408,11 +408,12 @@ if selected_screen == "📋 Review Workspace":
             st.dataframe(po_items, use_container_width=True)
 
         with tab_receipt:
-            rc = package.goods_receipt
-            col_r1, col_r2, col_r3 = st.columns(3)
+            rc = package.receipt
+            col_r1, col_r2, col_r3, col_r4 = st.columns(4)
             col_r1.metric("Receipt ID", rc.receipt_id)
             col_r2.metric("PO Ref", rc.po_id)
-            col_r3.metric("Received Date", rc.received_date.isoformat())
+            col_r3.metric("Delivery Date", rc.delivery_date.isoformat())
+            col_r4.metric("Received By", rc.received_by)
 
             rc_items = [
                 {

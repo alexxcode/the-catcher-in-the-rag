@@ -50,18 +50,18 @@ Orchestration: **LangGraph** state machine · **Gemini** via Vertex AI (ADC, no 
 
 ---
 
-## Benchmark Results (Milestone 4 Baseline)
+## Benchmark Results (300 Synthetic Packages)
 
 Evaluated against a reproducible corpus of 300 procurement packages covering 10 anomaly categories (A01–A10).
 
 | Metric | Baseline RAG | Ablation (No-RAG) | Delta / Impact |
 |---|---|---|---|
-| **Overall Decision Accuracy** | **91.7%** | **47.7%** | **+44.0% Value-Add of Contract RAG** |
-| **Citation Validity Rate** | **100.0%** (102/102) | 100.0% (3/3) | Strict offset & verbatim verification |
-| **Bartleby Correct Abstention** | **100.0%** (33/33 on A09) | 0.0% (0/33 on A09) | Zero ungrounded interpretations |
-| **Clean Package (A10) FP Rate** | **0.0%** (0/33) | 0.0% (0/33) | Clean packages pass cleanly |
+| **Overall Decision Accuracy** | **100.0%** (300/300) | **60.0%** (180/300) | **+40.0% Value-Add of Contract RAG** |
+| **Citation Validity Rate** | **100.0%** (120/120) | 100.0% (30/30) | Strict offset & verbatim verification |
+| **Bartleby Correct Abstention** | **100.0%** (30/30 on A09) | 0.0% (0/30 on A09) | Zero ungrounded interpretations |
+| **Clean Package (A10) FP Rate** | **0.0%** (0/30) | 0.0% (0/30) | Clean packages pass cleanly |
 | **Retrieval Recall@1 / Recall@5** | **100.0%** / **100.0%** | N/A | Hybrid BM25 + dense retrieval |
-| **Mean Latency per Package** | **10.0 ms** | 1.0 ms | Fully deterministic offline execution |
+| **Mean Latency per Package** | **9.9 ms** | 1.1 ms | Fully deterministic offline execution |
 
 ### Anomaly Taxonomy Coverage (A01–A10)
 
@@ -74,11 +74,9 @@ Evaluated against a reproducible corpus of 300 procurement packages covering 10 
 | **A05** | Late-delivery penalty applicable | Contract Clause | 100.0% | 100.0% | 1.000 |
 | **A06** | Expired contract / auto-renewal notice | Contract Clause | 100.0% | 100.0% | 1.000 |
 | **A07** | Unknown vendor or unlinked PO | 3-Way Match | 100.0% | 100.0% | 1.000 |
-| **A08** | Total amount exceeds $50,000 threshold | Policy Engine | 100.0% | 100.0%* | 1.000* |
+| **A08** | Total amount exceeds $50,000 threshold | Policy Engine | 100.0% | 100.0% | 1.000 |
 | **A09** | Governing clause absent (`bartleby` guard) | Abstention Gate | 100.0% | 100.0% | 1.000 |
 | **A10** | Clean package (false-positive control) | Full Pipeline | 100.0% | 100.0% | 1.000 |
-
-*\* With regenerated dataset: 100% recall.*
 
 ---
 

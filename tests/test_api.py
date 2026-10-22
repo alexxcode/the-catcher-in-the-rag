@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
@@ -30,11 +31,11 @@ def client() -> TestClient:
 def clean_procurement_package() -> ProcurementPackage:
     invoice = Invoice(
         invoice_id="INV-API-001",
-        vendor_name="Acme Industrial",
         po_id="PO-API-001",
-        invoice_date="2026-03-15",
-        due_date="2026-04-14",
-        payment_terms="NET30",
+        vendor_id="VEND-ACME",
+        vendor_name="Acme Industrial",
+        invoice_date=date(2026, 3, 15),
+        payment_due_date=date(2026, 4, 14),
         line_items=[
             LineItem(
                 item_id="ITEM-1",
@@ -48,10 +49,11 @@ def clean_procurement_package() -> ProcurementPackage:
     )
     po = PurchaseOrder(
         po_id="PO-API-001",
-        vendor_name="Acme Industrial",
         contract_id="CTR-API-001",
-        issued_date="2026-03-01",
-        payment_terms="NET30",
+        vendor_id="VEND-ACME",
+        vendor_name="Acme Industrial",
+        issue_date=date(2026, 3, 1),
+        expected_delivery_date=date(2026, 3, 15),
         line_items=[
             LineItem(
                 item_id="ITEM-1",
@@ -66,7 +68,8 @@ def clean_procurement_package() -> ProcurementPackage:
     receipt = GoodsReceipt(
         receipt_id="RC-API-001",
         po_id="PO-API-001",
-        received_date="2026-03-10",
+        delivery_date=date(2026, 3, 10),
+        received_by="John Staff",
         items=[
             ReceiptItem(
                 item_id="ITEM-1",
@@ -80,8 +83,8 @@ def clean_procurement_package() -> ProcurementPackage:
         contract_id="CTR-API-001",
         title="Master Services Agreement",
         vendor_name="Acme Industrial",
-        effective_date="2025-01-01",
-        expiration_date="2027-01-01",
+        effective_date=date(2025, 1, 1),
+        expiration_date=date(2027, 1, 1),
         payment_terms="NET30",
         rates=[
             RateItem(
@@ -94,10 +97,10 @@ def clean_procurement_package() -> ProcurementPackage:
     )
     return ProcurementPackage(
         package_id="PKG-API-TEST",
-        invoice=invoice,
-        purchase_order=po,
-        goods_receipt=receipt,
         contract=contract,
+        po=po,
+        receipt=receipt,
+        invoice=invoice,
     )
 
 
