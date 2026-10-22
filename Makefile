@@ -27,6 +27,7 @@ lint: ## Run ruff linter
 format: ## Run ruff formatter
 	$(RUFF) format src/ tests/ datagen/ evals/
 	$(RUFF) check --fix src/ tests/ datagen/ evals/
+	@command -v terraform >/dev/null 2>&1 && terraform fmt -recursive infra/terraform/ || true
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 test: ## Run unit tests (stub provider, no LLM calls)
