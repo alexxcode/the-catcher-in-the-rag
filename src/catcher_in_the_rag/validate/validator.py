@@ -14,14 +14,12 @@ def validate_citation(finding: Finding, contract: Contract, strict_require: bool
     """Validate that a finding's citation exists verbatim in the contract source at the cited offsets.
 
     Enforces Non-negotiable Principle #2 ('No citation, no accusation').
-    Any finding alleging a contractual anomaly (A01, A04, A05, A06, A09) MUST carry a
+    Any finding alleging a contractual anomaly (A01, A04, A05, A06) MUST carry a
     verbatim citation in the governing contract. Contract findings without citations
     are strictly discarded.
     """
     if not finding.citation:
-        if strict_require or finding.anomaly_type in CONTRACT_ANOMALIES:
-            return False
-        return True
+        return not (strict_require or finding.anomaly_type in CONTRACT_ANOMALIES)
 
     cit = finding.citation
     if cit.document_id != contract.contract_id:
