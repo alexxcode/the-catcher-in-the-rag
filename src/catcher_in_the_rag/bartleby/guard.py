@@ -70,37 +70,46 @@ class BartlebyGuard:
                 surviving_clauses=[],
             )
 
-        # Condition 3: Span does not actually grant authorization (e.g. denies or conditions on unprovided approval)
+        # Condition 3: Span does not actually grant authorization for requested surcharge/fee
         if query_topic:
-            denial_patterns = (
-                "under no circumstances reimburse",
-                "shall not reimburse",
-                "shall not be reimbursed",
-                "not authorized",
-                "no additional",
-                "unless explicitly authorized in advance",
-                "without prior written",
-                "without an executed written amendment",
-            )
-            # If all passing clauses explicitly deny or condition the fee without authorizing it
-            has_authorizing_clause = False
-            for c in passing:
-                text_lower = c.text.lower()
-                is_denied = any(pat in text_lower for pat in denial_patterns)
-                if not is_denied:
-                    has_authorizing_clause = True
-                    break
-
-            if not has_authorizing_clause:
-                return BartlebyAssessment(
-                    abstained=True,
-                    reason=(
-                        f"NO_EVIDENCE: Governing contract clause for '{query_topic}' explicitly "
-                        "denies authorization or conditions reimbursement on unexecuted change orders. "
-                        "I would prefer not to guess."
-                    ),
-                    surviving_clauses=[],
+            is_surcharge_query = any(
+                term in query_topic.lower()
+                for term in (
+                    "expedite",
+                    "rush",
+                    "surcharge",
+                    "emergency",
+                    "courier",
+                    "unauthorized",
+                    "fee",
                 )
+            )
+            if is_surcharge_query:
+                denial_patterns = (
+                    "under no circumstances reimburse",
+                    "shall not reimburse",
+                    "shall not be reimbursed",
+                    "buyer shall under no circumstances pay",
+                    "unless explicitly authorized in advance by a written change order",
+                )
+                has_authorizing_clause = False
+                for c in passing:
+                    text_lower = c.text.lower()
+                    is_denied = any(pat in text_lower for pat in denial_patterns)
+                    if not is_denied:
+                        has_authorizing_clause = True
+                        break
+
+                if not has_authorizing_clause:
+                    return BartlebyAssessment(
+                        abstained=True,
+                        reason=(
+                            f"NO_EVIDENCE: Governing contract clause for '{query_topic}' explicitly "
+                            "denies authorization or conditions reimbursement on unexecuted change orders. "
+                            "I would prefer not to guess."
+                        ),
+                        surviving_clauses=[],
+                    )
 
         return BartlebyAssessment(
             abstained=False,

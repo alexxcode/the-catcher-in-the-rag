@@ -78,14 +78,18 @@ class BartlebyCalibrator:
 
         # Deterministic stratified split by A09 vs non-A09
         a09_pkgs = [
-            (p, l)
-            for p, l in self.dataset
-            if any(str(a) == "A09" or getattr(a, "value", None) == "A09" for a in l.anomalies)
+            (pkg_item, lbl_item)
+            for pkg_item, lbl_item in self.dataset
+            if any(
+                str(a) == "A09" or getattr(a, "value", None) == "A09" for a in lbl_item.anomalies
+            )
         ]
         non_a09_pkgs = [
-            (p, l)
-            for p, l in self.dataset
-            if not any(str(a) == "A09" or getattr(a, "value", None) == "A09" for a in l.anomalies)
+            (pkg_item, lbl_item)
+            for pkg_item, lbl_item in self.dataset
+            if not any(
+                str(a) == "A09" or getattr(a, "value", None) == "A09" for a in lbl_item.anomalies
+            )
         ]
 
         n_a09_train = max(1, int(len(a09_pkgs) * self.train_ratio))
@@ -125,13 +129,21 @@ class BartlebyCalibrator:
                     else "unauthorized delivery surcharge"
                 )
             else:
-                # In non-A09, test legitimate contract clauses that SHOULD be found (no abstention)
-                # Query topic could be standard freight, payment schedule, or ordered item
-                topic = (
-                    pkg.invoice.line_items[0].description
-                    if pkg.invoice.line_items
-                    else "standard delivery freight carriage"
-                )
+                # In non-A09, test legitimate contract clause queries that must NOT trigger false abstention
+                anomaly_set = {
+                    str(a) if isinstance(a, str) else getattr(a, "value", str(a))
+                    for a in lbl.anomalies
+                }
+                if "A04" in anomaly_set:
+                    topic = "payment terms net days invoice receipt"
+                elif "A05" in anomaly_set:
+                    topic = "liquidated penalty delay late delivery percentage"
+                elif "A06" in anomaly_set:
+                    topic = "term and termination agreement expiration date renewal"
+                elif "A01" in anomaly_set:
+                    topic = "pricing rate ceilings negotiated rate sheet maximum unit rates"
+                else:
+                    topic = "standard shipping freight carriage protocol"
 
             if pkg.contract.clauses:
                 retriever = ContractRetriever(contract=pkg.contract)
@@ -230,14 +242,16 @@ class BartlebyCalibrator:
                 candidates.append(cand)
 
         # 2. Find optimal plateau and select center of plateau
-        # Filter candidates with minimal over-abstention and maximal F1
-        min_over = min(c.non_a09_over_abstention_rate for c in candidates)
-        best_f1 = max(c.f1_score for c in candidates if c.non_a09_over_abstention_rate == min_over)
+        # Maximize F1-score first, breaking ties by lowest over-abstention
+        best_f1 = max(c.f1_score for c in candidates)
+        # Identify optimal candidates within top F1 range
+        plateau_candidates = [c for c in candidates if c.f1_score >= max(0.1, best_f1 - 0.02)]
+        if not plateau_candidates:
+            plateau_candidates = candidates
 
+        min_over = min(c.non_a09_over_abstention_rate for c in plateau_candidates)
         top_candidates = [
-            c
-            for c in candidates
-            if c.non_a09_over_abstention_rate == min_over and abs(c.f1_score - best_f1) < 1e-4
+            c for c in plateau_candidates if c.non_a09_over_abstention_rate == min_over
         ]
 
         # Select center/median of the plateau (NOT the boundary edge)
