@@ -1,0 +1,1338 @@
+{
+  "version": "0.4.0",
+  "timestamp": "2026-10-22T04:22:40.035373+00:00",
+  "environment": "offline_stub",
+  "config_name": "no-rag",
+  "total_packages": 300,
+  "mean_latency_ms": 1.77,
+  "decision_accuracy": 0.6,
+  "false_positive_rate_a10": 0.0,
+  "per_class": {
+    "A01": {
+      "anomaly": "A01",
+      "true_positives": 30,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "A02": {
+      "anomaly": "A02",
+      "true_positives": 30,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "A03": {
+      "anomaly": "A03",
+      "true_positives": 30,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "A04": {
+      "anomaly": "A04",
+      "true_positives": 0,
+      "false_positives": 0,
+      "false_negatives": 30,
+      "support": 30,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "A05": {
+      "anomaly": "A05",
+      "true_positives": 0,
+      "false_positives": 0,
+      "false_negatives": 30,
+      "support": 30,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "A06": {
+      "anomaly": "A06",
+      "true_positives": 0,
+      "false_positives": 0,
+      "false_negatives": 30,
+      "support": 30,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "A07": {
+      "anomaly": "A07",
+      "true_positives": 30,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "A08": {
+      "anomaly": "A08",
+      "true_positives": 30,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "A09": {
+      "anomaly": "A09",
+      "true_positives": 0,
+      "false_positives": 0,
+      "false_negatives": 30,
+      "support": 30,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "A10": {
+      "anomaly": "A10",
+      "true_positives": 0,
+      "false_positives": 0,
+      "false_negatives": 30,
+      "support": 30,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  },
+  "retrieval": {
+    "recall_at_1": 1.0,
+    "recall_at_3": 1.0,
+    "recall_at_5": 1.0,
+    "recall_at_10": 1.0,
+    "mrr": 1.0
+  },
+  "bartleby": {
+    "total_a09": 30,
+    "correct_abstentions_a09": 0,
+    "correct_abstention_rate": 0.0,
+    "total_non_a09": 270,
+    "false_abstentions": 0,
+    "over_abstention_rate": 0.0
+  },
+  "citations": {
+    "total_citations": 30,
+    "valid_citations": 30,
+    "citation_validity_rate": 1.0
+  },
+  "failure_cases": [
+    {
+      "package_id": "PKG-0091",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $1640.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0092",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $6850.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0093",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $10930.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0094",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $15800.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0095",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $2500.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0096",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $8920.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0097",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $5650.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0098",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $3200.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0099",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $8390.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0100",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $3340.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0101",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $8780.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0102",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $5280.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0103",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $3800.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0104",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $2280.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0105",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $14560.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0106",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $12670.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0107",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $880.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0108",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $7060.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0109",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $8980.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0110",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $10050.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0111",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $8800.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0112",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $4380.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0113",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $14140.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0114",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $2900.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0115",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $1920.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0116",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $8215.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0117",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $6000.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0118",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $9340.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0119",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $3000.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0120",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A04"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $3340.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0121",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $1700.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0122",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $7840.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0123",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $5150.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0124",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $3680.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0125",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $9895.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0126",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $1170.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0127",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $6310.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0128",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $12220.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0129",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $4350.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0130",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $6400.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0131",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $3060.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0132",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $9665.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0133",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $2870.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0134",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $2900.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0135",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $5140.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0136",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $4550.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0137",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $9950.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0138",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $960.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0139",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $7790.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0140",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $2710.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0141",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $4800.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0142",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $9020.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0143",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $12320.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0144",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $2380.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0145",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $8260.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0146",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $13960.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0147",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $4695.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0148",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $15530.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0149",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $1980.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0150",
+      "expected_decision": "REVIEW",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A05"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $6740.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0151",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $3420.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0152",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $6610.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0153",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $12080.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0154",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $4560.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0155",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $10530.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0156",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $1810.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0157",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $14170.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0158",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $6800.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0159",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $4405.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0160",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $16340.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0161",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $12560.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0162",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $7220.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0163",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $3210.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0164",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $8160.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0165",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $1900.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0166",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $12290.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0167",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $2240.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0168",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $3750.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0169",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $16690.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0170",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $6250.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0171",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $10800.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0172",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $5950.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0173",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $22420.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0174",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $12000.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0175",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $15780.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0176",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $13600.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0177",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $660.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0178",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $8880.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0179",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $13350.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0180",
+      "expected_decision": "REJECT",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $2800.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0241",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $9000.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0242",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $10700.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0243",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $13490.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0244",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $14550.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0245",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $4210.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0246",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $4695.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0247",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $5280.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0248",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $9620.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0249",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $2890.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0250",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $7500.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0251",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $19150.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0252",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $7040.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0253",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $12200.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0254",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $3480.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0255",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $4770.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0256",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $15350.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0257",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $9900.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0258",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $5750.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0259",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $3420.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0260",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $10980.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0261",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $6450.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0262",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $1830.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0263",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $20010.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0264",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $6900.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0265",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $14405.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0266",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $4100.00 is within auto-approval threshold ($5000.00)."
+    },
+    {
+      "package_id": "PKG-0267",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $23920.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0268",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $15720.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0269",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Approved: Package passed three-way match and contract terms. Total $9000.00 within authorized limit."
+    },
+    {
+      "package_id": "PKG-0270",
+      "expected_decision": "ABSTAIN",
+      "actual_decision": "APPROVE",
+      "expected_anomalies": [
+        "A09"
+      ],
+      "detected_anomalies": [],
+      "justification": "Auto-Approved: Package passed all checks and total $4760.00 is within auto-approval threshold ($5000.00)."
+    }
+  ],
+  "metadata": {
+    "duration_seconds": 0.54,
+    "mode": "no-rag"
+  }
+}

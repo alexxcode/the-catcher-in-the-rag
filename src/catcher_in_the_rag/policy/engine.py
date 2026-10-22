@@ -39,6 +39,7 @@ class PolicyEngine:
         self.requires_review_max = Decimal(
             str(approval_cfg.get("requires_review_max_usd", 50000.0))
         )
+        self.auto_reject_above = Decimal(str(approval_cfg.get("auto_reject_above_usd", 250000.0)))
         self.anomaly_map = self.config.get(
             "anomaly_decisions",
             {
@@ -66,8 +67,25 @@ class PolicyEngine:
         """Evaluate invoice total and findings against policy rules to produce a deterministic decision."""
         all_findings = list(findings)
 
-        # 1. Evaluate approval threshold (A08)
-        if invoice_total > self.requires_review_max and not any(
+        # 1. Evaluate hard escalation reject threshold
+        if invoice_total > self.auto_reject_above and not any(
+            f.anomaly_type == AnomalyType.A08 and f.severity == "ERROR" for f in all_findings
+        ):
+            all_findings.append(
+                Finding(
+                    finding_id=f"F-A08-REJECT-{len(all_findings) + 1}",
+                    anomaly_type=AnomalyType.A08,
+                    field="total_amount",
+                    description=(
+                        f"Invoice amount ${invoice_total:.2f} exceeds hard policy limit "
+                        f"${self.auto_reject_above:.2f}. Auto-reject policy triggered."
+                    ),
+                    severity="ERROR",
+                    calculated_difference=invoice_total - self.auto_reject_above,
+                )
+            )
+        # 2. Evaluate approval review threshold (A08)
+        elif invoice_total > self.requires_review_max and not any(
             f.anomaly_type == AnomalyType.A08 for f in all_findings
         ):
             all_findings.append(
@@ -85,7 +103,7 @@ class PolicyEngine:
                 )
             )
 
-        # 2. Check for Bartleby abstention (A09)
+        # 3. Check for Bartleby abstention (A09)
         has_a09 = any(f.anomaly_type == AnomalyType.A09 for f in all_findings)
         if bartleby_abstained or has_a09:
             reason = bartleby_reason or "Evidence absent in contract terms"
@@ -99,7 +117,7 @@ class PolicyEngine:
                 bartleby_reason=reason,
             )
 
-        # 3. Multi-finding resolution
+        # 4. Multi-finding resolution
         # Priority: REJECT > REVIEW > APPROVE
         has_reject = False
         has_review = False
@@ -127,10 +145,16 @@ class PolicyEngine:
             requires_human_review = True
         else:
             decision_type = DecisionType.APPROVE
-            justification = (
-                f"Approved: Package passed three-way match and contract terms. "
-                f"Total ${invoice_total:.2f} within authorized limit."
-            )
+            if invoice_total <= self.auto_approve_max:
+                justification = (
+                    f"Auto-Approved: Package passed all checks and total ${invoice_total:.2f} "
+                    f"is within auto-approval threshold (${self.auto_approve_max:.2f})."
+                )
+            else:
+                justification = (
+                    f"Approved: Package passed three-way match and contract terms. "
+                    f"Total ${invoice_total:.2f} within authorized limit."
+                )
             requires_human_review = False
 
         return Decision(

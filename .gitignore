@@ -64,6 +64,8 @@ data/synthetic/
 # ── Evaluation reports ────────────────────────────────────────────────────────
 evals/reports/*
 !evals/reports/.gitkeep
+!evals/reports/canonical_baseline_report.json
+!evals/reports/canonical_norag_report.json
 
 # ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store

@@ -66,11 +66,21 @@ def test_validator_keeps_verbatim_and_drops_hallucinated() -> None:
         citation=None,
     )
 
+    # Contract clause finding WITHOUT citation (must be dropped per Principle #2)
+    contract_finding_no_cit = Finding(
+        finding_id="F-4",
+        anomaly_type=AnomalyType.A04,
+        field="payment_terms",
+        description="Contract finding lacking mandatory citation",
+        citation=None,
+    )
+
     valid, dropped = validate_findings(
-        [valid_finding, invalid_finding, non_clause_finding], contract
+        [valid_finding, invalid_finding, non_clause_finding, contract_finding_no_cit],
+        contract,
     )
     assert len(valid) == 2
-    assert len(dropped) == 1
-    assert dropped[0].finding_id == "F-2"
+    assert len(dropped) == 2
+    assert {d.finding_id for d in dropped} == {"F-2", "F-4"}
     assert valid_finding in valid
     assert non_clause_finding in valid

@@ -1,11 +1,26 @@
 from __future__ import annotations
 
-from catcher_in_the_rag.schemas import Contract, Finding
+from catcher_in_the_rag.schemas import AnomalyType, Contract, Finding
+
+CONTRACT_ANOMALIES = {
+    AnomalyType.A01,
+    AnomalyType.A04,
+    AnomalyType.A05,
+    AnomalyType.A06,
+}
 
 
-def validate_citation(finding: Finding, contract: Contract) -> bool:
-    """Validate that a finding's citation exists verbatim in the contract source at the cited offsets."""
+def validate_citation(finding: Finding, contract: Contract, strict_require: bool = False) -> bool:
+    """Validate that a finding's citation exists verbatim in the contract source at the cited offsets.
+
+    Enforces Non-negotiable Principle #2 ('No citation, no accusation').
+    Any finding alleging a contractual anomaly (A01, A04, A05, A06, A09) MUST carry a
+    verbatim citation in the governing contract. Contract findings without citations
+    are strictly discarded.
+    """
     if not finding.citation:
+        if strict_require or finding.anomaly_type in CONTRACT_ANOMALIES:
+            return False
         return True
 
     cit = finding.citation

@@ -71,9 +71,15 @@ def print_summary_table(report: EvaluationReport) -> None:
 
     for a_code, metric in sorted(report.per_class.items()):
         title = anomaly_titles.get(a_code, "")
-        print(
-            f" {a_code:<8} | {metric.support:<8} | {metric.precision * 100:>8.1f}% | {metric.recall * 100:>8.1f}% | {metric.f1:>8.3f}  ({title})"
-        )
+        if a_code == "A10":
+            fpr_str = f"FPR: {report.false_positive_rate_a10 * 100:.1f}%"
+            print(
+                f" {a_code:<8} | {metric.support:<8} | {'N/A (Ctrl)':>10} | {'N/A (Ctrl)':>10} | {fpr_str:>10}  ({title})"
+            )
+        else:
+            print(
+                f" {a_code:<8} | {metric.support:<8} | {metric.precision * 100:>8.1f}% | {metric.recall * 100:>8.1f}% | {metric.f1:>8.3f}  ({title})"
+            )
 
     print(sep)
     if report.failure_cases:

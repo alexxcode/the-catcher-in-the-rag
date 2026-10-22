@@ -285,7 +285,7 @@ if selected_screen == "📋 Review Workspace":
                     </div>
                 </div>
                 <div style="margin-top: 0.6rem; font-size: 1.05rem;">
-                    <strong>Policy Explanation:</strong> {decision.explanation}
+                    <strong>Policy Justification:</strong> {decision.justification}
                 </div>
             </div>
             """,
@@ -323,15 +323,26 @@ if selected_screen == "📋 Review Workspace":
                 with st.container():
                     col_f1, col_f2 = st.columns([3, 1])
                     with col_f1:
-                        st.markdown(f"**{idx}. [{finding.category.value}] {finding.description}**")
+                        anom_code = str(
+                            finding.anomaly_type.value
+                            if hasattr(finding.anomaly_type, "value")
+                            else finding.anomaly_type
+                        )
+                        st.markdown(f"**{idx}. [{anom_code}] {finding.description}**")
                     with col_f2:
+                        sev_str = str(
+                            finding.severity.value
+                            if hasattr(finding.severity, "value")
+                            else finding.severity
+                        )
                         sev_color = {
-                            "CRITICAL": "red",
-                            "WARNING": "orange",
-                            "INFO": "blue",
-                        }.get(finding.severity.value, "gray")
+                            "ERROR": "#EF4444",
+                            "CRITICAL": "#EF4444",
+                            "WARNING": "#F59E0B",
+                            "INFO": "#38BDF8",
+                        }.get(sev_str, "gray")
                         st.markdown(
-                            f"<span style='color:{sev_color}; font-weight:600;'>Severity: {finding.severity.value}</span>",
+                            f"<span style='color:{sev_color}; font-weight:600;'>Severity: {sev_str}</span>",
                             unsafe_allow_html=True,
                         )
 
@@ -340,10 +351,10 @@ if selected_screen == "📋 Review Workspace":
                             f"""
                             <div class="citation-box">
                                 <span style="font-size: 0.85rem; color: #94A3B8; font-weight: 600;">
-                                    VERBATIM CLAUSE CITATION &middot; Document: <code>{finding.citation.document_id}</code> &middot; Offsets: <code>[{finding.citation.start_offset}:{finding.citation.end_offset}]</code>
+                                    VERBATIM CLAUSE CITATION &middot; Document: <code>{finding.citation.document_id}</code> &middot; Offsets: <code>[{finding.citation.start_char}:{finding.citation.end_char}]</code>
                                 </span>
                                 <div style="margin-top: 0.3rem; font-size: 0.95rem; color: #F1F5F9; font-style: italic;">
-                                    &ldquo;{finding.citation.verbatim_quote}&rdquo;
+                                    &ldquo;{finding.citation.text}&rdquo;
                                 </div>
                                 <div style="margin-top: 0.3rem; font-size: 0.8rem; color: #10B981; font-weight: 600;">
                                     ✓ Verified verbatim in governing contract text
@@ -603,7 +614,9 @@ elif selected_screen == "📊 Evaluation Dashboard":
                 with st.expander(
                     f"📦 {f_case.get('package_id')} — Expected {f_case.get('expected_decision')}, Got {f_case.get('actual_decision')}"
                 ):
-                    st.write(f"**Explanation:** {f_case.get('explanation')}")
+                    st.write(
+                        f"**Justification:** {f_case.get('justification') or f_case.get('explanation')}"
+                    )
 
 
 # ── SCREEN 3: SYSTEM ARCHITECTURE ─────────────────────────────────────────────

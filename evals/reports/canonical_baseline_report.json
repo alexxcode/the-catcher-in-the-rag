@@ -1,0 +1,137 @@
+{
+  "version": "0.4.0",
+  "timestamp": "2026-10-22T04:22:39.496080+00:00",
+  "environment": "offline_stub",
+  "config_name": "baseline",
+  "total_packages": 300,
+  "mean_latency_ms": 9.1,
+  "decision_accuracy": 1.0,
+  "false_positive_rate_a10": 0.0,
+  "per_class": {
+    "A01": {
+      "anomaly": "A01",
+      "true_positives": 30,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "A02": {
+      "anomaly": "A02",
+      "true_positives": 30,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "A03": {
+      "anomaly": "A03",
+      "true_positives": 30,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "A04": {
+      "anomaly": "A04",
+      "true_positives": 30,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "A05": {
+      "anomaly": "A05",
+      "true_positives": 30,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "A06": {
+      "anomaly": "A06",
+      "true_positives": 30,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "A07": {
+      "anomaly": "A07",
+      "true_positives": 30,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "A08": {
+      "anomaly": "A08",
+      "true_positives": 30,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "A09": {
+      "anomaly": "A09",
+      "true_positives": 30,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "support": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "A10": {
+      "anomaly": "A10",
+      "true_positives": 0,
+      "false_positives": 0,
+      "false_negatives": 30,
+      "support": 30,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  },
+  "retrieval": {
+    "recall_at_1": 1.0,
+    "recall_at_3": 1.0,
+    "recall_at_5": 1.0,
+    "recall_at_10": 1.0,
+    "mrr": 1.0
+  },
+  "bartleby": {
+    "total_a09": 30,
+    "correct_abstentions_a09": 30,
+    "correct_abstention_rate": 1.0,
+    "total_non_a09": 270,
+    "false_abstentions": 0,
+    "over_abstention_rate": 0.0
+  },
+  "citations": {
+    "total_citations": 120,
+    "valid_citations": 120,
+    "citation_validity_rate": 1.0
+  },
+  "failure_cases": [],
+  "metadata": {
+    "duration_seconds": 2.74,
+    "mode": "baseline"
+  }
+}

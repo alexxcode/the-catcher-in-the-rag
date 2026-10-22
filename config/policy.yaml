@@ -5,8 +5,8 @@
 # ── Approval thresholds (A08: amount above threshold) ─────────────────────────
 approval:
   auto_approve_max_usd: 5000.0     # below this: auto-approve if no other findings
-  requires_review_max_usd: 50000.0 # above auto_approve: human review required
-  auto_reject_above_usd: 50000.0   # above this: auto-reject, escalate
+  requires_review_max_usd: 50000.0 # above this: human review required (A08)
+  auto_reject_above_usd: 250000.0  # above this: auto-reject / hard escalation required
 
 # ── Decision rules ────────────────────────────────────────────────────────────
 # Each anomaly class maps to a default decision.

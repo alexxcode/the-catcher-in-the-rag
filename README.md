@@ -29,24 +29,24 @@ The evaluation harness is the core deliverable, not the chat UI.
 ```
 PDF/JSON package
       │
- [1 ingest] → [2 classify] → [3 extract (LLM, schema-constrained)]
+ [1 ingest - planned] → [2 classify - planned] → [3 extract (schema-constrained / LLM)]
                                       │
                          [4 link PO / receipt by id]
                                       │
                          [5 match (deterministic, tolerances)]
                                       │
-              [6 retrieve contract terms (hybrid + rerank, scoped to vendor)]
+              [6 retrieve contract terms (BM25 + dense hybrid, scoped to vendor)]
                                       │
               [6b bartleby: abstention gate → NO_EVIDENCE or continue]
                                       │
-              [7 apply terms (LLM proposes finding + verbatim quote)]
+              [7 apply terms (evaluates structured contract terms & rates)]
                                       │
               [8 validate (quote exists, numbers recomputed) → decide (policy)]
                                       │
               approve | human review (with evidence) | reject
 ```
 
-Orchestration: **LangGraph** state machine · **Gemini** via Vertex AI (ADC, no API keys) · **pgvector** on Cloud SQL · **Langfuse** for traces · **Cloud Run** for hosting.
+Orchestration: **LangGraph** state machine · **Gemini** via Vertex AI (ADC credentials, `providers/gemini.py`) with offline deterministic stub · **pgvector** on Cloud SQL · **Langfuse** for traces · **Cloud Run** for hosting.
 
 ---
 
@@ -56,7 +56,7 @@ Evaluated against a reproducible corpus of 300 procurement packages covering 10 
 
 | Metric | Baseline RAG | Ablation (No-RAG) | Delta / Impact |
 |---|---|---|---|
-| **Overall Decision Accuracy** | **100.0%** (300/300) | **60.0%** (180/300) | **+40.0% Value-Add of Contract RAG** |
+| **Overall Decision Accuracy** | **100.0%** (300/300) | **60.0%** (180/300) | **+40.0% Valor de Términos Contractuales Estructurados** |
 | **Citation Validity Rate** | **100.0%** (120/120) | 100.0% (30/30) | Strict offset & verbatim verification |
 | **Bartleby Correct Abstention** | **100.0%** (30/30 on A09) | 0.0% (0/30 on A09) | Zero ungrounded interpretations |
 | **Clean Package (A10) FP Rate** | **0.0%** (0/30) | 0.0% (0/30) | Clean packages pass cleanly |
@@ -65,7 +65,7 @@ Evaluated against a reproducible corpus of 300 procurement packages covering 10 
 
 ### Anomaly Taxonomy Coverage (A01–A10)
 
-| ID | Anomaly Description | Layer | Baseline Precision | Baseline Recall | Baseline F1 |
+| ID | Anomaly Description | Layer | Baseline Precision | Baseline Recall | Baseline F1 / FPR |
 |---|---|---|---|---|---|
 | **A01** | Unit price above contract rate ceiling | Match + Clause | 100.0% | 100.0% | 1.000 |
 | **A02** | Quantity billed > quantity received | 3-Way Match | 100.0% | 100.0% | 1.000 |
@@ -76,7 +76,7 @@ Evaluated against a reproducible corpus of 300 procurement packages covering 10 
 | **A07** | Unknown vendor or unlinked PO | 3-Way Match | 100.0% | 100.0% | 1.000 |
 | **A08** | Total amount exceeds $50,000 threshold | Policy Engine | 100.0% | 100.0% | 1.000 |
 | **A09** | Governing clause absent (`bartleby` guard) | Abstention Gate | 100.0% | 100.0% | 1.000 |
-| **A10** | Clean package (false-positive control) | Full Pipeline | 100.0% | 100.0% | 1.000 |
+| **A10** | Clean package (false-positive control) | Full Pipeline | N/A (Control) | N/A (Control) | FPR: 0.0% |
 
 ---
 

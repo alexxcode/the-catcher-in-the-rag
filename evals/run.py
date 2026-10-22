@@ -95,12 +95,20 @@ def main() -> int:
         print(f"Ablation (no-RAG) report saved to: {no_rag_file}")
 
         print("\n" + "=" * 78)
-        print(" ABLATION COMPARISON (BASELINE RAG vs NO-RAG)")
+        print(" ABLATION COMPARISON: IMPACTO DE TÉRMINOS CONTRACTUALES")
         print("=" * 78)
-        print(f" Baseline Decision Accuracy: {baseline_report.decision_accuracy * 100:.1f}%")
-        print(f" No-RAG   Decision Accuracy: {no_rag_report.decision_accuracy * 100:.1f}%")
+        print(
+            f" Baseline (Con Términos Contractuales):  {baseline_report.decision_accuracy * 100:.1f}%"
+        )
+        print(
+            f" Ablación (Solo 3-Way Match, Sin Términos): {no_rag_report.decision_accuracy * 100:.1f}%"
+        )
         delta = (baseline_report.decision_accuracy - no_rag_report.decision_accuracy) * 100
-        print(f" RAG Value-Add Improvement:  +{delta:.1f}%")
+        print(f" Valor de los términos contractuales estructurados: +{delta:.1f}%")
+        print(
+            " [Nota: La ablación actual evalúa la aplicación de reglas sobre campos estructurados"
+        )
+        print("  del contrato vs cotejo tripartito básico. Ver StateOfCatcher.md para detalles.]")
         print("=" * 78)
 
     return 0
