@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, TypedDict
 
@@ -33,7 +34,10 @@ class AuditState(TypedDict, total=False):
     requires_human_review: bool
 
 
-def create_extract_node(extractor: DocumentExtractor) -> Any:
+NodeFn = Callable[[AuditState], dict[str, Any]]
+
+
+def create_extract_node(extractor: DocumentExtractor) -> NodeFn:
     """Factory for the extraction graph node."""
 
     def extract_node(state: AuditState) -> dict[str, Any]:
@@ -57,7 +61,7 @@ def match_node(state: AuditState) -> dict[str, Any]:
     return {"match_findings": findings}
 
 
-def create_policy_node(policy_engine: PolicyEngine) -> Any:
+def create_policy_node(policy_engine: PolicyEngine) -> NodeFn:
     """Factory for the policy decision graph node."""
 
     def policy_node(state: AuditState) -> dict[str, Any]:
@@ -81,7 +85,7 @@ def create_policy_node(policy_engine: PolicyEngine) -> Any:
 class SimplePipeline:
     """Lightweight fallback pipeline when langgraph is not installed."""
 
-    def __init__(self, extract_fn: Any, match_fn: Any, policy_fn: Any) -> None:
+    def __init__(self, extract_fn: NodeFn, match_fn: NodeFn, policy_fn: NodeFn) -> None:
         self.extract_fn = extract_fn
         self.match_fn = match_fn
         self.policy_fn = policy_fn
@@ -100,7 +104,7 @@ class SimplePipeline:
 def build_audit_graph(
     llm_provider: LLMProvider | None = None,
     policy_engine: PolicyEngine | None = None,
-) -> Any:
+) -> StateGraph | SimplePipeline:
     """Build and wire the LangGraph state machine for document auditing."""
     provider = llm_provider or get_llm_provider()
     extractor = DocumentExtractor(provider=provider)

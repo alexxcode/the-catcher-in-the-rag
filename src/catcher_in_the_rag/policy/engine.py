@@ -65,23 +65,23 @@ class PolicyEngine:
         all_findings = list(findings)
 
         # 1. Evaluate approval threshold (A08)
-        if invoice_total > self.requires_review_max:
-            # Check if A08 finding is already present
-            if not any(f.anomaly_type == AnomalyType.A08 for f in all_findings):
-                all_findings.append(
-                    Finding(
-                        finding_id=f"F-A08-{len(all_findings) + 1}",
-                        anomaly_type=AnomalyType.A08,
-                        field="total_amount",
-                        description=(
-                            f"Invoice amount ${invoice_total:.2f} exceeds "
-                            f"standard approval limit ${self.requires_review_max:.2f}. "
-                            "Requires executive approval."
-                        ),
-                        severity="WARNING",
-                        calculated_difference=invoice_total - self.requires_review_max,
-                    )
+        if invoice_total > self.requires_review_max and not any(
+            f.anomaly_type == AnomalyType.A08 for f in all_findings
+        ):
+            all_findings.append(
+                Finding(
+                    finding_id=f"F-A08-{len(all_findings) + 1}",
+                    anomaly_type=AnomalyType.A08,
+                    field="total_amount",
+                    description=(
+                        f"Invoice amount ${invoice_total:.2f} exceeds "
+                        f"standard approval limit ${self.requires_review_max:.2f}. "
+                        "Requires executive approval."
+                    ),
+                    severity="WARNING",
+                    calculated_difference=invoice_total - self.requires_review_max,
                 )
+            )
 
         # 2. Multi-finding resolution
         # Priority: REJECT > REVIEW > APPROVE

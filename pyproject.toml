@@ -79,7 +79,7 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM", "PTH", "ANN"]
-ignore = ["E501"]
+ignore = ["E501", "ANN401"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["catcher_in_the_rag"]
