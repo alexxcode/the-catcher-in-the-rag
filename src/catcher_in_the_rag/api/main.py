@@ -5,9 +5,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+
+load_dotenv()
 
 from catcher_in_the_rag.graph import audit_pipeline
 from catcher_in_the_rag.schemas import (

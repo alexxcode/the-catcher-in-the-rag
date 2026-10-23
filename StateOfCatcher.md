@@ -226,4 +226,5 @@ Habiendo culminado la fase de **Honestidad Primero**, la evolución hacia un sis
 - [x] **Instrumentación del Grafo de Auditoría (`graph.py`):** Cada ejecución de `audit_pipeline()` emite una traza de ejecución enriquecida con latencia en milisegundos, paquete, proveedor, monto total facturado, decisión final de política, hallazgos validados y estado de abstención de Bartleby.
 - [x] **Instrumentación de Modelos Generativos (`providers/gemini.py`):** Registro de llamadas LLM en `extract_structured` y `generate_text` extrayendo el conteo exacto de tokens de entrada (`prompt_token_count`), candidatos de salida (`candidates_token_count`) y totales (`total_token_count`) desde `usage_metadata`.
 - [x] **Indicador de Estado en la Interfaz Web (`ui/app.py`):** Monitorización visual en la barra lateral que reporta si el sistema opera con `Langfuse Active` o con el `NoOpTracer` offline.
-- [x] **Suite de Pruebas Unitarias Expandida:** 61 pruebas unitarias pasando al 100% en 15.60s con 83% de cobertura de código (87% en `tracing.py` y 90% en `graph.py`).
+- [x] **Suite de Pruebas Unitarias Expandida:** 61 pruebas unitarias pasando al 100% con 83% de cobertura de código global (95% en `tracing.py` y 90% en `graph.py`).
+- [x] **Commit y CI Verificado:** Commits `5bee38f`, `9fadc5c` y `9b97d5d` en `main` verificados con GitHub Actions CI verde.

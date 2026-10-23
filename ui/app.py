@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any
 
 import streamlit as st
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from catcher_in_the_rag.bartleby.guard import BartlebyGuard
 from catcher_in_the_rag.graph import audit_pipeline

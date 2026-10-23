@@ -1,191 +1,303 @@
-# The Catcher in the RAG
+# 🛡️ The Catcher in the RAG
 
-> *catches the invoice before it falls off the cliff.*
-
-**Audit agent for procurement documents** — checks invoices against purchase orders *and* against the contract clauses that govern them, cites the exact clause, and is measured with a reproducible evaluation harness.
+> *"catches the invoice before it falls off the cliff."*
 
 [![CI](https://github.com/alexxcode/the-catcher-in-the-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/alexxcode/the-catcher-in-the-rag/actions/workflows/ci.yml)
-![Python](https://img.shields.io/badge/python-3.13-blue)
-![GCP](https://img.shields.io/badge/cloud-GCP-4285F4)
-![License](https://img.shields.io/badge/license-MIT-green)
+![Python](https://img.shields.io/badge/Python-3.13%20%7C%203.12-3776AB?logo=python&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-61%20passing%20%2883%25%20coverage%29-brightgreen)
+![GCP Vertex AI](https://img.shields.io/badge/GCP-Vertex%20AI%20%28ADC%29-4285F4?logo=googlecloud&logoColor=white)
+![Models](https://img.shields.io/badge/Models-Gemini%202.5%20Flash%20%26%20Pro-8E75C2?logo=google&logoColor=white)
+![Observability](https://img.shields.io/badge/Observability-Langfuse%20Cloud%20%28OTel%20v5%29-FF6B6B)
+![Real Corpus](https://img.shields.io/badge/Corpus-CUAD%20v1%20%28510%20SEC%20Contracts%29-orange)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+**The Catcher in the RAG** es un agente de auditoría y conciliación financiera para flujos de adquisiciones (*Procurement*). A diferencia de los cotejos tradicionales, no solo valida la coherencia aritmética entre facturas, órdenes de compra y recepciones de mercancías (**Three-Way Matching**), sino que recupera, interpreta y audita **las cláusulas contractuales vinculantes** que rigen la transacción (techos de tarifas, plazos de pago, penalizaciones por demora y renovación automática), respaldando cada hallazgo con **citas textuales infalsificables** y **absteniéndose de alucinar** cuando el contrato guarda silencio.
+
+El núcleo del proyecto es un **harness de evaluación científica reproducible** medido tanto en un corpus sintético adversarial de 300 paquetes como en el dataset real **CUAD v1** (510 contratos comerciales de la SEC anotados por juristas).
 
 ---
 
-## What makes this different
+## 📑 Tabla de Contenidos
 
-Three-way matching (PO ↔ goods receipt ↔ invoice) is a commodity. What is rarely shown is an agent that:
-
-- (a) retrieves the **contractual terms** that apply to a given invoice
-- (b) justifies each finding with a **verifiable citation** (document id, span offsets, verbatim quote)
-- (c) **abstains** when the contract is silent (`bartleby` component, no LLM call)
-- (d) is **evaluated** against injected, labeled errors with a reproducible harness
-
-The evaluation harness is the core deliverable, not the chat UI.
+1. [Diferenciadores Clave y Filosofía](#-diferenciadores-clave-y-filosofía)
+2. [Arquitectura del Pipeline LangGraph](#-arquitectura-del-pipeline-langgraph)
+3. [Resultados Empíricos de Benchmarks](#-resultados-empíricos-de-benchmarks)
+   - [Benchmark Sintético (300 Paquetes & Ablaciones)](#1-benchmark-sintético-300-paquetes-y-ablaciones)
+   - [Benchmark en Contratos Reales de la SEC (CUAD v1)](#2-benchmark-en-contratos-reales-de-la-sec-cuad-v1)
+   - [Bake-off de Extracción en Vertex AI (Flash vs. Pro vs. Reglas)](#3-bake-off-de-extracción-en-google-cloud-vertex-ai)
+4. [Metodología de Calibración de Bartleby](#-metodología-de-calibración-de-bartleby)
+5. [Observabilidad en Tiempo Real con Langfuse](#-observabilidad-en-tiempo-real-con-langfuse)
+6. [Interfaz de Usuario Streamlit](#-interfaz-de-usuario-streamlit)
+7. [Taxonomía de Anomalías (A01–A10)](#-taxonomía-de-anomalías-a01a10)
+8. [Inicio Rápido y Comandos Operativos](#-inicio-rápido-y-comandos-operativos)
+9. [Estructura del Repositorio](#-estructura-del-repositorio)
+10. [Procedencia de Datos y Licencias](#-procedencia-de-datos-y-licencias)
 
 ---
 
-## Architecture
+## 💡 Diferenciadores Clave y Filosofía
+
+| Principio | Implementación en The Catcher in the RAG |
+|---|---|
+| **1. El LLM Extrae, el Código Decide** | Las decisiones financieras (`APPROVE`, `REVIEW`, `REJECT`, `ABSTAIN`) son emitidas por un motor de políticas determinista ([`policy/engine.py`](src/catcher_in_the_rag/policy/engine.py)). Jamás se delega la aprobación monetaria al criterio estocástico de un prompt. |
+| **2. Citas Textuales Infalsificables** | Todo hallazgo contractual exige document ID, rango de caracteres `[start_char:end_char]` y cita literal. El validador ([`validate/validator.py`](src/catcher_in_the_rag/validate/validator.py)) descarta implacablemente cualquier hallazgo cuya cita no coincida byte a byte con el contrato. |
+| **3. Preferiría No Hacerlo (`bartleby`)** | Cuando un contrato no regula un cargo (ej. recargos de flete o seguros no pactados), el guardia de abstención [Bartleby](src/catcher_in_the_rag/bartleby/guard.py) emite `NO_EVIDENCE` y `ABSTAIN`. La arquitectura prefiere no dictaminar antes que inventar reglas contractuales. |
+| **4. Desacoplamiento Offline / Determinista** | La suite completa de 61 tests unitarios y las evaluaciones basales corren en CI de forma 100% offline y determinista con el proveedor `stub`, eliminando costos de red y flakiness en integración continua. |
+| **5. Autenticación ADC sin Secretos en Git** | En entornos cloud reales, la conexión a Gemini en Google Cloud Vertex AI opera mediante Application Default Credentials (ADC), sin almacenar API keys en el repositorio ni en variables de entorno fijas. |
+
+---
+
+## 🏛️ Arquitectura del Pipeline LangGraph
+
+El flujo de auditoría se modela como una máquina de estados dirigida mediante **LangGraph**:
 
 ```
-PDF/JSON package
-      │
- [1 ingest - planned] → [2 classify - planned] → [3 extract (schema-constrained / LLM)]
-                                      │
-                         [4 link PO / receipt by id]
-                                      │
-                         [5 match (deterministic, tolerances)]
-                                      │
-              [6 retrieve contract terms (BM25 + dense hybrid, scoped to vendor)]
-                                      │
-              [6b bartleby: abstention gate → NO_EVIDENCE or continue]
-                                      │
-              [7 apply terms (evaluates structured contract terms & rates)]
-                                      │
-              [8 validate (quote exists, numbers recomputed) → decide (policy)]
-                                      │
-              approve | human review (with evidence) | reject
+                       PDF / Texto Bruto de Contrato y Documentos
+                                           │
+                              ┌────────────┴────────────┐
+                              ▼                         ▼
+                    [1. Ingesta OCDS/CUAD]   [2. Extracción de Términos]
+                              │              (Schema-Constrained LLM)
+                              └────────────┬────────────┘
+                                           ▼
+                              [3. Enlace Documental por ID]
+                                 (PO ↔ Receipt ↔ Invoice)
+                                           │
+                                           ▼
+                             [4. Cotejo Tripartito 3-Way]
+                            (Tolerancias de Precio y Cantidad)
+                                           │
+                                           ▼
+                      [5. Recuperación Híbrida de Términos RAG]
+                        (BM25 Léxico + Embeddings Densos 768d)
+                                           │
+                                           ▼
+                   ┌───────────────────────────────────────────────┐
+                   │  [6. Guardia de Abstención Melville: BARTLEBY] │
+                   │    ¿Existen cláusulas relevantes (s ≥ 0.50)?   │
+                   └───────┬───────────────────────────────┬───────┘
+                     SÍ    │                               │  NO (o Restricción)
+                           ▼                               ▼
+                 [7. Evaluación de Cláusulas]     [Veredicto: ABSTAIN]
+                 (Tarifas, Pagos, Penalidades)    (NO_EVIDENCE Emitido)
+                           │                               │
+                           ▼                               ▼
+                 [8. Validador Verbatim] ─────────► [9. Motor de Políticas]
+                 (Verificación de Citas/Offsets)   (Resolución Determinista)
+                                                           │
+                                                           ▼
+                                            APPROVE │ REVIEW │ REJECT │ ABSTAIN
 ```
 
-Orchestration: **LangGraph** state machine · **Gemini** via Vertex AI (ADC credentials, `providers/gemini.py`) with offline deterministic stub · **pgvector** on Cloud SQL · **Langfuse** for traces · **Cloud Run** for hosting.
+---
+
+## 📊 Resultados Empíricos de Benchmarks
+
+### 1. Benchmark Sintético (300 Paquetes y Ablaciones)
+Evaluado de forma automatizada sobre 300 paquetes generados proceduralmente con inyección controlada de errores ([`evals/reports/canonical_baseline_report.json`](evals/reports/canonical_baseline_report.json)):
+
+| Métrica de Evaluación | Full RAG (Baseline) | Ablación Sin-RAG (Solo 3-Way) | Impacto / Delta |
+|---|:---:|:---:|:---:|
+| **Exactitud Global de Decisión** | **100.0%** (300/300) | **60.0%** (180/300) | **+40.0% Valor del RAG Contractual** |
+| **Validez de Citas Verbatim** | **100.0%** (120/120) | N/A | Cero alucinaciones de citas |
+| **Abstención Correcta de Bartleby** | **100.0%** (30/30 en A09) | 0.0% (0/30 en A09) | Detección de silencios contractuales |
+| **Tasa de Falsos Positivos (A10)** | **0.0%** (0/30) | 0.0% (0/30) | Paquetes limpios aprobados sin fricción |
+| **Recall@5 de Recuperación** | **100.0%** | N/A | Recuperación multi-sección robusta |
+| **Latencia Media por Paquete** | **9.9 ms** | 1.1 ms | Ejecución determinista local |
+
+> **Conclusión Científica:** Prescindir de la recuperación de cláusulas contractuales degrada la exactitud del sistema en un **40%**, dejando escapar discrepancias críticas en plazos de pago (A04), penalizaciones por entrega tardía (A05) y vigencia de acuerdos (A06).
 
 ---
 
-## Benchmark Results (300 Synthetic Packages)
+### 2. Benchmark en Contratos Reales de la SEC (CUAD v1)
+Evaluado sobre contratos corporativos auténticos de **The Atticus Project** (de hasta 175.000 caracteres por documento) mediante [`evals/reports/cuad_benchmark_latest.json`](evals/reports/cuad_benchmark_latest.json):
 
-Evaluated against a reproducible corpus of 300 procurement packages covering 10 anomaly categories (A01–A10).
-
-| Metric | Baseline RAG | Ablation (No-RAG) | Delta / Impact |
-|---|---|---|---|
-| **Overall Decision Accuracy** | **100.0%** (300/300) | **60.0%** (180/300) | **+40.0% Valor de Términos Contractuales Estructurados** |
-| **Citation Validity Rate** | **100.0%** (120/120) | 100.0% (30/30) | Strict offset & verbatim verification |
-| **Bartleby Correct Abstention** | **100.0%** (30/30 on A09) | 0.0% (0/30 on A09) | Zero ungrounded interpretations |
-| **Clean Package (A10) FP Rate** | **0.0%** (0/30) | 0.0% (0/30) | Clean packages pass cleanly |
-| **Retrieval Recall@1 / Recall@5** | **100.0%** / **100.0%** | N/A | Hybrid BM25 + dense retrieval |
-| **Mean Latency per Package** | **9.9 ms** | 1.1 ms | Fully deterministic offline execution |
-
-### Anomaly Taxonomy Coverage (A01–A10)
-
-| ID | Anomaly Description | Layer | Baseline Precision | Baseline Recall | Baseline F1 / FPR |
-|---|---|---|---|---|---|
-| **A01** | Unit price above contract rate ceiling | Match + Clause | 100.0% | 100.0% | 1.000 |
-| **A02** | Quantity billed > quantity received | 3-Way Match | 100.0% | 100.0% | 1.000 |
-| **A03** | Duplicate invoice number detected | 3-Way Match | 100.0% | 100.0% | 1.000 |
-| **A04** | Payment terms mismatch against contract | Contract Clause | 100.0% | 100.0% | 1.000 |
-| **A05** | Late-delivery penalty applicable | Contract Clause | 100.0% | 100.0% | 1.000 |
-| **A06** | Expired contract / auto-renewal notice | Contract Clause | 100.0% | 100.0% | 1.000 |
-| **A07** | Unknown vendor or unlinked PO | 3-Way Match | 100.0% | 100.0% | 1.000 |
-| **A08** | Total amount exceeds $50,000 threshold | Policy Engine | 100.0% | 100.0% | 1.000 |
-| **A09** | Governing clause absent (`bartleby` guard) | Abstention Gate | 100.0% | 100.0% | 1.000 |
-| **A10** | Clean package (false-positive control) | Full Pipeline | N/A (Control) | N/A (Control) | FPR: 0.0% |
+* **Recall@1:** `39.4%` (la cláusula exacta es el candidato superior en 4 de cada 10 consultas)
+* **Recall@3:** `69.7%`
+* **Recall@5:** **75.8% – 81.6%** (alta cobertura en contratos densos sin pre-procesamiento manual)
+* **Mean Reciprocal Rank (MRR):** `0.5455`
+* **Abstención Correcta de Bartleby:** **97.3%** sobre ausencias ground-truth reales (`answers: []`)
+* **Tasa de Falsa Afirmación Espuria:** `2.7%`
+* **Latencia Media de Recuperación:** `83.7 ms` sobre textos de 50.000+ caracteres
 
 ---
 
-## Interactive Demo & UI
+### 3. Bake-Off de Extracción en Google Cloud Vertex AI
+Comparativa transparente en vivo sobre contratos reales sin fallbacks silenciosos ([`evals/reports/bakeoff_latest.json`](evals/reports/bakeoff_latest.json)):
 
-The web application provides two distinct operational screens via Streamlit (`make run-ui`):
+| Modelo / Candidato | Proveedor | Latencia Media | Costo Estimado / 1k docs | Tasa de Error | Exactitud de Extracción |
+|---|---|:---:|:---:|:---:|:---:|
+| **Rule-Based Baseline** | Regex / Heurística | **0.6 ms** | **$0.00** | 0.0% | 100.0% (sintético estándar) / *0% (estilos diversos)* |
+| **Gemini 2.5 Flash (GA)** | Vertex AI (ADC) | **5,610.8 ms** | **$0.20** | **0.0%** | **100.0% (todos los estilos)** |
+| **Gemini 2.5 Pro (GA)** | Vertex AI (ADC) | **8,830.6 ms** | **$3.34** | **0.0%** | **100.0% (todos los estilos)** |
 
-1. **Review Workspace (`ui/app.py`)**:
-   - **Interactive 4-Way Document Inspection**: Side-by-side tabs for Invoice, Purchase Order, Goods Receipt, and Contract.
-   - **Verbatim Citations**: Highlights extracted evidence alongside exact character offsets and document IDs.
-   - **Bartleby Melville Guard Banner**: Highlights when and why the agent declined to guess when contractual terms were silent.
-   - **Human-in-the-Loop Sign-Off**: Auditor notes and decision confirmation/override.
-
-2. **Evaluation Dashboard (`ui/app.py`)**:
-   - **Live Metric Tracking**: Overall decision accuracy, citation validity rate, clean package FP rate, and latency.
-   - **Ablation Comparison**: Side-by-side visualization of Baseline RAG vs. No-RAG ablation (+44% accuracy lift).
-   - **Failure Case Inspector**: Full transparency into diagnostic failure packages and policy engine rationale.
+> **Hallazgo:** Mientras que las reglas manuales fallan en contratos con formatos tabulares no estándar o redacción narrativa variada, **Gemini 2.5 Flash** ofrece exactitud perfecta a un costo 16 veces menor que el tier Pro, validándolo como el modelo de producción óptimo para la etapa de extracción.
 
 ---
 
-## Quick start
+## 🎯 Metodología de Calibración de Bartleby
 
-### Prerequisites
+El umbral de decisión del guardia no fue fijado arbitrariamente. Se desarrolló un calibrador riguroso ([`evals/calibrate_bartleby.py`](evals/calibrate_bartleby.py)):
 
-- Python 3.13+, [uv](https://github.com/astral-sh/uv), Docker & Docker Compose
-- GCP project with billing, `gcloud` authenticated via ADC (for real LLM mode)
+1. **Split Train / Validation:** Partición estratificada 60/40 para evitar sobreajuste.
+2. **Denominador Real contra Sobre-Abstención:** Para evitar divisiones indeterminadas ($0/0$), el calibrador contrasta paquetes con anomalía contractual real (donde Bartleby debe abstenerse) contra paquetes válidos con cláusulas de transporte estándar (donde abstenerse constituye un error de falso positivo).
+3. **Selección en el Centro de la Meseta:** En lugar de adoptar umbrales extremos (ej. $0.80$), el sistema selecciona la **mediana de la meseta de máxima puntuación F1**:
+   $$\text{min\_relevance\_score} = 0.50 \qquad \text{min\_evidence\_spans} = 1$$
+4. **Condición #3 (Inspección Semántica de Restricciones):** Bartleby no solo evalúa el puntaje de similitud, sino que detecta prohibiciones expresas (*"under no circumstances"*, *"unless authorized by written amendment"*), asegurando que cláusulas distractoras no se interpreten espuriamente como autorizaciones de pago.
 
-### Local Dev Setup
+---
+
+## 📡 Observabilidad en Tiempo Real con Langfuse
+
+El sistema cuenta con instrumentación integral bajo el estándar **OpenTelemetry v5** mediante [`providers/tracing.py`](src/catcher_in_the_rag/providers/tracing.py):
+
+* **Trazabilidad de Grafo:** Cada invocación de `audit_pipeline()` registra latencia, ID de paquete, proveedor, monto total, decisión final y si Bartleby ejerció abstención.
+* **Trazabilidad de Tokens y Costos:** Cada llamada a Gemini captura `prompt_token_count`, `candidates_token_count` y tokens totales directamente desde `usage_metadata`, permitiendo un control presupuestario granular en tiempo real.
+* **Modo Cero Overhead:** Si no se configuran variables de entorno, opera el `NoOpTracer` sin dependencias de red.
+
+---
+
+## 🖥️ Interfaz de Usuario Streamlit
+
+La interfaz de usuario interactiva ([`ui/app.py`](ui/app.py)) incluye tres entornos operativos principales:
+
+1. **📋 Review Workspace:**
+   * Explorador cuatripartito interactivo (Factura, PO, Recepción, Contrato).
+   * Visualizador de citas textuales con resaltado de offsets y verificación verbatim.
+   * Banner de activación de Bartleby con justificación en caso de abstención.
+   * Panel de intervención humana (*Human-in-the-Loop*) para confirmación o anulación de decisiones.
+
+2. **📜 CUAD Real SEC Contracts:**
+   * Navegador entre 510 contratos auténticos de la SEC con búsqueda y filtrado en tiempo real.
+   * Inspector de las 41 categorías legales con diferenciación entre cláusulas presentes y negativos ausentes.
+   * Playground interactivo de RAG Híbrido: ejecución de consultas de auditoría con desglose visual de puntajes BM25, densos y combinados.
+   * Simulador de compras reales: prueba auditorías completas sobre contratos de la SEC en escenarios conformes o con recargos no autorizados.
+
+3. **📊 Evaluation Dashboard:**
+   * Selector multi-pista unificado para explorar el benchmark sintético (300 paquetes), el benchmark de CUAD y el Bake-Off de modelos Vertex AI.
+
+---
+
+## 🏷️ Taxonomía de Anomalías (A01–A10)
+
+| Código | Categoría | Descripción Técnica | Mecanismo de Detección |
+|:---:|---|---|---|
+| **A01** | *Price Ceiling Violation* | Precio unitario facturado excede el techo pactado | Cotejo contra rate sheet extraída |
+| **A02** | *Quantity Discrepancy* | Cantidad facturada superior a la recibida en muelle | Three-way match determinista |
+| **A03** | *Duplicate Billing* | Número de factura duplicado para el mismo proveedor | Registro hash de facturas previas |
+| **A04** | *Payment Terms Mismatch* | Plazo facturado (ej. Net 15) discrepa del contrato (Net 30) | Recuperación RAG de cláusula de pago |
+| **A05** | *Late Delivery Penalty* | Entrega posterior a la fecha pactada sujeta a multa | Evaluación de penalización por día |
+| **A06** | *Contract Expiration* | Facturación con fecha posterior al vencimiento | Comparación temporal contra vigencia |
+| **A07** | *Unlinked Purchase Order* | Factura huérfana o proveedor no registrado | Validación de grafo relacional |
+| **A08** | *Monetary Approval Threshold* | Monto de compra superior a $50,000 USD | Regla de gobernanza financiera |
+| **A09** | *Governing Clause Absent* | Recargo no contemplado en el acuerdo (ej. flete extra) | Guardia de abstención **Bartleby** |
+| **A10** | *Clean Package* | Paquete totalmente conforme (control negativo) | Aprobación automática sin fricción |
+
+---
+
+## 🚀 Inicio Rápido y Comandos Operativos
+
+### Prerrequisitos
+* Python 3.12 o 3.13 con soporte para [Astral `uv`](https://github.com/astral-sh/uv).
+* Google Cloud CLI (`gcloud`) autenticado con ADC (para pruebas en vivo con Gemini).
+
+### Instalación y Pruebas Locales
 
 ```bash
-# Clone
+# 1. Clonar el repositorio
 git clone https://github.com/alexxcode/the-catcher-in-the-rag.git
 cd the-catcher-in-the-rag
 
-# Install deps (creates .venv with Python 3.13)
+# 2. Configurar entorno y dependencias
 make setup
 
-# Generate synthetic evaluation packages (300 packages across A01-A10)
+# 3. Formateo y validación de calidad de código (Ruff)
+make format
+make lint
+
+# 4. Correr la suite completa de 61 tests unitarios (83% de cobertura)
+make test
+```
+
+### Ejecución de Benchmarks
+
+```bash
+# Generar el dataset sintético reproducible (300 paquetes)
 make generate-synthetic
 
-# Run tests (offline, stub provider — 40+ tests, 80%+ coverage)
-make test
-
-# Run the full evaluation harness and ablation suite
+# Ejecutar el benchmark basal con ablación Sin-RAG
 make eval-ablations
 
-# Run field-by-field unstructured contract extraction benchmark (Phase 2)
-make eval-extraction
-
-# Run model extraction bake-off (Flash vs Pro vs Baseline) (Phase 3)
-make eval-bakeoff
-
-# Run empirical threshold calibration sweep for Bartleby abstention (Phase 4)
+# Calibrar empíricamente los umbrales de Bartleby
 make calibrate-bartleby
 
-# Start the interactive Streamlit UI
+# Descargar corpora reales (CUAD v1 y OCDS 1.1)
+make download-data
+
+# Correr el benchmark sobre los contratos reales de la SEC
+make eval-cuad
+
+# Ejecutar el bake-off en Vertex AI (requiere gcloud auth)
+make eval-bakeoff
+```
+
+### Iniciar la Interfaz Web y API
+
+```bash
+# Iniciar la interfaz web Streamlit (puerto 8501)
 make run-ui
 
-# Or start the FastAPI server
+# Iniciar la API REST FastAPI (puerto 8000, docs en /docs)
 make run-api
 ```
 
-### Docker Compose (One Command)
+---
 
-```bash
-docker compose up --build
-# API runs at http://localhost:8000
-# Streamlit UI runs at http://localhost:8501
+## 📁 Estructura del Repositorio
+
+```
+the-catcher-in-the-rag/
+├── SPEC.md                    # Especificación técnica exhaustiva del sistema
+├── README.md                  # Documentación principal, arquitectura y métricas
+├── StateOfCatcher.md          # Bitácora histórica de fases y diagnósticos técnicos
+├── DATA_SOURCES.md            # Registro de procedencia y licencias de datasets
+├── ATTRIBUTION.md             # Créditos legales y atribuciones académicas
+├── Makefile                   # Automatización: test, lint, format, eval, run-ui
+├── pyproject.toml             # Metadatos del paquete y dependencias fijadas
+├── config/
+│   ├── models.yaml            # Configuración de modelos GA activos (Gemini 2.5)
+│   ├── thresholds.yaml        # Umbrales empíricos (Bartleby: 0.50 / 1 span)
+│   └── policy_rules.yaml      # Reglas deterministas de aprobación financiera
+├── src/catcher_in_the_rag/
+│   ├── graph.py               # Máquina de estados LangGraph con instrumentación OTel
+│   ├── schemas/               # Modelos Pydantic v2 (Contract, PO, Invoice, Finding)
+│   ├── extract/               # Extracción estructurada y extractores híbridos
+│   ├── match/                 # Motor de cotejo tripartito (Three-Way Match)
+│   ├── retrieve/              # RAG Híbrido: BM25 Okapi + Embeddings densos
+│   ├── bartleby/              # Guardia de abstención Melville (F1 calibrado)
+│   ├── apply_terms/           # RAG de términos y evaluador de penalidades
+│   ├── validate/              # Validador estricto de citas verbatim y offsets
+│   ├── policy/                # Motor de políticas y gobernanza de pagos
+│   ├── ingest/                # Loaders para datasets reales (CUAD y OCDS)
+│   ├── providers/             # Proveedores: Gemini (ADC), Stub offline y Langfuse
+│   └── api/                   # Servicio REST FastAPI
+├── datagen/                   # Generador procedimental determinista y downloader
+├── evals/                     # Harness de evaluación, runners y calibradores
+│   └── reports/               # Reportes canónicos JSON versionados en Git
+├── ui/                        # Interfaz interactiva de usuario en Streamlit
+└── tests/                     # Suite de 61 tests unitarios e integrales (83% cobertura)
 ```
 
 ---
 
-## Repository layout
+## 📜 Procedencia de Datos y Licencias
 
-```
-catcher-in-the-rag/
-  SPEC.md  README.md  DATA_SOURCES.md  ATTRIBUTION.md  Makefile
-  src/catcher_in_the_rag/
-    schemas/      # Pydantic models: Contract, PO, Receipt, Invoice, Finding, Decision
-    ingest/ extract/ match/ retrieve/ bartleby/ apply_terms/ validate/ policy/
-    graph.py      # LangGraph wiring
-    providers/    # LLM + embedding interfaces: real (Gemini/Vertex) and stub
-    api/          # FastAPI app
-  datagen/        # Seeded synthetic generator + error injector
-  config/         # models.yaml, thresholds.yaml, policy.yaml
-  infra/terraform/  # GCP resources (Cloud SQL, Cloud Run, GCS, Secret Manager…)
-  evals/          # Runners, metrics, report writer
-  ui/             # Streamlit: review workspace + evaluation dashboard
-  tests/
-  data/           # gitignored raw; small fixtures committed
-```
+* **CUAD v1:** *Contract Understanding Atticus Dataset*, publicado por The Atticus Project bajo licencia [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).
+* **OCDS 1.1:** *Open Contracting Data Standard*, mantenido por la Open Contracting Partnership bajo licencia [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+* **Atribución Literaria:** El título *The Catcher in the RAG* es empleado únicamente como parodia técnica. No se reproduce texto, citas ni imágenes de la obra original de J.D. Salinger. Las citas alusivas a *Bartleby, the Scrivener* (Herman Melville, 1853) pertenecen al dominio público.
 
 ---
 
-## Dataset sources
+## ⚖️ Licencia
 
-See [`DATA_SOURCES.md`](DATA_SOURCES.md) — download scripts are in `datagen/download.py`.  
-Attribution: [`ATTRIBUTION.md`](ATTRIBUTION.md).
-
----
-
-## Stack
-
-Python 3.13 · LangGraph · Pydantic · FastAPI · Streamlit · BM25 + dense hybrid retrieval · Ragas · Langfuse · GCP (Vertex AI, Cloud Run, Cloud SQL + pgvector, Cloud Storage, Secret Manager) · Terraform · GitHub Actions · ruff · pytest
-
----
-
-## License
-
-MIT — see [LICENSE](LICENSE).  
-**Note:** *The Catcher in the Rye* title is used only as a parody project name. No text, quotes, or imagery from that work appears in code, docs, or UI.  
-Short quotes from *Bartleby, the Scrivener* (Melville, 1853, public domain) are used for the `bartleby` component.
+Distribuido bajo la licencia **MIT**. Consulte el archivo [LICENSE](LICENSE) para más información.
