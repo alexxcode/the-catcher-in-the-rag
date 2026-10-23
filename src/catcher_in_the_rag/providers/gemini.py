@@ -318,16 +318,23 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
             )
             raise ImportError(msg) from err
 
-    def embed_texts(self, texts: list[str]) -> list[list[float]]:
-        """Embed a batch of document texts."""
+    def embed_texts(self, texts: list[str], batch_size: int = 10) -> list[list[float]]:
+        """Embed a batch of document texts in chunks to respect Vertex AI token limits."""
         if not texts:
             return []
         self._ensure_init()
         from vertexai.language_models import TextEmbeddingInput
 
-        inputs = [TextEmbeddingInput(text=t, task_type="RETRIEVAL_DOCUMENT") for t in texts]
-        embeddings = self._model.get_embeddings(inputs, output_dimensionality=self.dimensionality)
-        return [list(e.values) for e in embeddings]
+        all_embeddings: list[list[float]] = []
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i : i + batch_size]
+            inputs = [
+                TextEmbeddingInput(text=t[:6000], task_type="RETRIEVAL_DOCUMENT")
+                for t in batch
+            ]
+            embeddings = self._model.get_embeddings(inputs, output_dimensionality=self.dimensionality)
+            all_embeddings.extend([list(e.values) for e in embeddings])
+        return all_embeddings
 
     def embed_query(self, query: str) -> list[float]:
         """Embed a single search query."""
