@@ -56,7 +56,7 @@ eval-cuad: ## Run benchmark on real-world CUAD commercial contracts (Phase 5)
 	$(PYTHON) -m evals.run --eval-cuad --sample-size 25 --output evals/reports/
 
 check-models: ## Verify Vertex AI model availability and detect retirement
-	$(PYTHON) -c "from catcher_in_the_rag.providers.factory import get_llm_provider; h = get_llm_provider().check_model_health(); print(f'Model health: {h}')"
+	LLM_PROVIDER=vertex_ai $(PYTHON) -c "from catcher_in_the_rag.providers.factory import get_llm_provider; p = get_llm_provider('vertex_ai'); assert p.provider_type == 'vertex_ai', 'check-models requires LLM_PROVIDER=vertex_ai'; h = p.check_model_health(); print(f'Model health: {h}')"
 
 # ── Run (local dev) ───────────────────────────────────────────────────────────
 run-api: ## Start FastAPI dev server (port 8000)

@@ -300,6 +300,7 @@ def save_bakeoff_report(
     data = {
         "timestamp": datetime.now(UTC).isoformat(),
         "git_commit_sha": provenance["git_commit_sha"],
+        "git_dirty": provenance["git_dirty"],
         "command": provenance["command"],
         "provenance": provenance,
         "sample_size": results[0].sample_size if results else 0,

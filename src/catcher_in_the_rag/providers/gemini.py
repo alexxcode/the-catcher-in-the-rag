@@ -31,7 +31,6 @@ class GeminiProvider(LLMProvider):
         self.project = os.getenv(
             "GOOGLE_CLOUD_PROJECT", self.config.get("project", "the-catcher-in-the-rag")
         )
-        self.region = os.getenv("GOOGLE_CLOUD_REGION", self.config.get("region", "us-central1"))
         ext_cfg = self.config.get("extraction_llm", {})
         # Configured model or GA default candidate
         model_candidate = model_id or ext_cfg.get("model_id")
@@ -39,6 +38,13 @@ class GeminiProvider(LLMProvider):
             model_candidate = "gemini-3.5-flash"
         self.model_id = model_candidate
         self.temperature = float(ext_cfg.get("temperature", 0.0))
+
+        # Model location routing: Gemini 3.5 & 3.8 Flash GA endpoints are hosted in global / multi-region
+        default_region = self.config.get("region", "us-central1")
+        if self.model_id in ("gemini-3.5-flash", "gemini-3.8-flash") and default_region == "us-central1" and not os.getenv("GOOGLE_CLOUD_REGION"):
+            default_region = "global"
+        self.region = os.getenv("GOOGLE_CLOUD_REGION", default_region)
+
         self._client: Any = None
         self._genai_client: Any = None
         self._use_genai: bool = False
@@ -133,6 +139,7 @@ class GeminiProvider(LLMProvider):
                     config={
                         "temperature": self.temperature,
                         "response_mime_type": "application/json",
+                        "response_schema": schema,
                     },
                 )
             import warnings

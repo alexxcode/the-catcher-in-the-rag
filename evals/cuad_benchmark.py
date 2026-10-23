@@ -73,6 +73,7 @@ class CUADBenchmarkReport:
     embedding_provider: str
     embedding_model_id: str
     git_commit_sha: str
+    git_dirty: bool
     command: str
     total_contracts_evaluated: int
     train_contracts_count: int
@@ -289,6 +290,7 @@ class CUADBenchmarkRunner:
             embedding_provider=provider_name,
             embedding_model_id=str(model_id),
             git_commit_sha=provenance["git_commit_sha"],
+            git_dirty=provenance["git_dirty"],
             command=provenance["command"],
             total_contracts_evaluated=len(contracts),
             train_contracts_count=len(train_contracts),
@@ -362,6 +364,7 @@ def save_cuad_report(
     data = {
         "report": asdict(report),
         "git_commit_sha": report.git_commit_sha,
+        "git_dirty": report.git_dirty,
         "command": report.command,
         "sample_retrieval_cases": [asdict(c) for c in retrieval_cases[:20]],
         "sample_absence_cases": [asdict(a) for a in absence_cases[:20]],

@@ -220,7 +220,8 @@ class LLMContractExtractor:
             system_prompt=(
                 "Extract contract governing terms (contract_id, vendor_id, vendor_name, "
                 "effective_date, expiration_date, auto_renew, payment_terms_days, "
-                "late_delivery_penalty_pct_per_day, rate_sheet) accurately from the contract text."
+                "late_delivery_penalty_pct_per_day, rate_sheet) accurately from the contract text. "
+                "For each rate_sheet item, max_unit_price MUST be the full contracted numeric amount (e.g. 150.00, 225.50)."
             ),
         )
         rule_extractor = RuleBasedContractExtractor()

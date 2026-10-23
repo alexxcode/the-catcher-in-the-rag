@@ -1,5 +1,6 @@
 import json
 import os
+import secrets
 import time
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -30,6 +31,58 @@ from catcher_in_the_rag.schemas import (
 )
 
 load_dotenv()
+
+
+def execute_audit(package: ProcurementPackage) -> dict[str, Any]:
+    """Execute audit via private Cloud Run API (service-to-service) or local in-process pipeline."""
+    api_url = os.getenv("API_URL", "").strip().rstrip("/")
+    if api_url:
+        try:
+            import httpx
+
+            headers: dict[str, str] = {}
+            pin = os.getenv("DEMO_ACCESS_PIN", "").strip()
+            if pin:
+                headers["X-API-Key"] = pin
+
+            # In Cloud Run service-to-service, fetch OIDC ID token if available
+            try:
+                import google.auth.transport.requests
+                import google.oauth2.id_token
+
+                auth_req = google.auth.transport.requests.Request()
+                id_token = google.oauth2.id_token.fetch_id_token(auth_req, api_url)
+                if id_token:
+                    headers["Authorization"] = f"Bearer {id_token}"
+            except Exception:
+                pass
+
+            resp = httpx.post(
+                f"{api_url}/api/audit",
+                json={
+                    "package_id": package.package_id,
+                    "package": package.model_dump(mode="json"),
+                },
+                headers=headers,
+                timeout=60.0,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                from catcher_in_the_rag.schemas import Decision, Finding
+
+                return {
+                    "package": package,
+                    "decision": Decision.model_validate(data["decision"]),
+                    "validated_findings": [
+                        Finding.model_validate(f) for f in data.get("findings", [])
+                    ],
+                    "bartleby_abstained": data.get("bartleby_abstained", False),
+                    "bartleby_reason": data.get("bartleby_reason"),
+                }
+        except Exception:
+            pass
+
+    return audit_pipeline(package)
 
 # ── Streamlit Configuration ──────────────────────────────────────────────────
 st.set_page_config(
@@ -392,9 +445,16 @@ with st.sidebar:
 
     st.divider()
     st.markdown("#### Access & Budget Shield")
-    demo_pin_env = os.getenv("DEMO_ACCESS_PIN", "")
+    demo_pin_env = os.getenv("DEMO_ACCESS_PIN", "").strip()
+    is_production = bool(os.getenv("K_SERVICE") or os.getenv("ENVIRONMENT") == "production")
+
     if "is_authenticated" not in st.session_state:
-        st.session_state["is_authenticated"] = not bool(demo_pin_env)
+        if is_production:
+            # Production FAIL-CLOSED: must have a non-empty PIN configured and validated
+            st.session_state["is_authenticated"] = False
+        else:
+            # Local dev convenience: authenticated by default only if no PIN is configured
+            st.session_state["is_authenticated"] = not bool(demo_pin_env)
 
     if demo_pin_env:
         if not st.session_state["is_authenticated"]:
@@ -406,7 +466,7 @@ with st.sidebar:
                 "Enter Auditor Access PIN", type="password", key="demo_pin_box"
             )
             if st.button("Unlock Live Vertex AI", use_container_width=True):
-                if pin_input == demo_pin_env:
+                if secrets.compare_digest(pin_input.strip(), demo_pin_env):
                     st.session_state["is_authenticated"] = True
                     st.success("Authenticated.")
                     st.rerun()
@@ -474,12 +534,12 @@ if selected_screen == "📋 Review Workspace":
     if package is not None:
         if "audit_results" not in st.session_state or run_audit_btn:
             with st.spinner("Executing 3-way match, hybrid contract RAG, and Bartleby guard..."):
-                st.session_state["audit_results"] = audit_pipeline(package)
+                st.session_state["audit_results"] = execute_audit(package)
                 st.session_state["current_pkg_id"] = package.package_id
 
         # Make sure results belong to currently selected package
         if st.session_state.get("current_pkg_id") != package.package_id:
-            st.session_state["audit_results"] = audit_pipeline(package)
+            st.session_state["audit_results"] = execute_audit(package)
             st.session_state["current_pkg_id"] = package.package_id
 
         res = st.session_state["audit_results"]
@@ -1067,7 +1127,7 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                     if run_sim_btn or f"sim_res_{contract_obj.contract_id}" in st.session_state:
                         st.session_state[f"sim_res_{contract_obj.contract_id}"] = sim_scenario
                         with st.spinner("Executing 3-way match and contract audit..."):
-                            audit_res = audit_pipeline(sim_pkg)
+                            audit_res = execute_audit(sim_pkg)
 
                         dec = audit_res["decision"]
                         findings_list = audit_res.get("validated_findings", [])

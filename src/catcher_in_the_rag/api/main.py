@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -41,6 +42,15 @@ app.add_middleware(
 _RATE_LIMIT_BUCKET: dict[str, list[float]] = {}
 RATE_LIMIT_WINDOW_SECONDS = 60.0
 DEFAULT_MAX_RPM = 30
+
+
+def _extract_client_ip(request: Request) -> str:
+    """Extract real client IP handling Cloud Run reverse proxy headers."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        # First IP in comma-separated list is the original client IP
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "127.0.0.1"
 
 
 def _enforce_rate_limit(client_ip: str) -> None:
@@ -83,7 +93,7 @@ def _resolve_llm_provider(
     elif authorization and authorization.lower().startswith("bearer "):
         token = authorization[7:].strip()
 
-    if token == configured_pin:
+    if token and secrets.compare_digest(token, configured_pin):
         return get_llm_provider()
 
     allow_stub = os.getenv("ALLOW_PUBLIC_STUB", "true").lower() in ("1", "true", "yes")
@@ -218,7 +228,7 @@ def audit_package_endpoint(
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> AuditResponse:
     """Execute the end-to-end audit agent on a package."""
-    client_ip = request.client.host if request.client else "127.0.0.1"
+    client_ip = _extract_client_ip(request)
     _enforce_rate_limit(client_ip)
     provider = _resolve_llm_provider(x_api_key=x_api_key, authorization=authorization)
 

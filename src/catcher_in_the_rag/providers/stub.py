@@ -73,10 +73,11 @@ class StubLLMProvider(LLMProvider):
     def check_model_health(self) -> dict[str, Any]:
         """Offline deterministic health check."""
         return {
-            "status": "healthy",
+            "status": "simulated",
             "model_id": "stub-offline",
             "provider": "stub",
             "latency_ms": 0.05,
+            "warning": "Offline stub provider does not verify remote Vertex AI model availability.",
         }
 
 

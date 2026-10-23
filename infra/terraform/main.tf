@@ -138,6 +138,11 @@ resource "google_secret_manager_secret" "demo_access_pin" {
   depends_on = [google_project_service.apis]
 }
 
+resource "google_secret_manager_secret_version" "demo_access_pin_version" {
+  secret      = google_secret_manager_secret.demo_access_pin.id
+  secret_data = var.demo_access_pin
+}
+
 # ── Cloud Run Services (API & UI) ─────────────────────────────────────────────
 locals {
   default_image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.images.repository_id}/catcher:latest"
@@ -239,6 +244,7 @@ resource "google_cloud_run_v2_service" "api" {
     google_project_service.apis,
     google_project_iam_member.vertex_ai_user,
     google_project_iam_member.secret_accessor,
+    google_secret_manager_secret_version.demo_access_pin_version,
   ]
 }
 
@@ -328,6 +334,8 @@ resource "google_cloud_run_v2_service" "ui" {
   depends_on = [
     google_project_service.apis,
     google_project_iam_member.vertex_ai_user,
+    google_project_iam_member.secret_accessor,
+    google_secret_manager_secret_version.demo_access_pin_version,
     google_cloud_run_v2_service.api,
   ]
 }

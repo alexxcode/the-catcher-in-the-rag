@@ -39,3 +39,10 @@ variable "monthly_budget_amount" {
   type        = number
   default     = 25
 }
+
+variable "demo_access_pin" {
+  description = "Initial access PIN for authorized demo auditors stored in Secret Manager."
+  type        = string
+  sensitive   = true
+  default     = "audit-2026-secure"
+}

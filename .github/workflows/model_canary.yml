@@ -30,23 +30,36 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
-      - name: Authenticate to Google Cloud (Workload Identity Federation if configured)
-        if: env.WIF_PROVIDER != ''
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        id: gcp_auth
+        if: ${{ secrets.WIF_PROVIDER != '' }}
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
           service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
-      - name: Run Model Lifecycle Canary
+      - name: Run Model Lifecycle Canary against Vertex AI
         run: |
           echo "Checking active GA models pinned in config/models.yaml..."
           uv run python -c "
+          import os
+          has_creds = bool(os.getenv('GOOGLE_APPLICATION_CREDENTIALS') or os.getenv('CLOUDSDK_AUTH_ACCESS_TOKEN'))
+          wif_configured = bool('${{ secrets.WIF_PROVIDER }}')
+          if not has_creds and not wif_configured:
+              raise RuntimeError(
+                  'FATAL: Model canary requires active GCP credentials. '
+                  'Configure secrets.WIF_PROVIDER and secrets.WIF_SERVICE_ACCOUNT in GitHub Actions.'
+              )
           from catcher_in_the_rag.providers.factory import get_llm_provider
-          provider = get_llm_provider()
-          health = provider.check_model_health()
-          print('Model Health Status:', health)
-          assert health['status'] == 'healthy', f'Unhealthy model status: {health}'
+          for model_id in ['gemini-3.5-flash', 'gemini-3.8-flash']:
+              provider = get_llm_provider(provider_type='vertex_ai', model_id=model_id)
+              assert provider.provider_type == 'vertex_ai', f'Expected vertex_ai provider, got {provider.provider_type}'
+              health = provider.check_model_health()
+              print(f'Model {model_id} Health Status:', health)
+              assert health['status'] == 'healthy', f'Unhealthy model {model_id}: {health}'
           "
         env:
+          LLM_PROVIDER: "vertex_ai"
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID || 'the-catcher-in-the-rag' }}
-          GOOGLE_CLOUD_REGION: "us-central1"
+          GOOGLE_CLOUD_REGION: "global"
+

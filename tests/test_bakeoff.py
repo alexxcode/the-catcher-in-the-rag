@@ -104,5 +104,6 @@ def test_model_health_check() -> None:
 
     provider = get_llm_provider(provider_type="stub")
     health = provider.check_model_health()
-    assert health["status"] == "healthy"
+    assert health["status"] == "simulated"
     assert health["provider"] == "stub"
+    assert "warning" in health
