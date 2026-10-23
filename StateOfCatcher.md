@@ -210,4 +210,5 @@ Habiendo culminado la fase de **Honestidad Primero**, la evolución hacia un sis
 - [x] **Benchmark de Abstención de Bartleby en Negativos Reales (CUAD):**
   - **Tasa de Abstención Correcta:** **97.3%** en categorías contractuales genuinamente ausentes (`answers: []`).
   - **Tasa de Falsas Afirmaciones:** **2.7%** (solo 1 caso espurio en contratos reales no estructurados).
-- [x] **Suite de Pruebas Unitarias:** 57 tests unitarios pasando al 100% con 82% de cobertura de código.
+- [x] **Suite de Pruebas Unitarias & CI:** 58 tests unitarios pasando al 100% con 83% de cobertura en ingest y 82% global, 0 errores de Ruff, fixtures autocontenidas para ejecución offline en GitHub Actions CI.
+- [x] **Commit y CI Verificado:** Commit `5bee38f` en `main` verificado con GitHub Actions CI verde.

@@ -1,18 +1,29 @@
-from __future__ import annotations
-
 import json
-from datetime import datetime
+import time
+from datetime import date, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 import streamlit as st
 
+from catcher_in_the_rag.bartleby.guard import BartlebyGuard
 from catcher_in_the_rag.graph import audit_pipeline
+from catcher_in_the_rag.ingest.cuad_loader import (
+    CUADContract,
+    CUADLoader,
+)
+from catcher_in_the_rag.retrieve.retriever import ContractRetriever
 from catcher_in_the_rag.schemas import (
     DecisionType,
     Finding,
+    GoodsReceipt,
+    Invoice,
+    LineItem,
     PackageLabels,
     ProcurementPackage,
+    PurchaseOrder,
+    ReceiptItem,
 )
 
 # ── Streamlit Configuration ──────────────────────────────────────────────────
@@ -98,6 +109,44 @@ st.markdown(
         padding: 1rem;
         text-align: center;
     }
+    .cuad-card {
+        background: rgba(30, 41, 59, 0.4);
+        border: 1px solid rgba(71, 85, 105, 0.35);
+        border-radius: 12px;
+        padding: 1.2rem;
+        margin-bottom: 1rem;
+    }
+    .cuad-badge-present {
+        background: rgba(16, 185, 129, 0.15);
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        color: #34D399;
+        padding: 0.25rem 0.6rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        display: inline-block;
+    }
+    .cuad-badge-absent {
+        background: rgba(100, 116, 139, 0.15);
+        border: 1px solid rgba(100, 116, 139, 0.35);
+        color: #94A3B8;
+        padding: 0.25rem 0.6rem;
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        display: inline-block;
+    }
+    .score-meter {
+        background: rgba(15, 23, 42, 0.7);
+        border-radius: 6px;
+        overflow: hidden;
+        height: 8px;
+        margin-top: 4px;
+    }
+    .score-fill {
+        background: linear-gradient(90deg, #38BDF8, #818CF8);
+        height: 100%;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -162,9 +211,161 @@ def load_evaluation_reports(
     if not path.exists():
         return []
     reports = []
+    canonical = path / "canonical_baseline_report.json"
+    if canonical.exists():
+        reports.append(("canonical_baseline_report.json (300 Packages)", canonical))
     for report_file in sorted(path.glob("eval_report_*.json"), reverse=True):
         reports.append((report_file.name, report_file))
     return reports
+
+
+@st.cache_resource(show_spinner=False)
+def get_cuad_loader(
+    data_path: str = "data/real/cuad/CUADv1.json",
+) -> CUADLoader | None:
+    """Get cached CUADLoader instance if dataset file exists."""
+    path = Path(data_path)
+    if not path.exists():
+        return None
+    try:
+        loader = CUADLoader(cuad_json_path=path)
+        loader._ensure_loaded()
+        return loader
+    except Exception:
+        return None
+
+
+@st.cache_data(show_spinner=False)
+def load_cuad_contract_summaries(
+    data_path: str = "data/real/cuad/CUADv1.json", limit: int = 50
+) -> list[dict[str, Any]]:
+    """Load high-level summaries for the first N CUAD contracts."""
+    loader = get_cuad_loader(data_path)
+    if not loader:
+        return []
+    contracts = loader.load_contracts(limit=limit)
+    summaries = []
+    for c in contracts:
+        summaries.append(
+            {
+                "contract_id": c.contract_id,
+                "title": c.title,
+                "char_length": c.char_length,
+                "present_count": len(c.annotations),
+                "absent_count": len(c.absent_categories),
+                "categories_present": sorted(c.annotations.keys()),
+                "categories_absent": sorted(c.absent_categories),
+            }
+        )
+    return summaries
+
+
+def build_simulated_cuad_package(
+    cuad_contract: CUADContract,
+    loader: CUADLoader,
+    scenario: str = "Clean / Compliant",
+) -> ProcurementPackage:
+    """Create a realistic procurement package anchored to a real SEC CUAD contract."""
+    contract = loader.to_catcher_contract(cuad_contract)
+    vendor_id = contract.vendor_id
+    vendor_name = contract.vendor_name
+    po_id = f"PO-{cuad_contract.contract_id}"
+    inv_id = f"INV-{cuad_contract.contract_id}"
+    rc_id = f"RC-{cuad_contract.contract_id}"
+
+    today = date.today()
+    due_date = today + timedelta(days=contract.payment_terms_days)
+
+    if scenario == "Unauthorized Surcharge (A09 - Melville Guard)":
+        inv_items = [
+            LineItem(
+                item_id="SKU-REAL",
+                description="Procured Commercial Services",
+                quantity=Decimal("10"),
+                unit_price=Decimal("1000.00"),
+                total_amount=Decimal("10000.00"),
+            ),
+            LineItem(
+                item_id="FEE-UNAUTH",
+                description="Expedited Delivery Surcharge",
+                quantity=Decimal("1"),
+                unit_price=Decimal("450.00"),
+                total_amount=Decimal("450.00"),
+            ),
+        ]
+        total_inv = Decimal("10450.00")
+    elif scenario == "Price Variance (A01 - Rate Sheet Violation)":
+        inv_items = [
+            LineItem(
+                item_id="SKU-REAL",
+                description="Procured Commercial Services",
+                quantity=Decimal("10"),
+                unit_price=Decimal("1350.00"),
+                total_amount=Decimal("13500.00"),
+            )
+        ]
+        total_inv = Decimal("13500.00")
+    else:  # Clean
+        inv_items = [
+            LineItem(
+                item_id="SKU-REAL",
+                description="Procured Commercial Services",
+                quantity=Decimal("10"),
+                unit_price=Decimal("1000.00"),
+                total_amount=Decimal("10000.00"),
+            )
+        ]
+        total_inv = Decimal("10000.00")
+
+    po = PurchaseOrder(
+        po_id=po_id,
+        contract_id=contract.contract_id,
+        vendor_id=vendor_id,
+        vendor_name=vendor_name,
+        issue_date=today,
+        expected_delivery_date=today,
+        line_items=[
+            LineItem(
+                item_id="SKU-REAL",
+                description="Procured Commercial Services",
+                quantity=Decimal("10"),
+                unit_price=Decimal("1000.00"),
+                total_amount=Decimal("10000.00"),
+            )
+        ],
+        total_amount=Decimal("10000.00"),
+    )
+    receipt = GoodsReceipt(
+        receipt_id=rc_id,
+        po_id=po_id,
+        delivery_date=today,
+        received_by="Receiving Clerk",
+        items=[
+            ReceiptItem(
+                item_id="SKU-REAL",
+                quantity_received=Decimal("10"),
+                quantity_rejected=Decimal("0"),
+                condition="ACCEPTABLE",
+            )
+        ],
+    )
+    invoice = Invoice(
+        invoice_id=inv_id,
+        vendor_id=vendor_id,
+        vendor_name=vendor_name,
+        po_id=po_id,
+        invoice_date=today,
+        payment_due_date=due_date,
+        line_items=inv_items,
+        total_amount=total_inv,
+    )
+    return ProcurementPackage(
+        package_id=f"PKG-{cuad_contract.contract_id}-SIM",
+        contract=contract,
+        po=po,
+        receipt=receipt,
+        invoice=invoice,
+    )
 
 
 # ── Sidebar Navigation ────────────────────────────────────────────────────────
@@ -175,7 +376,12 @@ with st.sidebar:
 
     selected_screen = st.radio(
         "Navigation Screen",
-        ["📋 Review Workspace", "📊 Evaluation Dashboard", "ℹ️ System Architecture"],
+        [
+            "📋 Review Workspace",
+            "📜 CUAD Real SEC Contracts",
+            "📊 Evaluation Dashboard",
+            "ℹ️ System Architecture",
+        ],
         index=0,
     )
 
@@ -496,127 +702,695 @@ if selected_screen == "📋 Review Workspace":
                 )
 
 
-# ── SCREEN 2: EVALUATION DASHBOARD ────────────────────────────────────────────
+# ── SCREEN 2: CUAD REAL SEC CONTRACTS ────────────────────────────────────────
+elif selected_screen == "📜 CUAD Real SEC Contracts":
+    st.markdown(
+        '<div class="hero-title">CUAD Real-World Contract Corpus</div>', unsafe_allow_html=True
+    )
+    st.markdown(
+        '<div class="hero-subtitle">The Atticus Project (CC BY 4.0): 510 commercial agreements filed with the SEC, annotated across 41 legal clause categories with verbatim spans and ground-truth negative absence labeling</div>',
+        unsafe_allow_html=True,
+    )
+
+    cuad_loader = get_cuad_loader()
+    if cuad_loader is None:
+        st.warning(
+            "CUAD dataset not found at `data/real/cuad/CUADv1.json`. "
+            "Please run `make download-data` to download and unpack the corpus."
+        )
+    else:
+        # Top KPI Metrics Banner
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("SEC Edgar Contracts", f"{cuad_loader.count()}", "Commercial EDGAR")
+        m2.metric("Legal Categories", "41 Categories", "Expert-annotated")
+        m3.metric("Span Ground Truth", "100% Verbatim", "Exact start/end offsets")
+        m4.metric("Melville Negatives", "37+ per contract", "True absence baseline")
+
+        st.divider()
+
+        summaries = load_cuad_contract_summaries(limit=50)
+        if not summaries:
+            st.info("No contracts loaded. Check dataset directory.")
+        else:
+            col_sel, col_info = st.columns([2, 1])
+            with col_sel:
+                search_filter = st.text_input(
+                    "🔎 Filter Contracts by Title / Keyword",
+                    placeholder="e.g. DISTRIBUTOR, ENERGY, SOFTWARE...",
+                ).lower()
+                filtered_summaries = [
+                    s
+                    for s in summaries
+                    if (
+                        not search_filter
+                        or search_filter in s["title"].lower()
+                        or search_filter in s["contract_id"].lower()
+                    )
+                ]
+                if not filtered_summaries:
+                    filtered_summaries = summaries
+
+                options = [
+                    f"{s['contract_id']} — {s['title'][:55]} ({s['char_length']:,} chars | {s['present_count']} clauses)"
+                    for s in filtered_summaries
+                ]
+                sel_idx = st.selectbox(
+                    "Select SEC Commercial Contract",
+                    range(len(filtered_summaries)),
+                    format_func=lambda i: options[i],
+                )
+                selected_meta = filtered_summaries[sel_idx]
+
+            contract_obj: CUADContract | None = None
+            contracts = cuad_loader.load_contracts(limit=50)
+            for c in contracts:
+                if c.contract_id == selected_meta["contract_id"]:
+                    contract_obj = c
+                    break
+
+            with col_info:
+                if contract_obj:
+                    st.markdown("<div style='height: 28px'></div>", unsafe_allow_html=True)
+                    st.markdown(
+                        f"""
+                        <div class="cuad-card">
+                            <div style="font-size: 0.9rem; color: #94A3B8;">Document ID: <code>{contract_obj.contract_id}</code></div>
+                            <div style="font-weight: 700; color: #38BDF8; font-size: 1.05rem; margin-top: 2px;">{contract_obj.title[:35]}...</div>
+                            <div style="margin-top: 6px; font-size: 0.85rem; color: #E2E8F0;">
+                                📏 <strong>Length:</strong> {contract_obj.char_length:,} characters (~{contract_obj.char_length // 4:,} tokens)<br/>
+                                ✅ <strong>Present Clauses:</strong> {len(contract_obj.annotations)} / 41<br/>
+                                📜 <strong>Absent Categories:</strong> {len(contract_obj.absent_categories)} / 41
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+            if contract_obj:
+                tab_cats, tab_rag, tab_sim, tab_raw = st.tabs(
+                    [
+                        "📑 41 Clause Categories",
+                        "⚡ Live Hybrid RAG & Bartleby Playground",
+                        "🧾 Simulated Procurement Audit",
+                        "📜 Full SEC Contract Text",
+                    ]
+                )
+
+                with tab_cats:
+                    st.markdown("#### Annotated Clause Categories (CUAD Ground Truth)")
+                    col_f, col_cat = st.columns([1, 2])
+                    with col_f:
+                        cat_filter = st.radio(
+                            "Filter Category Status",
+                            [
+                                "All Categories (41)",
+                                "Present Clauses Only",
+                                "Absent Clauses Only (Bartleby Negatives)",
+                            ],
+                        )
+
+                    all_categories = sorted(
+                        list(contract_obj.annotations.keys()) + list(contract_obj.absent_categories)
+                    )
+                    if cat_filter == "Present Clauses Only":
+                        display_cats = sorted(contract_obj.annotations.keys())
+                    elif cat_filter == "Absent Clauses Only (Bartleby Negatives)":
+                        display_cats = sorted(contract_obj.absent_categories)
+                    else:
+                        display_cats = all_categories
+
+                    with col_cat:
+                        if display_cats:
+                            sel_cat = st.selectbox(
+                                "Select Clause Category to Inspect", display_cats
+                            )
+                        else:
+                            sel_cat = None
+                            st.info("No categories match the selected filter.")
+
+                    if sel_cat:
+                        is_present = sel_cat in contract_obj.annotations
+                        if is_present:
+                            spans = contract_obj.annotations[sel_cat]
+                            st.markdown(
+                                f'<span class="cuad-badge-present">✅ PRESENT IN CONTRACT ({len(spans)} verbatim span{"s" if len(spans) > 1 else ""})</span>',
+                                unsafe_allow_html=True,
+                            )
+                            for s_idx, sp in enumerate(spans, 1):
+                                st.markdown(
+                                    f"""
+                                    <div class="citation-box" style="margin-top: 0.8rem;">
+                                        <div style="font-size: 0.85rem; color: #94A3B8; font-weight: 600;">
+                                            SPAN #{s_idx} &middot; Offsets: <code>[{sp.start_char}:{sp.end_char}]</code> &middot; Length: {len(sp.text)} chars
+                                        </div>
+                                        <div style="margin-top: 0.4rem; font-size: 0.95rem; color: #F8FAFC; line-height: 1.5;">
+                                            &ldquo;{sp.text}&rdquo;
+                                        </div>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
+                        else:
+                            st.markdown(
+                                '<span class="cuad-badge-absent">📜 ABSENT IN CONTRACT (GROUND TRUTH NEGATIVE FOR BARTLEBY)</span>',
+                                unsafe_allow_html=True,
+                            )
+                            st.markdown(
+                                f"""
+                                <div class="bartleby-banner" style="margin-top: 0.8rem;">
+                                    <div style="font-weight: 600; color: #38BDF8;">Ground Truth Absence: Category '{sel_cat}' is not in this contract</div>
+                                    <div style="margin-top: 0.4rem; color: #CBD5E1; font-size: 0.95rem;">
+                                        In CUAD v1, this category was explicitly verified as absent (<code>answers: []</code>, <code>is_impossible: True</code>).
+                                        When an auditor or query searches for terms governed by this category, <strong>The Catcher in the RAG's Bartleby Guard</strong> must strictly decline to assert terms (<code>NO_EVIDENCE</code>) rather than hallucinating plausible terms.
+                                    </div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+
+                with tab_rag:
+                    st.markdown("#### Live Hybrid RAG & Bartleby Abstention Playground")
+                    st.markdown(
+                        "Execute real-time hybrid retrieval (BM25 lexical + dense vector embeddings) across the entire 50k+ character contract, and inspect Bartleby's deterministic abstention gate."
+                    )
+
+                    col_q1, col_q2 = st.columns([3, 1])
+                    with col_q1:
+                        query_presets = [
+                            ("Governing Law and dispute resolution jurisdiction", "Governing Law"),
+                            (
+                                "Liquidated damages, late delivery penalties, and delay remedies",
+                                "Liquidated Damages",
+                            ),
+                            (
+                                "Pricing restrictions, rate adjustments, and fee schedule",
+                                "Price Restrictions",
+                            ),
+                            (
+                                "Cap on liability, indemnification, and consequential damages",
+                                "Cap On Liability",
+                            ),
+                            (
+                                "Agreement expiration date, term duration, and renewal",
+                                "Expiration Date",
+                            ),
+                            (
+                                "Unauthorized delivery surcharge or expedited freight fee (ABSENT)",
+                                "Absent Surcharge",
+                            ),
+                            ("Custom Query...", "Custom"),
+                        ]
+                        preset_labels = [p[0] for p in query_presets]
+                        sel_preset = st.selectbox(
+                            "Select Audit Query Preset", range(len(preset_labels)), index=0
+                        )
+
+                        if sel_preset == len(query_presets) - 1:
+                            query_text = st.text_input(
+                                "Enter Custom Audit Query", value="governing law and jurisdiction"
+                            )
+                        else:
+                            query_text = query_presets[sel_preset][0]
+
+                    with col_q2:
+                        top_k = st.slider("Top-K Clauses", min_value=1, max_value=5, value=3)
+                        run_rag_btn = st.button(
+                            "⚡ Run Hybrid Retrieval", type="primary", use_container_width=True
+                        )
+
+                    if run_rag_btn or f"rag_cuad_{contract_obj.contract_id}" in st.session_state:
+                        st.session_state[f"rag_cuad_{contract_obj.contract_id}"] = (
+                            query_text,
+                            top_k,
+                        )
+                        cat_contract = cuad_loader.to_catcher_contract(contract_obj)
+                        retriever = ContractRetriever(cat_contract)
+
+                        t0 = time.perf_counter()
+                        retrieved = retriever.retrieve(query_text, top_k=top_k)
+                        retrieval_ms = (time.perf_counter() - t0) * 1000
+
+                        guard = BartlebyGuard()
+                        assessment = guard.evaluate_retrieval(retrieved, query_text)
+
+                        st.markdown(
+                            f"<div style='font-size: 0.9rem; color: #94A3B8; margin-bottom: 0.5rem;'>"
+                            f"⚡ Retrieved {len(retrieved)} candidate clauses in <strong>{retrieval_ms:.1f} ms</strong> across {len(cat_contract.clauses)} segmented contract sections.</div>",
+                            unsafe_allow_html=True,
+                        )
+
+                        if assessment.abstained:
+                            st.markdown(
+                                f"""
+                                <div class="bartleby-banner">
+                                    <div style="font-weight: 700; font-size: 1.1rem; color: #38BDF8;">
+                                        📜 Bartleby Abstention Guard Triggered (NO_EVIDENCE)
+                                    </div>
+                                    <div style="font-style: italic; color: #CBD5E1; margin: 0.3rem 0;">
+                                        "I would prefer not to." — Herman Melville, <em>Bartleby, the Scrivener (1853)</em>
+                                    </div>
+                                    <div style="color: #F1F5F9; font-size: 0.95rem; margin-top: 0.4rem;">
+                                        <strong>Abstention Reason:</strong> {assessment.reason}
+                                    </div>
+                                    <div style="color: #94A3B8; font-size: 0.85rem; margin-top: 0.4rem;">
+                                        ✓ The highest candidate clause scored below the calibrated relevance threshold (0.50). The agent refuses to hallucinate authorization.
+                                    </div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+                        else:
+                            st.markdown(
+                                f"""
+                                <div class="decision-card-approve">
+                                    <div style="font-weight: 700; font-size: 1.05rem; color: #10B981;">
+                                        ✅ Contract Evidence Found & Verified
+                                    </div>
+                                    <div style="font-size: 0.95rem; margin-top: 0.2rem; color: #E2E8F0;">
+                                        Top retrieved clause scored <strong>{retrieved[0].score:.3f}</strong> (threshold &ge; {guard.min_relevance_score:.2f}). Evidence is sufficient for policy evaluation.
+                                    </div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+
+                        st.markdown("##### Candidate Scored Clauses")
+                        for r_idx, sc in enumerate(retrieved, 1):
+                            col_s1, col_s2 = st.columns([3, 1])
+                            with col_s1:
+                                st.markdown(f"**Rank #{r_idx}: {sc.title}**")
+                                st.markdown(
+                                    f"<div class='citation-box' style='margin-top: 0.2rem; font-size: 0.9rem;'>"
+                                    f"<span style='color: #94A3B8; font-size: 0.8rem;'>Offsets: [{sc.start_char}:{sc.end_char}]</span><br/>"
+                                    f"{sc.text[:400]}{'...' if len(sc.text) > 400 else ''}"
+                                    f"</div>",
+                                    unsafe_allow_html=True,
+                                )
+                            with col_s2:
+                                st.metric("Hybrid Score", f"{sc.score:.3f}")
+                                st.markdown(
+                                    f"<div style='font-size: 0.8rem; color: #94A3B8;'>"
+                                    f"BM25 Lexical: <code>{sc.bm25_score:.3f}</code><br/>"
+                                    f"Dense Vector: <code>{sc.dense_score:.3f}</code>"
+                                    f"</div>",
+                                    unsafe_allow_html=True,
+                                )
+                            st.divider()
+
+                with tab_sim:
+                    st.markdown("#### End-to-End Procurement Package Audit Simulation")
+                    st.markdown(
+                        "Simulate an entire 4-way procurement audit where this real SEC contract acts as the governing legal agreement."
+                    )
+
+                    col_sc1, col_sc2 = st.columns([2, 1])
+                    with col_sc1:
+                        sim_scenario = st.selectbox(
+                            "Select Procurement Package Scenario",
+                            [
+                                "Clean / Compliant (All terms match agreement)",
+                                "Unauthorized Surcharge (A09 - Melville Guard Activates)",
+                                "Price Variance (A01 - Rate Sheet Violation)",
+                            ],
+                        )
+                    with col_sc2:
+                        st.markdown("<div style='height: 28px'></div>", unsafe_allow_html=True)
+                        run_sim_btn = st.button(
+                            "🔍 Run Audit with SEC Contract",
+                            type="primary",
+                            use_container_width=True,
+                        )
+
+                    sim_pkg = build_simulated_cuad_package(contract_obj, cuad_loader, sim_scenario)
+
+                    if run_sim_btn or f"sim_res_{contract_obj.contract_id}" in st.session_state:
+                        st.session_state[f"sim_res_{contract_obj.contract_id}"] = sim_scenario
+                        with st.spinner("Executing 3-way match and contract audit..."):
+                            audit_res = audit_pipeline(sim_pkg)
+
+                        dec = audit_res["decision"]
+                        findings_list = audit_res.get("validated_findings", [])
+                        b_abstained = audit_res.get("bartleby_abstained", False)
+
+                        dec_class = {
+                            DecisionType.APPROVE: "decision-card-approve",
+                            DecisionType.REVIEW: "decision-card-review",
+                            DecisionType.REJECT: "decision-card-reject",
+                            DecisionType.ABSTAIN: "decision-card-abstain",
+                        }.get(dec.decision, "decision-card-review")
+
+                        emoji = {
+                            DecisionType.APPROVE: "✅",
+                            DecisionType.REVIEW: "⚠️",
+                            DecisionType.REJECT: "🛑",
+                            DecisionType.ABSTAIN: "📜",
+                        }.get(dec.decision, "ℹ️")
+
+                        st.markdown(
+                            f"""
+                            <div class="{dec_class}">
+                                <div style="font-size: 1.3rem; font-weight: 700;">
+                                    {emoji} Policy Decision: {dec.decision.value}
+                                </div>
+                                <div style="margin-top: 0.4rem; font-size: 1.0rem;">
+                                    <strong>Justification:</strong> {dec.justification}
+                                </div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+
+                        if b_abstained:
+                            st.markdown(
+                                f"""
+                                <div class="bartleby-banner">
+                                    <div style="font-weight: 600; color: #38BDF8;">📜 Bartleby Guard Exercised Abstention</div>
+                                    <div style="color: #CBD5E1; font-size: 0.95rem; margin-top: 0.2rem;">
+                                        {audit_res.get("bartleby_reason")}
+                                    </div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+
+                        st.markdown("##### Findings Detected")
+                        if not findings_list:
+                            st.success("No discrepancies detected. Compliant.")
+                        else:
+                            for f_idx, f_item in enumerate(findings_list, 1):
+                                st.markdown(
+                                    f"**{f_idx}. [{f_item.anomaly_type.value if hasattr(f_item.anomaly_type, 'value') else f_item.anomaly_type}] {f_item.description}**"
+                                )
+                                if f_item.citation:
+                                    st.markdown(
+                                        f"<div class='citation-box'>"
+                                        f"<span style='color: #94A3B8; font-size: 0.8rem;'>Quote from {f_item.citation.document_id}</span><br/>"
+                                        f"&ldquo;{f_item.citation.text}&rdquo;"
+                                        f"</div>",
+                                        unsafe_allow_html=True,
+                                    )
+
+                with tab_raw:
+                    st.markdown("#### Full SEC Contract Raw Text")
+                    search_term = st.text_input(
+                        "Search within Raw Agreement", placeholder="e.g. indemnity, court"
+                    )
+                    if search_term:
+                        count = contract_obj.raw_text.lower().count(search_term.lower())
+                        st.info(f"Found {count} occurrence(s) of '{search_term}'.")
+                    st.text_area(
+                        "Raw Contract Text (EDGAR Filing)",
+                        value=contract_obj.raw_text,
+                        height=450,
+                    )
+
+
+# ── SCREEN 3: EVALUATION DASHBOARD ────────────────────────────────────────────
 elif selected_screen == "📊 Evaluation Dashboard":
     st.markdown(
         '<div class="hero-title">Reproducible Evaluation Dashboard</div>', unsafe_allow_html=True
     )
     st.markdown(
-        '<div class="hero-subtitle">Rigorous benchmark metrics, ablation comparisons, and anomaly taxonomy tracking</div>',
+        '<div class="hero-subtitle">Rigorous benchmark metrics, ablation comparisons, real-world CUAD evaluation, and model bake-off</div>',
         unsafe_allow_html=True,
     )
 
-    reports = load_evaluation_reports()
+    eval_mode = st.radio(
+        "Select Benchmark Track",
+        [
+            "📦 Synthetic 300-Package Baseline (A01–A10)",
+            "📜 Real-World CUAD Contract Benchmark (SEC Edgar)",
+            "⚡ Vertex AI Model Bake-Off (Gemini Flash vs Pro vs Rules)",
+        ],
+        horizontal=True,
+    )
 
-    if not reports:
-        st.warning(
-            "No evaluation reports found in `evals/reports/`. Run `make eval-ablations` to produce benchmark reports."
-        )
-    else:
-        report_names = [name for name, _ in reports]
-        selected_report_name = st.selectbox("Select Evaluation Report", report_names)
-        report_path = dict(reports)[selected_report_name]
+    st.divider()
 
-        with report_path.open(encoding="utf-8") as f:
-            data = json.load(f)
+    if eval_mode == "📦 Synthetic 300-Package Baseline (A01–A10)":
+        reports = load_evaluation_reports()
 
-        # ── Top KPI Metric Cards ──────────────────────────────────────────────
-        kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
-
-        total_pkgs = data.get("total_packages", 0)
-        acc = data.get("decision_accuracy", 0.0) * 100
-        mean_lat = data.get("mean_latency_ms", 0.0)
-        clean_fp = data.get("clean_package_false_positive_rate", 0.0) * 100
-        cite_val = data.get("citation_validity_rate", 0.0) * 100
-
-        bartleby_info = data.get("bartleby", {})
-        correct_abstain = bartleby_info.get("correct_abstention_rate", 1.0) * 100
-
-        kpi1.metric("Decision Accuracy", f"{acc:.1f}%", f"{total_pkgs} pkgs")
-        kpi2.metric("Citation Validity", f"{cite_val:.1f}%", "Zero fabricated quotes")
-        kpi3.metric("Bartleby Abstention", f"{correct_abstain:.1f}%", "Melville guard")
-        kpi4.metric("Clean FP Rate", f"{clean_fp:.1f}%", "Target: 0.0%")
-        kpi5.metric("Mean Latency", f"{mean_lat:.1f} ms", "Offline deterministic")
-
-        st.divider()
-
-        # ── Ablation Comparison Section ───────────────────────────────────────
-        st.markdown("### 🔬 Ablation Analysis: The Value of Contract RAG")
-        st.markdown(
-            "Comparing baseline full RAG against the **no-RAG ablation** (where contract retrieval is disabled and only invoice-PO 3-way matching occurs)."
-        )
-
-        col_ab1, col_ab2, col_ab3 = st.columns([1, 1, 2])
-        col_ab1.metric("Baseline Accuracy (with RAG)", "91.7%", "Governing terms checked")
-        col_ab2.metric("No-RAG Accuracy", "47.7%", "-44.0% drop")
-        col_ab3.metric(
-            "Contract RAG Value-Add", "+44.0%", "Critical for detecting A04, A05, A06, A09"
-        )
-
-        ablation_chart_data = {
-            "Mode": ["Baseline (Full Contract RAG)", "Ablation (No-RAG)"],
-            "Decision Accuracy (%)": [91.7, 47.7],
-            "Citation Validity (%)": [100.0, 100.0],
-            "Abstention on Absent Clauses (%)": [100.0, 0.0],
-        }
-        st.bar_chart(
-            data={"Baseline RAG": [91.7, 100.0, 100.0], "No-RAG": [47.7, 100.0, 0.0]},
-        )
-
-        st.divider()
-
-        # ── Anomaly Taxonomy Per-Class Breakdown ──────────────────────────────
-        st.markdown("### 🎯 Anomaly Taxonomy Matrix (A01 – A10)")
-        class_metrics = data.get("per_class_metrics", {})
-        if class_metrics:
-            taxonomy_descriptions = {
-                "A01": "Price > contract rate ceiling",
-                "A02": "Quantity billed > received",
-                "A03": "Duplicate invoice number",
-                "A04": "Payment terms mismatch against contract",
-                "A05": "Late-delivery penalty applicable",
-                "A06": "Contract expired / auto-renewal triggered",
-                "A07": "Unknown vendor or unlinked PO",
-                "A08": "Amount exceeds $50k approval threshold",
-                "A09": "Governing clause absent (must abstain)",
-                "A10": "Clean package (false-positive control)",
-            }
-            rows = []
-            for code in sorted(taxonomy_descriptions.keys()):
-                m = class_metrics.get(code, {})
-                support = m.get("support", 0)
-                prec = m.get("precision", 0.0) * 100
-                rec = m.get("recall", 0.0) * 100
-                f1 = m.get("f1_score", 0.0)
-                rows.append(
-                    {
-                        "Anomaly ID": code,
-                        "Description": taxonomy_descriptions[code],
-                        "Support": support,
-                        "Precision": f"{prec:.1f}%",
-                        "Recall": f"{rec:.1f}%",
-                        "F1-Score": f"{f1:.3f}",
-                    }
-                )
-            st.dataframe(rows, use_container_width=True)
-
-        # ── Failure Cases Inspector ───────────────────────────────────────────
-        st.divider()
-        st.markdown("### ⚠️ Failure Cases & Edge Case Inspection")
-        failures = data.get("failure_cases", [])
-        if not failures:
-            st.success("Zero failure cases recorded in this evaluation run!")
-        else:
-            st.info(
-                f"Showing {len(failures)} failure case(s) from this run for diagnostic transparency."
+        if not reports:
+            st.warning(
+                "No evaluation reports found in `evals/reports/`. Run `make eval-ablations` to produce benchmark reports."
             )
-            for f_case in failures[:15]:
-                with st.expander(
-                    f"📦 {f_case.get('package_id')} — Expected {f_case.get('expected_decision')}, Got {f_case.get('actual_decision')}"
-                ):
-                    st.write(
-                        f"**Justification:** {f_case.get('justification') or f_case.get('explanation')}"
+        else:
+            report_names = [name for name, _ in reports]
+            selected_report_name = st.selectbox("Select Evaluation Report", report_names)
+            report_path = dict(reports)[selected_report_name]
+
+            with report_path.open(encoding="utf-8") as f:
+                data = json.load(f)
+
+            # ── Top KPI Metric Cards ──────────────────────────────────────────────
+            kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
+
+            total_pkgs = data.get("total_packages", 0)
+            acc = data.get("decision_accuracy", 0.0) * 100
+            mean_lat = data.get("mean_latency_ms", 0.0)
+            clean_fp = data.get("clean_package_false_positive_rate", 0.0) * 100
+            cite_val = data.get("citation_validity_rate", 0.0) * 100
+
+            bartleby_info = data.get("bartleby", {})
+            correct_abstain = bartleby_info.get("correct_abstention_rate", 1.0) * 100
+
+            kpi1.metric("Decision Accuracy", f"{acc:.1f}%", f"{total_pkgs} pkgs")
+            kpi2.metric("Citation Validity", f"{cite_val:.1f}%", "Zero fabricated quotes")
+            kpi3.metric("Bartleby Abstention", f"{correct_abstain:.1f}%", "Melville guard")
+            kpi4.metric("Clean FP Rate", f"{clean_fp:.1f}%", "Target: 0.0%")
+            kpi5.metric("Mean Latency", f"{mean_lat:.1f} ms", "Offline deterministic")
+
+            st.divider()
+
+            # ── Ablation Comparison Section ───────────────────────────────────────
+            st.markdown("### 🔬 Ablation Analysis: The Value of Contract RAG")
+            st.markdown(
+                "Comparing baseline full RAG against the **no-RAG ablation** (where contract retrieval is disabled and only invoice-PO 3-way matching occurs)."
+            )
+
+            col_ab1, col_ab2, col_ab3 = st.columns([1, 1, 2])
+            col_ab1.metric("Baseline Accuracy (with RAG)", "91.7%", "Governing terms checked")
+            col_ab2.metric("No-RAG Accuracy", "47.7%", "-44.0% drop")
+            col_ab3.metric(
+                "Contract RAG Value-Add", "+44.0%", "Critical for detecting A04, A05, A06, A09"
+            )
+
+            st.bar_chart(
+                data={"Baseline RAG": [91.7, 100.0, 100.0], "No-RAG": [47.7, 100.0, 0.0]},
+            )
+
+            st.divider()
+
+            # ── Anomaly Taxonomy Per-Class Breakdown ──────────────────────────────
+            st.markdown("### 🎯 Anomaly Taxonomy Matrix (A01 – A10)")
+            class_metrics = data.get("per_class_metrics", {})
+            if class_metrics:
+                taxonomy_descriptions = {
+                    "A01": "Price > contract rate ceiling",
+                    "A02": "Quantity billed > received",
+                    "A03": "Duplicate invoice number",
+                    "A04": "Payment terms mismatch against contract",
+                    "A05": "Late-delivery penalty applicable",
+                    "A06": "Contract expired / auto-renewal triggered",
+                    "A07": "Unknown vendor or unlinked PO",
+                    "A08": "Amount exceeds $50k approval threshold",
+                    "A09": "Governing clause absent (must abstain)",
+                    "A10": "Clean package (false-positive control)",
+                }
+                rows = []
+                for code in sorted(taxonomy_descriptions.keys()):
+                    m = class_metrics.get(code, {})
+                    support = m.get("support", 0)
+                    prec = m.get("precision", 0.0) * 100
+                    rec = m.get("recall", 0.0) * 100
+                    f1 = m.get("f1_score", 0.0)
+                    rows.append(
+                        {
+                            "Anomaly ID": code,
+                            "Description": taxonomy_descriptions[code],
+                            "Support": support,
+                            "Precision": f"{prec:.1f}%",
+                            "Recall": f"{rec:.1f}%",
+                            "F1-Score": f"{f1:.3f}",
+                        }
                     )
+                st.dataframe(rows, use_container_width=True)
+
+            # ── Failure Cases Inspector ───────────────────────────────────────────
+            st.divider()
+            st.markdown("### ⚠️ Failure Cases & Edge Case Inspection")
+            failures = data.get("failure_cases", [])
+            if not failures:
+                st.success("Zero failure cases recorded in this evaluation run!")
+            else:
+                st.info(
+                    f"Showing {len(failures)} failure case(s) from this run for diagnostic transparency."
+                )
+                for f_case in failures[:15]:
+                    with st.expander(
+                        f"📦 {f_case.get('package_id')} — Expected {f_case.get('expected_decision')}, Got {f_case.get('actual_decision')}"
+                    ):
+                        st.write(
+                            f"**Justification:** {f_case.get('justification') or f_case.get('explanation')}"
+                        )
+
+    elif eval_mode == "📜 Real-World CUAD Contract Benchmark (SEC Edgar)":
+        cuad_report_path = Path("evals/reports/cuad_benchmark_latest.json")
+        if not cuad_report_path.exists():
+            st.warning(
+                "CUAD benchmark report not found at `evals/reports/cuad_benchmark_latest.json`. Run `make eval-cuad` to produce it."
+            )
+        else:
+            with cuad_report_path.open(encoding="utf-8") as f:
+                cuad_data = json.load(f)
+
+            rep = cuad_data.get("report", {})
+            st.markdown("### 🏆 Real-World Retrieval & Melville Abstention on SEC Contracts")
+            st.markdown(
+                "Benchmark executed on authentic commercial contracts filed with the SEC, testing hybrid RAG retrieval against expert-annotated spans and Melville abstention on ground-truth absent clauses."
+            )
+
+            # Metrics row 1: Retrieval
+            r1, r2, r3, r4 = st.columns(4)
+            r1.metric("Contracts Evaluated", f"{rep.get('total_contracts_evaluated', 0)}")
+            r2.metric(
+                "Recall @ 1", f"{rep.get('recall_at_1', 0.0) * 100:.1f}%", "Top candidate hit"
+            )
+            r3.metric("Recall @ 3", f"{rep.get('recall_at_3', 0.0) * 100:.1f}%", "Top-3 hit")
+            r4.metric("Recall @ 5", f"{rep.get('recall_at_5', 0.0) * 100:.1f}%", "Top-5 hit")
+
+            # Metrics row 2: Bartleby & Latency
+            b1, b2, b3, b4 = st.columns(4)
+            b1.metric("Mean Reciprocal Rank (MRR)", f"{rep.get('mean_reciprocal_rank', 0.0):.4f}")
+            b2.metric(
+                "Bartleby Abstention Rate",
+                f"{rep.get('bartleby_correct_abstention_rate', 0.0) * 100:.1f}%",
+                "True absences declined",
+            )
+            b3.metric(
+                "False Assertion Rate",
+                f"{rep.get('bartleby_false_assertion_rate', 0.0) * 100:.1f}%",
+                "Target: <5.0%",
+            )
+            b4.metric(
+                "Mean Retrieval Latency",
+                f"{rep.get('mean_retrieval_latency_ms', 0.0):.1f} ms",
+                "50k+ char contracts",
+            )
+
+            st.divider()
+
+            # Retrieval depth bar chart
+            st.markdown("#### Retrieval Depth vs Abstention Fidelity")
+            chart_col1, chart_col2 = st.columns(2)
+            with chart_col1:
+                st.markdown("**Recall by Retrieval Depth (k)**")
+                recall_chart = {
+                    "Recall @ 1": [rep.get("recall_at_1", 0.0) * 100],
+                    "Recall @ 3": [rep.get("recall_at_3", 0.0) * 100],
+                    "Recall @ 5": [rep.get("recall_at_5", 0.0) * 100],
+                }
+                st.bar_chart(recall_chart)
+            with chart_col2:
+                st.markdown("**Bartleby Melville Guard Performance on Real Negatives**")
+                abstain_chart = {
+                    "Correct Abstention (%)": [
+                        rep.get("bartleby_correct_abstention_rate", 0.0) * 100
+                    ],
+                    "False Assertion (%)": [rep.get("bartleby_false_assertion_rate", 0.0) * 100],
+                }
+                st.bar_chart(abstain_chart)
+
+            st.divider()
+
+            # Sample cases table
+            st.markdown("#### Sample Retrieval Benchmark Cases")
+            cases = cuad_data.get("sample_retrieval_cases", [])
+            if cases:
+                table_rows = []
+                for c in cases[:15]:
+                    table_rows.append(
+                        {
+                            "Contract ID": c.get("contract_id"),
+                            "Category": c.get("category"),
+                            "Query": c.get("query"),
+                            "GT Spans": c.get("num_ground_truth_spans"),
+                            "Hit @ 1": "✅" if c.get("hit_at_1") else "❌",
+                            "Hit @ 3": "✅" if c.get("hit_at_3") else "❌",
+                            "Hit @ 5": "✅" if c.get("hit_at_5") else "❌",
+                            "MRR": f"{c.get('reciprocal_rank', 0.0):.2f}",
+                            "Latency": f"{c.get('latency_ms', 0.0):.1f} ms",
+                        }
+                    )
+                st.dataframe(table_rows, use_container_width=True)
+
+                st.markdown("##### Detailed Case Deep-Dive")
+                for c in cases[:5]:
+                    with st.expander(
+                        f"📜 {c.get('contract_id')} — {c.get('category')} (Hit@5: {c.get('hit_at_5')})"
+                    ):
+                        st.write(f"**Query:** `{c.get('query')}`")
+                        st.write(f"**Ground Truth Spans:** {c.get('num_ground_truth_spans')}")
+                        st.write("**Top Retrieved Clauses:**")
+                        for idx, p in enumerate(c.get("retrieved_top_5", []), 1):
+                            st.markdown(f"*{idx}.* {p}")
+
+    elif eval_mode == "⚡ Vertex AI Model Bake-Off (Gemini Flash vs Pro vs Rules)":
+        bakeoff_report_path = Path("evals/reports/bakeoff_latest.json")
+        if not bakeoff_report_path.exists():
+            st.warning(
+                "Bake-off report not found at `evals/reports/bakeoff_latest.json`. Run `make eval-bakeoff` to produce it."
+            )
+        else:
+            with bakeoff_report_path.open(encoding="utf-8") as f:
+                bakeoff_data = json.load(f)
+
+            st.markdown("### ⚡ Live Vertex AI Structured Extraction Bake-Off")
+            st.markdown(
+                "Head-to-head empirical comparison between deterministic rule parsing and Gemini models (`gemini-2.5-flash`, `gemini-2.5-pro`) over Google Cloud Vertex AI ADC."
+            )
+
+            candidates = bakeoff_data.get("candidates", [])
+            if candidates:
+                cand_cols = st.columns(len(candidates))
+                for idx, cand in enumerate(candidates):
+                    with cand_cols[idx]:
+                        st.markdown(
+                            f"""
+                            <div class="cuad-card">
+                                <div style="font-weight: 700; color: #38BDF8; font-size: 1.05rem;">{cand.get("candidate_name")}</div>
+                                <div style="font-size: 0.85rem; color: #94A3B8; margin-top: 2px;">Model ID: <code>{cand.get("model_id")}</code></div>
+                                <div style="margin-top: 8px; font-size: 0.9rem;">
+                                    ⏱️ <strong>Latency:</strong> {cand.get("mean_latency_ms", 0.0):.1f} ms<br/>
+                                    💰 <strong>Cost / 1k:</strong> ${cand.get("estimated_cost_per_1k_usd", 0.0):.2f}<br/>
+                                    🎯 <strong>Accuracy:</strong> {cand.get("overall_perfect_accuracy", 0.0) * 100:.1f}%<br/>
+                                    ⚠️ <strong>Error Rate:</strong> {cand.get("error_rate", 0.0) * 100:.1f}%
+                                </div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+
+                st.divider()
+
+                # Detailed comparisons
+                bake_table = []
+                for cand in candidates:
+                    accs = cand.get("field_accuracies", {})
+                    bake_table.append(
+                        {
+                            "Candidate": cand.get("candidate_name"),
+                            "Provider": cand.get("provider_type"),
+                            "Latency (ms)": f"{cand.get('mean_latency_ms', 0.0):.1f}",
+                            "Cost / 1k ($)": f"${cand.get('estimated_cost_per_1k_usd', 0.0):.2f}",
+                            "Terms Accuracy": f"{accs.get('payment_terms_days', 0.0) * 100:.0f}%",
+                            "Expiration Accuracy": f"{accs.get('expiration_date', 0.0) * 100:.0f}%",
+                            "Penalty Accuracy": f"{accs.get('late_delivery_penalty_pct_per_day', 0.0) * 100:.0f}%",
+                            "Rate Sheet Accuracy": f"{accs.get('rate_sheet', 0.0) * 100:.0f}%",
+                            "Overall Exact Match": f"{cand.get('overall_perfect_accuracy', 0.0) * 100:.1f}%",
+                        }
+                    )
+                st.dataframe(bake_table, use_container_width=True)
 
 
 # ── SCREEN 3: SYSTEM ARCHITECTURE ─────────────────────────────────────────────
