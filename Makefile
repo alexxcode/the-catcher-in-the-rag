@@ -55,6 +55,9 @@ calibrate-bartleby: ## Run empirical threshold sweep for Bartleby abstention (Ph
 eval-cuad: ## Run benchmark on real-world CUAD commercial contracts (Phase 5)
 	$(PYTHON) -m evals.run --eval-cuad --sample-size 25 --output evals/reports/
 
+calibrate-cuad: ## Re-calibrate Bartleby on real-world SEC CUAD contracts across train/val split
+	$(PYTHON) -m evals.calibrate_cuad
+
 check-models: ## Verify Vertex AI model availability and detect retirement
 	LLM_PROVIDER=vertex_ai $(PYTHON) -c "from catcher_in_the_rag.providers.factory import get_llm_provider; p = get_llm_provider('vertex_ai'); assert p.provider_type == 'vertex_ai', 'check-models requires LLM_PROVIDER=vertex_ai'; h = p.check_model_health(); print(f'Model health: {h}')"
 

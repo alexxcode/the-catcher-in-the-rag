@@ -71,8 +71,9 @@ evals/reports/*
 !evals/reports/canonical_norag_report.json
 !evals/reports/bakeoff_latest.json
 !evals/reports/cuad_benchmark_latest.json
-!evals/reports/bakeoff_report_20261023T040809Z.json
-!evals/reports/cuad_benchmark_20261023T040825Z.json
+!evals/reports/calibration_cuad_report.json
+!evals/reports/bakeoff_report_20261023T*.json
+!evals/reports/cuad_benchmark_20261023T*.json
 
 # ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
