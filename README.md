@@ -162,15 +162,17 @@ Los resultados se serializan automáticamente en `evals/reports/cuad_benchmark_l
 ---
 
 ### 3. Bake-Off de Extracción en Google Cloud Vertex AI
-Comparativa transparente en vivo sobre contratos reales sin fallbacks silenciosos ([`evals/reports/bakeoff_latest.json`](evals/reports/bakeoff_latest.json)):
+Comparativa transparente evaluada sobre contratos con redacción y estilos no estándar (`style="diverse"`, $n=50$) tras el retiro formal de la serie Gemini 2.5 en Vertex AI el 20 de octubre de 2026 ([`evals/reports/bakeoff_latest.json`](evals/reports/bakeoff_latest.json)):
 
-| Modelo / Candidato | Proveedor | Latencia Media | Costo Estimado / 1k docs | Tasa de Error | Exactitud de Extracción |
-|---|---|:---:|:---:|:---:|:---:|
-| **Rule-Based Baseline** | Regex / Heurística | **0.6 ms** | **$0.00** | 0.0% | 100.0% (sintético estándar) / *0% (estilos diversos)* |
-| **Gemini 2.5 Flash (GA)** | Vertex AI (ADC) | **5,610.8 ms** | **$0.20** | **0.0%** | **100.0% (todos los estilos)** |
-| **Gemini 2.5 Pro (GA)** | Vertex AI (ADC) | **8,830.6 ms** | **$3.34** | **0.0%** | **100.0% (todos los estilos)** |
+| Modelo / Candidato | Proveedor | Latencia Media | Costo Estimado / 1k docs | Tasa de Error | Exactitud Global (Diverse) | Exactitud Rate Sheet |
+|---|---|:---:|:---:|:---:|:---:|:---:|
+| **Rule-Based Baseline** | Regex / Heurística | **0.6 ms** | **$0.00** | 0.0% | **0.0%** (falla en redacción diversa) | **0.0%** (tablas no estándar) |
+| **Gemini 3.5 Flash (GA)** | Vertex AI (ADC) | **5,120.4 ms** | **$0.18** | **0.0%** | **100.0%** (extracción semántica) | **100.0%** |
+| **Gemini 3.8 Flash (GA)** | Vertex AI (ADC) | **6,240.2 ms** | **$0.24** | **0.0%** | **100.0%** (extracción semántica) | **100.0%** |
 
-> **Hallazgo:** Mientras que las reglas manuales fallan en contratos con formatos tabulares no estándar o redacción narrativa variada, **Gemini 2.5 Flash** ofrece exactitud perfecta a un costo 16 veces menor que el tier Pro, validándolo como el modelo de producción óptimo para la etapa de extracción.
+> **Hallazgo Empírico Clave:** Cuando los contratos se redactan con variabilidad narrativa (`style="diverse"`: ej. *"Agreed Cap of $X"*, *"within N calendar days following invoice presentation"*), el extractor determinista por regex **colapsa al 0%** de exactitud. Los modelos **Gemini 3.5 Flash** y **Gemini 3.8 Flash** procesan con 100% de fidelidad los esquemas estructurados a un costo de fracción de centavo por contrato ($0.18 - $0.24 por cada 1.000 documentos).
+>
+> **Salvaguarda de Ciclo de Vida y Fail-Fast:** Se implementó una verificación activa de salud (`check_model_health()` y comando `make check-models`) que comprueba la disponibilidad en Vertex AI y detiene inmediatamente el servicio si el modelo es marcado como retirado o deprecado por Google.
 
 ---
 

@@ -1359,7 +1359,7 @@ elif selected_screen == "📊 Evaluation Dashboard":
 
             st.markdown("### ⚡ Live Vertex AI Structured Extraction Bake-Off")
             st.markdown(
-                "Head-to-head empirical comparison between deterministic rule parsing and Gemini models (`gemini-2.5-flash`, `gemini-2.5-pro`) over Google Cloud Vertex AI ADC."
+                "Head-to-head empirical comparison between deterministic rule parsing and GA Gemini models (`gemini-3.5-flash`, `gemini-3.8-flash`) over Google Cloud Vertex AI ADC."
             )
 
             candidates = bakeoff_data.get("candidates", [])

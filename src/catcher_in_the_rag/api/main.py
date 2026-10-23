@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from catcher_in_the_rag.graph import audit_pipeline
+from catcher_in_the_rag.providers.factory import get_llm_provider
 from catcher_in_the_rag.schemas import (
     Decision,
     DecisionType,
@@ -40,6 +41,7 @@ class HealthResponse(BaseModel):
     app: str = "The Catcher in the RAG"
     version: str = "0.1.0"
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    model_health: dict[str, Any] = Field(default_factory=dict)
 
 
 class AuditRequest(BaseModel):
@@ -77,9 +79,14 @@ _REVIEW_OVERRIDES: dict[str, dict[str, Any]] = {}
 
 
 @app.get("/health", response_model=HealthResponse)
+@app.get("/healthz", response_model=HealthResponse)
 def get_health() -> HealthResponse:
-    """Service health check endpoint."""
-    return HealthResponse()
+    """Service health check endpoint with active model lifecycle verification."""
+    try:
+        model_info = get_llm_provider().check_model_health()
+        return HealthResponse(model_health=model_info)
+    except Exception as err:
+        raise HTTPException(status_code=503, detail=f"Model health check failed: {err}") from err
 
 
 @app.get("/api/packages")

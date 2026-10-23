@@ -21,7 +21,9 @@ from datagen.injector import inject_anomaly
 from datagen.templates import VENDORS, render_contract_text
 
 
-def generate_base_package(seed: int, package_id: str) -> ProcurementPackage:
+def generate_base_package(
+    seed: int, package_id: str, style: str = "standard"
+) -> ProcurementPackage:
     """Deterministically generate a clean 3-way matching procurement package with contract."""
     rng = random.Random(seed)
 
@@ -60,6 +62,7 @@ def generate_base_package(seed: int, package_id: str) -> ProcurementPackage:
         payment_terms_days=payment_terms_days,
         late_penalty_pct=Decimal("1.0"),
         auto_renew=False,
+        style=style,
     )
 
     contract = Contract(
@@ -154,10 +157,25 @@ def generate_package(
     seed: int,
     anomaly: AnomalyType,
     package_id: str,
+    style: str = "standard",
 ) -> tuple[ProcurementPackage, PackageLabels]:
     """Generate a procurement package with the requested anomaly and its ground truth labels."""
-    base_pkg = generate_base_package(seed=seed, package_id=package_id)
+    base_pkg = generate_base_package(seed=seed, package_id=package_id, style=style)
     return inject_anomaly(base_pkg=base_pkg, anomaly=anomaly)
+
+
+def generate_diverse_contracts(
+    count: int = 50,
+    base_seed: int = 100,
+) -> list[tuple[str, Contract]]:
+    """Generate a diverse suite of contracts in non-standard phrasing for LLM vs Rule bake-off."""
+    contracts: list[tuple[str, Contract]] = []
+    for i in range(count):
+        seed = base_seed + (i * 37)
+        pkg = generate_base_package(seed=seed, package_id=f"DIV-PKG-{i + 1:04d}", style="diverse")
+        if pkg.contract and pkg.contract.raw_text:
+            contracts.append((pkg.contract.raw_text, pkg.contract))
+    return contracts
 
 
 def generate_dataset(

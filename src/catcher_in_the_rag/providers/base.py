@@ -30,6 +30,11 @@ class LLMProvider(ABC):
         """Generate a text completion for a given prompt."""
         ...
 
+    @abstractmethod
+    def check_model_health(self) -> dict[str, Any]:
+        """Verify model availability and fail fast if model is deprecated or unreachable."""
+        ...
+
 
 class EmbeddingProvider(ABC):
     """Abstract interface for dense text embeddings."""

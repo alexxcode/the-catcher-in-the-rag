@@ -87,3 +87,22 @@ def test_extraction_bakeoff_execution() -> None:
     with tempfile.TemporaryDirectory() as tmp_dir:
         report_path = save_bakeoff_report(results, output_dir=Path(tmp_dir))
         assert report_path.exists()
+
+
+def test_generate_diverse_contracts() -> None:
+    from datagen.generator import generate_diverse_contracts
+
+    contracts = generate_diverse_contracts(count=3, base_seed=123)
+    assert len(contracts) == 3
+    for raw_text, contract in contracts:
+        assert contract.contract_id.startswith("CTR-")
+        assert "Agreed Cap of" in raw_text or "calendar days" in raw_text
+
+
+def test_model_health_check() -> None:
+    from catcher_in_the_rag.providers.factory import get_llm_provider
+
+    provider = get_llm_provider(provider_type="stub")
+    health = provider.check_model_health()
+    assert health["status"] == "healthy"
+    assert health["provider"] == "stub"

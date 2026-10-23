@@ -10,7 +10,7 @@ from catcher_in_the_rag.schemas import (
     PackageLabels,
     ProcurementPackage,
 )
-from datagen.generator import generate_dataset
+from datagen.generator import generate_dataset, generate_diverse_contracts
 from evals.bakeoff import (
     ExtractionBakeOff,
     print_bakeoff_summary,
@@ -110,6 +110,18 @@ def main() -> int:
         default=None,
         help="Optional maximum number of packages to evaluate",
     )
+    parser.add_argument(
+        "--diverse",
+        action="store_true",
+        default=True,
+        help="Use diverse contract phrasings for extraction bake-off (demonstrating LLM vs Regex)",
+    )
+    parser.add_argument(
+        "--standard-style",
+        dest="diverse",
+        action="store_false",
+        help="Use standard template contract phrasings instead of diverse styles",
+    )
 
     args = parser.parse_args()
 
@@ -171,15 +183,24 @@ def main() -> int:
         print_extraction_summary(ext_report)
 
     if args.bakeoff:
-        print("\nRunning Model Extraction Bake-Off (Phase 3: Flash vs Pro vs Rule Baseline)...")
-        contracts_to_evaluate: list[tuple[str, Any]] = [
-            (pkg.contract.raw_text, pkg.contract)
-            for pkg, _ in dataset
-            if pkg.contract and pkg.contract.raw_text
-        ]
+        sample_sz = args.sample_size or 50
+        print(f"\nRunning Model Extraction Bake-Off (n={sample_sz}, diverse={args.diverse})...")
+        if args.diverse:
+            print(
+                f"Generating {sample_sz} contracts with diverse phrasing (non-standard rate tables and terms)..."
+            )
+            contracts_to_evaluate: list[tuple[str, Any]] = generate_diverse_contracts(
+                count=sample_sz
+            )
+        else:
+            contracts_to_evaluate = [
+                (pkg.contract.raw_text, pkg.contract)
+                for pkg, _ in dataset
+                if pkg.contract and pkg.contract.raw_text
+            ]
         bakeoff_runner = ExtractionBakeOff(
             contracts=contracts_to_evaluate,
-            sample_size=args.sample_size or 50,
+            sample_size=sample_sz,
         )
         bakeoff_results = bakeoff_runner.run_bakeoff()
         print_bakeoff_summary(bakeoff_results)

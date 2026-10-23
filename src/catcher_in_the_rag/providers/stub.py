@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import math
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
@@ -67,6 +67,15 @@ class StubLLMProvider(LLMProvider):
     ) -> str:
         """Deterministic text generation based on prompt."""
         return f"[STUB_RESPONSE for prompt of length {len(prompt)}]"
+
+    def check_model_health(self) -> dict[str, Any]:
+        """Offline deterministic health check."""
+        return {
+            "status": "healthy",
+            "model_id": "stub-offline",
+            "provider": "stub",
+            "latency_ms": 0.05,
+        }
 
 
 class StubEmbeddingProvider(EmbeddingProvider):

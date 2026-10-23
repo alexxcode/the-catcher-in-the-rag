@@ -113,6 +113,11 @@ def test_health_endpoint(client: TestClient) -> None:
     data = response.json()
     assert data["status"] == "ok"
     assert data["app"] == "The Catcher in the RAG"
+    assert "model_health" in data
+    assert data["model_health"]["status"] == "healthy"
+
+    hz_resp = client.get("/healthz")
+    assert hz_resp.status_code == 200
 
 
 def test_list_packages(client: TestClient) -> None:

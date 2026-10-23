@@ -193,6 +193,59 @@ class GeminiProvider(LLMProvider):
 
         return res_text
 
+    def check_model_health(self) -> dict[str, Any]:
+        """Perform a startup health-check against Vertex AI to detect model retirement/deprecation.
+
+        Fails fast with a clear explanation if the pinned model has been retired or is unavailable.
+        """
+        self._ensure_init()
+        t0 = time.perf_counter()
+        try:
+            if self._use_genai and self._genai_client is not None:
+                self._genai_client.models.generate_content(
+                    model=self.model_id,
+                    contents="ping",
+                    config={"max_output_tokens": 1, "temperature": 0.0},
+                )
+            else:
+                self._client.generate_content(
+                    "ping",
+                    generation_config={"max_output_tokens": 1, "temperature": 0.0},
+                )
+            dt_ms = (time.perf_counter() - t0) * 1000
+            return {
+                "status": "healthy",
+                "model_id": self.model_id,
+                "provider": "vertex_ai",
+                "latency_ms": round(dt_ms, 2),
+            }
+        except Exception as err:
+            err_msg = str(err).lower()
+            if any(
+                term in err_msg
+                for term in (
+                    "not found",
+                    "404",
+                    "410",
+                    "deprecated",
+                    "shutdown",
+                    "retired",
+                    "invalid model",
+                    "does not exist",
+                )
+            ):
+                fatal_msg = (
+                    f"FATAL: Vertex AI model '{self.model_id}' is unavailable or has reached retirement! "
+                    f"Google Vertex AI shut down this model version. "
+                    f"Please update config/models.yaml or set VERTEX_MODEL_ID to an active GA model. "
+                    f"Reference: https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versioning. "
+                    f"Underlying error: {err}"
+                )
+                raise RuntimeError(fatal_msg) from err
+            raise RuntimeError(
+                f"Vertex AI health check failed for model '{self.model_id}': {err}"
+            ) from err
+
 
 class GeminiEmbeddingProvider(EmbeddingProvider):
     """Dense embedding provider using Vertex AI text-embedding models."""

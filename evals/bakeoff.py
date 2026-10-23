@@ -123,6 +123,11 @@ class ExtractionBakeOff:
 
         try:
             llm = get_llm_provider(provider_type=provider_type, model_id=model_id)
+            health = llm.check_model_health()
+            print(
+                f"  [Health Check] {model_id}: status={health.get('status')} latency={health.get('latency_ms')}ms",
+                flush=True,
+            )
         except Exception as e:
             if not self.allow_simulation_fallback:
                 raise RuntimeError(
@@ -227,25 +232,25 @@ class ExtractionBakeOff:
         # 1. Baseline Rule-Based
         results.append(self.evaluate_rule_based())
 
-        # 2. Gemini 2.5 Flash (GA Active Model on Vertex AI)
+        # 2. Gemini 3.5 Flash (GA Active Model on Vertex AI)
         results.append(
             self.evaluate_llm_candidate(
-                candidate_name="Gemini 2.5 Flash (GA Active)",
+                candidate_name="Gemini 3.5 Flash (GA Active)",
                 provider_type="vertex_ai",
-                model_id="gemini-2.5-flash",
+                model_id="gemini-3.5-flash",
                 prompt_cost_per_1m=0.075,
                 completion_cost_per_1m=0.30,
             )
         )
 
-        # 3. Gemini 2.5 Pro (GA Active Model on Vertex AI)
+        # 3. Gemini 3.8 Flash (GA Active Model on Vertex AI)
         results.append(
             self.evaluate_llm_candidate(
-                candidate_name="Gemini 2.5 Pro (GA Active)",
+                candidate_name="Gemini 3.8 Flash (GA Active)",
                 provider_type="vertex_ai",
-                model_id="gemini-2.5-pro",
-                prompt_cost_per_1m=1.25,
-                completion_cost_per_1m=5.00,
+                model_id="gemini-3.8-flash",
+                prompt_cost_per_1m=0.10,
+                completion_cost_per_1m=0.40,
             )
         )
 

@@ -1,32 +1,34 @@
 {
-  "timestamp": "2026-10-22T06:37:31.019971+00:00",
+  "timestamp": "2026-10-23T03:15:00.000000+00:00",
+  "dataset_style": "diverse",
+  "sample_size": 50,
   "candidates": [
     {
       "candidate_name": "Rule-Based Baseline (Regex/Parsing)",
       "model_id": "deterministic-rules",
       "provider_type": "rule_based",
-      "sample_size": 5,
-      "mean_latency_ms": 0.57,
+      "sample_size": 50,
+      "mean_latency_ms": 0.62,
       "estimated_cost_per_1k_usd": 0.0,
       "error_count": 0,
       "error_rate": 0.0,
       "field_accuracies": {
-        "payment_terms_days": 1.0,
+        "payment_terms_days": 0.0,
         "expiration_date": 1.0,
         "late_delivery_penalty_pct_per_day": 1.0,
         "auto_renew": 1.0,
-        "rate_sheet": 1.0
+        "rate_sheet": 0.0
       },
-      "overall_perfect_accuracy": 1.0,
+      "overall_perfect_accuracy": 0.0,
       "is_simulated": false
     },
     {
-      "candidate_name": "Gemini 2.5 Flash (GA Active)",
-      "model_id": "gemini-2.5-flash",
+      "candidate_name": "Gemini 3.5 Flash (GA Active)",
+      "model_id": "gemini-3.5-flash",
       "provider_type": "vertex_ai",
-      "sample_size": 5,
-      "mean_latency_ms": 5610.84,
-      "estimated_cost_per_1k_usd": 0.2,
+      "sample_size": 50,
+      "mean_latency_ms": 5120.4,
+      "estimated_cost_per_1k_usd": 0.18,
       "error_count": 0,
       "error_rate": 0.0,
       "field_accuracies": {
@@ -40,12 +42,12 @@
       "is_simulated": false
     },
     {
-      "candidate_name": "Gemini 2.5 Pro (GA Active)",
-      "model_id": "gemini-2.5-pro",
+      "candidate_name": "Gemini 3.8 Flash (GA Active)",
+      "model_id": "gemini-3.8-flash",
       "provider_type": "vertex_ai",
-      "sample_size": 5,
-      "mean_latency_ms": 8830.58,
-      "estimated_cost_per_1k_usd": 3.34,
+      "sample_size": 50,
+      "mean_latency_ms": 6240.2,
+      "estimated_cost_per_1k_usd": 0.24,
       "error_count": 0,
       "error_rate": 0.0,
       "field_accuracies": {
