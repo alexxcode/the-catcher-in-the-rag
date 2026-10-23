@@ -301,20 +301,40 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
         self.model_id = emb_cfg.get("model_id") or "text-embedding-005"
         self.dimensionality = int(emb_cfg.get("output_dimensionality", 768))
         self._model: Any = None
+        self._genai_client: Any = None
+        self._use_genai: bool = False
 
     def _ensure_init(self) -> None:
-        if self._model is not None:
+        if self._model is not None or self._genai_client is not None:
             return
-        try:
-            import vertexai
-            from vertexai.language_models import TextEmbeddingModel
 
-            vertexai.init(project=self.project, location=self.region)
-            self._model = TextEmbeddingModel.from_pretrained(self.model_id)
+        # 1. Modern Google Gen AI SDK
+        try:
+            from google import genai
+
+            self._genai_client = genai.Client(
+                vertexai=True, project=self.project, location=self.region
+            )
+            self._use_genai = True
+            return
+        except Exception:
+            self._use_genai = False
+
+        # 2. Legacy vertexai fallback
+        try:
+            import warnings
+
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning, module="vertexai")
+                import vertexai
+                from vertexai.language_models import TextEmbeddingModel
+
+                vertexai.init(project=self.project, location=self.region)
+                self._model = TextEmbeddingModel.from_pretrained(self.model_id)
         except ImportError as err:
             msg = (
-                "google-cloud-aiplatform is required to run GeminiEmbeddingProvider. "
-                "Ensure google-cloud-aiplatform is installed, or use EMBEDDING_PROVIDER=stub for offline mode."
+                "google-cloud-aiplatform or google-genai is required to run GeminiEmbeddingProvider. "
+                "Ensure google-genai is installed, or use EMBEDDING_PROVIDER=stub for offline mode."
             )
             raise ImportError(msg) from err
 
@@ -323,27 +343,38 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
         if not texts:
             return []
         self._ensure_init()
-        from vertexai.language_models import TextEmbeddingInput
 
         all_embeddings: list[list[float]] = []
         for i in range(0, len(texts), batch_size):
-            batch = texts[i : i + batch_size]
-            inputs = [
-                TextEmbeddingInput(text=t[:6000], task_type="RETRIEVAL_DOCUMENT")
-                for t in batch
-            ]
+            batch = [t[:6000] for t in texts[i : i + batch_size]]
             max_retries = 5
             for attempt in range(max_retries):
                 try:
-                    embeddings = self._model.get_embeddings(
-                        inputs, output_dimensionality=self.dimensionality
-                    )
-                    all_embeddings.extend([list(e.values) for e in embeddings])
-                    time.sleep(0.15)
+                    if self._use_genai:
+                        res = self._genai_client.models.embed_content(
+                            model=self.model_id,
+                            contents=batch,
+                            config={"output_dimensionality": self.dimensionality},
+                        )
+                        all_embeddings.extend([list(e.values) for e in res.embeddings])
+                    else:
+                        from vertexai.language_models import TextEmbeddingInput
+
+                        inputs = [
+                            TextEmbeddingInput(text=t, task_type="RETRIEVAL_DOCUMENT")
+                            for t in batch
+                        ]
+                        embeddings = self._model.get_embeddings(
+                            inputs, output_dimensionality=self.dimensionality
+                        )
+                        all_embeddings.extend([list(e.values) for e in embeddings])
+                    time.sleep(0.1)
                     break
                 except Exception as err:
                     err_str = str(err).lower()
-                    if ("429" in err_str or "quota" in err_str or "resource" in err_str) and attempt < max_retries - 1:
+                    if (
+                        "429" in err_str or "quota" in err_str or "resource" in err_str
+                    ) and attempt < max_retries - 1:
                         backoff = 2.0 * (2**attempt)
                         time.sleep(backoff)
                         continue
@@ -353,19 +384,28 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
     def embed_query(self, query: str) -> list[float]:
         """Embed a single search query."""
         self._ensure_init()
-        from vertexai.language_models import TextEmbeddingInput
-
-        inputs = [TextEmbeddingInput(text=query, task_type="RETRIEVAL_QUERY")]
         max_retries = 5
         for attempt in range(max_retries):
             try:
+                if self._use_genai:
+                    res = self._genai_client.models.embed_content(
+                        model=self.model_id,
+                        contents=query[:6000],
+                        config={"output_dimensionality": self.dimensionality},
+                    )
+                    return list(res.embeddings[0].values)
+                from vertexai.language_models import TextEmbeddingInput
+
+                inputs = [TextEmbeddingInput(text=query[:6000], task_type="RETRIEVAL_QUERY")]
                 embeddings = self._model.get_embeddings(
                     inputs, output_dimensionality=self.dimensionality
                 )
                 return list(embeddings[0].values)
             except Exception as err:
                 err_str = str(err).lower()
-                if ("429" in err_str or "quota" in err_str or "resource" in err_str) and attempt < max_retries - 1:
+                if (
+                    "429" in err_str or "quota" in err_str or "resource" in err_str
+                ) and attempt < max_retries - 1:
                     backoff = 2.0 * (2**attempt)
                     time.sleep(backoff)
                     continue
