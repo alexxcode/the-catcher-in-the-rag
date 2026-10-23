@@ -4,19 +4,19 @@ All third-party datasets are downloaded via scripts; raw corpora are **not commi
 
 | Dataset | Role | License | Download script | URL | Version / Date recorded |
 |---|---|---|---|---|---|
-| CUAD v1 (510 contracts, 41 clause types) | Contract corpus + retrieval ground truth | CC BY 4.0 | `datagen/download.py --dataset cuad` | https://github.com/TheAtticusProject/cuad | TODO: record commit/date |
-| FATURA (10k invoice images, 50 layouts) | Extraction robustness set | CC BY 4.0 | `datagen/download.py --dataset fatura` | TODO: verify URL | TODO |
-| ContractNLI | Optional: contradiction/entailment test cases | CC BY 4.0 (re-verify at source) | `datagen/download.py --dataset contractnli` | TODO | TODO |
-| LegalBench-RAG (CUAD/ContractNLI subsets) | Retrieval benchmark comparison | Repo: MIT; underlying corpora keep own licenses | `datagen/download.py --dataset legalbench` | TODO | TODO |
-| OCDS public procurement data | Realistic vendors, categories, amounts for synthetic POs | Per publisher (record below) | `datagen/download.py --dataset ocds` | TODO: choose publisher(s) | TODO |
-| Synthetic packages (own generator) | Labeled anomalies, main eval set | Own — CC BY 4.0 or MIT (mark as synthetic) | generated via `make generate-synthetic` | n/a | n/a |
+| CUAD v1 (510 contracts, 41 clause types) | Contract corpus + retrieval ground truth | CC BY 4.0 | `datagen/download.py --dataset cuad` (`make download-data`) | https://github.com/TheAtticusProject/cuad | v1.0 (aok_v1.0), 2026-10-22 |
+| OCDS public procurement data (OCP sample data) | Realistic vendors, categories, amounts for synthetic POs | Apache 2.0 / Open Data | `datagen/download.py --dataset ocds` (`make download-data`) | https://github.com/open-contracting/sample-data | OCDS 1.1 release package, 2026-10-22 |
+| FATURA (10k invoice images, 50 layouts) | Extraction robustness set (future image extension) | CC BY 4.0 | `datagen/download.py --dataset fatura` | Optional image extension | Optional |
+| Synthetic packages (own generator) | Labeled anomalies, main eval set | Own — CC BY 4.0 or MIT (marked synthetic) | generated via `make generate-synthetic` | Local generator | v0.4.0, 300 packages |
 
 ## OCDS Publisher(s)
 
-TODO (Open Decision #4): Choose 1–2 OCDS publishers and record:
-- Publisher name and URL
-- Exact license
-- Download date and version/snapshot
+Recorded publisher details:
+- **Publisher Name:** Open Contracting Partnership (OCP)
+- **Data Standard:** OCDS 1.1 (JSON schema)
+- **Repository URL:** https://github.com/open-contracting/sample-data
+- **License:** Apache 2.0 / Open Database License
+- **Download Date:** 2026-10-22 (snapshot releases: planning, tender, award, contract, implementation)
 
 **Do not use** datasets under non-commercial terms (e.g. CC BY-NC) or aggregates with mixed/unclear licenses.
 

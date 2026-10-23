@@ -58,6 +58,7 @@ override.tf.json
 
 # ── Data ──────────────────────────────────────────────────────────────────────
 data/raw/
+data/real/
 data/reports/
 data/synthetic/
 
@@ -66,6 +67,8 @@ evals/reports/*
 !evals/reports/.gitkeep
 !evals/reports/canonical_baseline_report.json
 !evals/reports/canonical_norag_report.json
+!evals/reports/bakeoff_latest.json
+!evals/reports/cuad_benchmark_latest.json
 
 # ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store

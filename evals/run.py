@@ -22,6 +22,11 @@ from evals.calibrate_bartleby import (
     print_calibration_summary,
     save_calibration_report,
 )
+from evals.cuad_benchmark import (
+    CUADBenchmarkRunner,
+    print_cuad_summary,
+    save_cuad_report,
+)
 from evals.extraction_eval import ExtractionBenchmarkRunner, print_extraction_summary
 from evals.report_writer import print_summary_table, save_report
 from evals.runner import EvaluationRunner
@@ -95,6 +100,11 @@ def main() -> int:
         help="Automatically apply optimal calibrated thresholds to config/thresholds.yaml",
     )
     parser.add_argument(
+        "--eval-cuad",
+        action="store_true",
+        help="Run real-world CUAD commercial contract retrieval and Bartleby abstention benchmark",
+    )
+    parser.add_argument(
         "--sample-size",
         type=int,
         default=None,
@@ -103,24 +113,31 @@ def main() -> int:
 
     args = parser.parse_args()
 
-    print(f"Loading evaluation dataset from {args.dataset_dir}...")
-    dataset = load_dataset(args.dataset_dir)
-    if not dataset:
-        print("Error: No valid packages could be loaded for evaluation.", file=sys.stderr)
-        return 1
-
-    if args.sample_size and args.sample_size < len(dataset):
-        dataset = dataset[: args.sample_size]
-
-    has_subcommand = args.eval_extraction or args.bakeoff or args.calibrate_bartleby
+    has_subcommand = (
+        args.eval_extraction or args.bakeoff or args.calibrate_bartleby or args.eval_cuad
+    )
 
     if not has_subcommand or args.ablations:
+        print(f"Loading evaluation dataset from {args.dataset_dir}...")
+        dataset = load_dataset(args.dataset_dir)
+        if not dataset:
+            print("Error: No valid packages could be loaded for evaluation.", file=sys.stderr)
+            return 1
+        if args.sample_size and args.sample_size < len(dataset):
+            dataset = dataset[: args.sample_size]
+
         print(f"Loaded {len(dataset)} package(s). Running baseline evaluation...")
         runner = EvaluationRunner(mode="baseline")
         baseline_report = runner.run_eval(dataset)
         report_file = save_report(baseline_report, output_dir=args.output)
         print_summary_table(baseline_report)
         print(f"Baseline report saved to: {report_file}")
+    else:
+        # Load dataset if synthetic subcommands need it
+        if args.eval_extraction or args.bakeoff or args.calibrate_bartleby:
+            dataset = load_dataset(args.dataset_dir)
+            if args.sample_size and args.sample_size < len(dataset):
+                dataset = dataset[: args.sample_size]
 
     if args.ablations:
         print("\nRunning Ablation: No-RAG (Disabling Contract Retrieval & Clause Application)...")
@@ -181,6 +198,13 @@ def main() -> int:
             applied = apply_calibrated_thresholds(cal_report)
             if applied:
                 print("Applied optimal calibrated thresholds to config/thresholds.yaml.")
+
+    if args.eval_cuad:
+        cuad_runner = CUADBenchmarkRunner(sample_size=args.sample_size or 25)
+        cuad_report, ret_cases, abs_cases = cuad_runner.run_benchmark()
+        print_cuad_summary(cuad_report)
+        cuad_file = save_cuad_report(cuad_report, ret_cases, abs_cases, output_dir=args.output)
+        print(f"CUAD benchmark report saved to: {cuad_file}")
 
     return 0
 

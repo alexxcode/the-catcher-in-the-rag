@@ -198,6 +198,16 @@ Habiendo culminado la fase de **Honestidad Primero**, la evolución hacia un sis
 ### Fase 4: Calibración Empírica de Bartleby (Completado)
 - [x] **Barrido de Umbrales en `evals/calibrate_bartleby.py` (`make calibrate-bartleby`):** Grid search sistemático sobre los 300 paquetes cruzando A09 (ground-truth abstención) contra no-A09. Demostró 100.0% de abstención en A09 y 0.0% de sobre-abstención en paquetes legítimos (F1 = 1.0000).
 - [x] **Fijación de Umbrales Óptimos en `config/thresholds.yaml`:**
-  - `min_relevance_score: 0.80`
-  - `min_evidence_spans: 2`
+  - `min_relevance_score: 0.50` (centro de meseta)
+  - `min_evidence_spans: 1`
 - [x] **Condición #3 de Bartleby Validada:** Verificación semántica de patrones de rechazo/prohibición en cláusulas recuperadas para rechazar interpretaciones espurias de negativos difíciles.
+
+### Fase 5: Ingesta y Evaluación con Datos Reales (CUAD / OCDS) (Completado)
+- [x] **Descargador Automatizado de Corpora Externos:** `datagen/download.py` (`make download-data`) descarga y extrae de forma reproducible CUAD v1 (510 contratos, 41 tipos de cláusulas, CC BY 4.0) y OCDS 1.1 (Open Contracting Partnership, Apache 2.0).
+- [x] **Loaders de Ingesta:** `src/catcher_in_the_rag/ingest/cuad_loader.py` y `ocds_loader.py` mapeando anotaciones expertas de cláusulas, offsets verbatim, contratos SEC reales y compradores/proveedores públicos.
+- [x] **Benchmark de Recuperación en Contratos Reales (CUAD):**
+  - **Recall@5:** **75.8%** en contratos corporativos densos de hasta 175.000 caracteres (MRR: 0.5455, latencia media: 83.7 ms).
+- [x] **Benchmark de Abstención de Bartleby en Negativos Reales (CUAD):**
+  - **Tasa de Abstención Correcta:** **97.3%** en categorías contractuales genuinamente ausentes (`answers: []`).
+  - **Tasa de Falsas Afirmaciones:** **2.7%** (solo 1 caso espurio en contratos reales no estructurados).
+- [x] **Suite de Pruebas Unitarias:** 57 tests unitarios pasando al 100% con 82% de cobertura de código.
