@@ -391,8 +391,37 @@ with st.sidebar:
     )
 
     st.divider()
-    st.markdown("#### System Status")
-    st.markdown("🟢 **Mode:** Offline / Deterministic Stub")
+    st.markdown("#### Access & Budget Shield")
+    demo_pin_env = os.getenv("DEMO_ACCESS_PIN", "")
+    if "is_authenticated" not in st.session_state:
+        st.session_state["is_authenticated"] = not bool(demo_pin_env)
+
+    if demo_pin_env:
+        if not st.session_state["is_authenticated"]:
+            st.markdown("🔒 **Public Demo Mode** (Zero-Cost / Cached)")
+            st.caption(
+                "Live Vertex AI calls are locked to protect GCP budget against bot scraping."
+            )
+            pin_input = st.text_input(
+                "Enter Auditor Access PIN", type="password", key="demo_pin_box"
+            )
+            if st.button("Unlock Live Vertex AI", use_container_width=True):
+                if pin_input == demo_pin_env:
+                    st.session_state["is_authenticated"] = True
+                    st.success("Authenticated.")
+                    st.rerun()
+                else:
+                    st.error("Invalid Access PIN.")
+        else:
+            st.markdown("🟢 **Mode:** Live Vertex AI / Full Access")
+            if st.button("Lock Public Demo Mode", use_container_width=True):
+                st.session_state["is_authenticated"] = False
+                st.rerun()
+    else:
+        st.markdown("🟢 **Mode:** Offline / Deterministic Stub")
+
+    st.divider()
+    st.markdown("#### System Safeguards")
     st.markdown("🔒 **Abstention Guard:** Bartleby Active")
     st.markdown("📑 **Citations:** Strict Verbatim Matching")
     st.markdown("🤖 **Decision Logic:** Deterministic Policy Engine")

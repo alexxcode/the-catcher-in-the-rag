@@ -307,9 +307,13 @@ the-catcher-in-the-rag/
 ├── Makefile                   # Automatización: test, lint, format, eval, run-ui
 ├── pyproject.toml             # Metadatos del paquete y dependencias fijadas
 ├── config/
-│   ├── models.yaml            # Configuración de modelos GA activos (Gemini 2.5)
+│   ├── models.yaml            # Configuración de modelos GA activos (Gemini 3.5 Flash)
 │   ├── thresholds.yaml        # Umbrales empíricos (Bartleby: 0.50 / 1 span)
 │   └── policy_rules.yaml      # Reglas deterministas de aprobación financiera
+├── infra/                     # Infraestructura como Código (IaC) y contenedor
+│   ├── Dockerfile             # Imagen hardened (usuario appuser sin root, curl healthcheck)
+│   ├── entrypoint.sh          # Entrypoint dual (API/UI) con inicialización reproducible
+│   └── terraform/             # Despliegue en Cloud Run v2, IAM de mínimo privilegio y alerta presupuestaria
 ├── src/catcher_in_the_rag/
 │   ├── graph.py               # Máquina de estados LangGraph con instrumentación OTel
 │   ├── schemas/               # Modelos Pydantic v2 (Contract, PO, Invoice, Finding)
@@ -327,7 +331,7 @@ the-catcher-in-the-rag/
 ├── evals/                     # Harness de evaluación, runners y calibradores
 │   └── reports/               # Reportes canónicos JSON versionados en Git
 ├── ui/                        # Interfaz interactiva de usuario en Streamlit
-└── tests/                     # Suite de 61 tests unitarios e integrales (83% cobertura)
+└── tests/                     # Suite de 64 tests unitarios e integrales (82% cobertura)
 ```
 
 ---

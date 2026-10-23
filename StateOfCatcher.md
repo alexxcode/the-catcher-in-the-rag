@@ -1,6 +1,6 @@
 # State of The Catcher in the RAG
-**Document Version:** 1.5.0  
-**System Status:** Phase 4 Remediada y Calibrada con Rigor Empírico · 54 Unit Tests Passing · Pinned Active GA Models · End-to-End Raw Text Pipeline  
+**Document Version:** 1.6.0  
+**System Status:** Production Ready & Hardened · 64 Unit Tests Passing · Pinned Active GA Models (Gemini 3.5 Flash) · Hardened Cloud Run IaC & Container · Zero-Cost Public Demo Shield  
 **Date:** Octubre 2026  
 **Repository:** `alexxcode/the-catcher-in-the-rag`  
 

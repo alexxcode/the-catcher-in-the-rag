@@ -13,15 +13,13 @@ provider "google-beta" {
 resource "google_project_service" "apis" {
   for_each = toset([
     "run.googleapis.com",
-    "sqladmin.googleapis.com",
-    "sql-component.googleapis.com",
     "secretmanager.googleapis.com",
     "storage.googleapis.com",
     "artifactregistry.googleapis.com",
     "aiplatform.googleapis.com",
     "iam.googleapis.com",
     "cloudresourcemanager.googleapis.com",
-    "iamcredentials.googleapis.com",
+    "billingbudgets.googleapis.com",
   ])
 
   service                    = each.value
@@ -73,40 +71,40 @@ resource "google_artifact_registry_repository" "images" {
   depends_on = [google_project_service.apis]
 }
 
-# ── Cloud SQL (PostgreSQL + pgvector) ─────────────────────────────────────────
-resource "google_sql_database_instance" "main" {
-  name             = "catcher-pg-${var.environment}"
-  database_version = "POSTGRES_16"
-  region           = var.region
+# ── Least-Privilege Service Account for Cloud Run ─────────────────────────────
+resource "google_service_account" "cloud_run_sa" {
+  account_id   = "catcher-run-sa"
+  display_name = "Cloud Run Service Account for The Catcher in the RAG"
+  description  = "Least-privilege identity executing Catcher API and UI workloads."
 
-  settings {
-    tier              = var.db_instance_tier
-    availability_type = var.environment == "prod" ? "REGIONAL" : "ZONAL"
-
-    database_flags {
-      name  = "cloudsql.enable_pgvector"
-      value = "on"
-    }
-
-    # Dev: public IP with no authorized networks (access via Cloud SQL Auth Proxy only).
-    # Prod: TODO replace with VPC private IP.
-    ip_configuration {
-      ipv4_enabled = true
-    }
-
-    backup_configuration {
-      enabled    = var.environment == "prod"
-      start_time = "02:00"
-    }
-  }
-
-  deletion_protection = var.environment == "prod"
-  depends_on          = [google_project_service.apis]
+  depends_on = [google_project_service.apis]
 }
 
-resource "google_sql_database" "catcher" {
-  name     = "catcher"
-  instance = google_sql_database_instance.main.name
+# Grant Vertex AI user role (ADC authentication for Gemini & text-embedding-005)
+resource "google_project_iam_member" "vertex_ai_user" {
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
+# Grant Secret Manager accessor role
+resource "google_project_iam_member" "secret_accessor" {
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
+# Grant Storage viewer role for documents and reports
+resource "google_storage_bucket_iam_member" "documents_viewer" {
+  bucket = google_storage_bucket.documents.name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
+resource "google_storage_bucket_iam_member" "reports_admin" {
+  bucket = google_storage_bucket.reports.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
 
 # ── Secret Manager ────────────────────────────────────────────────────────────
@@ -130,11 +128,229 @@ resource "google_secret_manager_secret" "langfuse_secret_key" {
   depends_on = [google_project_service.apis]
 }
 
-resource "google_secret_manager_secret" "db_password" {
-  secret_id = "db-password"
+resource "google_secret_manager_secret" "demo_access_pin" {
+  secret_id = "demo-access-pin"
 
   replication {
     auto {}
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
+# ── Cloud Run Services (API & UI) ─────────────────────────────────────────────
+locals {
+  default_image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.images.repository_id}/catcher:latest"
+  active_image  = var.container_image != "" ? var.container_image : local.default_image
+}
+
+# 1. Audit API Service
+resource "google_cloud_run_v2_service" "api" {
+  name     = "catcher-api-${var.environment}"
+  location = var.region
+  ingress  = "INGRESS_TRAFFIC_ALL"
+
+  template {
+    service_account = google_service_account.cloud_run_sa.email
+
+    scaling {
+      min_instance_count = 0
+      max_instance_count = var.max_instances
+    }
+
+    containers {
+      image = local.active_image
+
+      ports {
+        container_port = 8000
+      }
+
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "1Gi"
+        }
+        cpu_idle = true
+      }
+
+      env {
+        name  = "SERVICE_MODE"
+        value = "api"
+      }
+      env {
+        name  = "GOOGLE_CLOUD_PROJECT"
+        value = var.project_id
+      }
+      env {
+        name  = "GOOGLE_CLOUD_REGION"
+        value = var.region
+      }
+      env {
+        name  = "LLM_PROVIDER"
+        value = "vertex_ai"
+      }
+      env {
+        name  = "EMBEDDING_PROVIDER"
+        value = "vertex_ai"
+      }
+
+      startup_probe {
+        http_get {
+          path = "/healthz"
+          port = 8000
+        }
+        initial_delay_seconds = 10
+        period_seconds        = 10
+        failure_threshold     = 3
+        timeout_seconds       = 5
+      }
+
+      liveness_probe {
+        http_get {
+          path = "/healthz"
+          port = 8000
+        }
+        period_seconds    = 30
+        timeout_seconds   = 5
+        failure_threshold = 3
+      }
+    }
+  }
+
+  labels = {
+    environment = var.environment
+    managed-by  = "terraform"
+  }
+
+  depends_on = [
+    google_project_service.apis,
+    google_project_iam_member.vertex_ai_user,
+    google_project_iam_member.secret_accessor,
+  ]
+}
+
+# 2. Interactive Streamlit UI Service
+resource "google_cloud_run_v2_service" "ui" {
+  name     = "catcher-ui-${var.environment}"
+  location = var.region
+  ingress  = "INGRESS_TRAFFIC_ALL"
+
+  template {
+    service_account = google_service_account.cloud_run_sa.email
+
+    scaling {
+      min_instance_count = 0
+      max_instance_count = var.max_instances
+    }
+
+    containers {
+      image = local.active_image
+
+      ports {
+        container_port = 8501
+      }
+
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "1Gi"
+        }
+        cpu_idle = true
+      }
+
+      env {
+        name  = "SERVICE_MODE"
+        value = "ui"
+      }
+      env {
+        name  = "GOOGLE_CLOUD_PROJECT"
+        value = var.project_id
+      }
+      env {
+        name  = "GOOGLE_CLOUD_REGION"
+        value = var.region
+      }
+      env {
+        name  = "API_URL"
+        value = google_cloud_run_v2_service.api.uri
+      }
+
+      startup_probe {
+        http_get {
+          path = "/_stcore/health"
+          port = 8501
+        }
+        initial_delay_seconds = 10
+        period_seconds        = 10
+        failure_threshold     = 3
+        timeout_seconds       = 5
+      }
+
+      liveness_probe {
+        http_get {
+          path = "/_stcore/health"
+          port = 8501
+        }
+        period_seconds    = 30
+        timeout_seconds   = 5
+        failure_threshold = 3
+      }
+    }
+  }
+
+  labels = {
+    environment = var.environment
+    managed-by  = "terraform"
+  }
+
+  depends_on = [
+    google_project_service.apis,
+    google_project_iam_member.vertex_ai_user,
+    google_cloud_run_v2_service.api,
+  ]
+}
+
+# Public invoker access for demo showcase
+resource "google_cloud_run_v2_service_iam_member" "api_public" {
+  location = google_cloud_run_v2_service.api.location
+  name     = google_cloud_run_v2_service.api.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+resource "google_cloud_run_v2_service_iam_member" "ui_public" {
+  location = google_cloud_run_v2_service.ui.location
+  name     = google_cloud_run_v2_service.ui.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+# ── Budget Alert (Cost Safeguard) ─────────────────────────────────────────────
+resource "google_billing_budget" "catcher_budget" {
+  count           = var.billing_account_id != "" ? 1 : 0
+  billing_account = var.billing_account_id
+  display_name    = "Catcher in the RAG — Monthly Cap"
+
+  budget_filter {
+    projects = ["projects/${var.project_id}"]
+  }
+
+  amount {
+    specified_amount {
+      currency_code = "USD"
+      units         = tostring(var.monthly_budget_amount)
+    }
+  }
+
+  threshold_rules {
+    threshold_percent = 0.50
+  }
+  threshold_rules {
+    threshold_percent = 0.80
+  }
+  threshold_rules {
+    threshold_percent = 1.00
+    basis             = "CURRENT_SPEND"
   }
 
   depends_on = [google_project_service.apis]

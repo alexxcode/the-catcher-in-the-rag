@@ -16,8 +16,26 @@ variable "environment" {
   default     = "dev"
 }
 
-variable "db_instance_tier" {
-  description = "Cloud SQL instance tier."
+variable "max_instances" {
+  description = "Maximum Cloud Run instances to prevent runaway cost."
+  type        = number
+  default     = 3
+}
+
+variable "container_image" {
+  description = "Container image URL in Artifact Registry."
   type        = string
-  default     = "db-f1-micro" # cheapest; upgrade for prod
+  default     = ""
+}
+
+variable "billing_account_id" {
+  description = "GCP Billing Account ID for budget alerts (optional)."
+  type        = string
+  default     = ""
+}
+
+variable "monthly_budget_amount" {
+  description = "Monthly budget amount in USD for billing alerts."
+  type        = number
+  default     = 25
 }

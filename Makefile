@@ -65,6 +65,11 @@ run-api: ## Start FastAPI dev server (port 8000)
 run-ui: ## Start Streamlit UI (port 8501)
 	uv run streamlit run ui/app.py --server.port 8501
 
+# ── Docker ────────────────────────────────────────────────────────────────────
+docker-build: ## Build hardened production Docker image
+	docker build -t catcher:latest -f infra/Dockerfile .
+
+
 # ── Terraform ─────────────────────────────────────────────────────────────────
 tf-init: ## Initialize Terraform (requires GCS state bucket to exist)
 	terraform -chdir=infra/terraform init
