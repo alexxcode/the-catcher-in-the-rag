@@ -1,17 +1,17 @@
 {
   "report": {
-    "timestamp": "2026-10-23T02:02:17.912016+00:00",
-    "total_contracts_evaluated": 25,
-    "retrieval_cases_count": 76,
-    "recall_at_1": 0.3553,
-    "recall_at_3": 0.7237,
-    "recall_at_5": 0.8158,
-    "mean_reciprocal_rank": 0.5336,
-    "mean_retrieval_latency_ms": 18.09,
-    "absence_cases_count": 99,
-    "bartleby_correct_abstention_rate": 0.5152,
-    "bartleby_false_assertion_rate": 0.4848,
-    "mean_bartleby_latency_ms": 9.76
+    "timestamp": "2026-10-23T01:56:55.637949+00:00",
+    "total_contracts_evaluated": 10,
+    "retrieval_cases_count": 33,
+    "recall_at_1": 0.3939,
+    "recall_at_3": 0.697,
+    "recall_at_5": 0.7576,
+    "mean_reciprocal_rank": 0.5455,
+    "mean_retrieval_latency_ms": 83.67,
+    "absence_cases_count": 37,
+    "bartleby_correct_abstention_rate": 0.973,
+    "bartleby_false_assertion_rate": 0.027,
+    "mean_bartleby_latency_ms": 35.02
   },
   "sample_retrieval_cases": [
     {
@@ -22,15 +22,15 @@
       "retrieved_top_5": [
         "6.9      Governing Law.  This Agreement is to be construed a...",
         "C. The Distributor's  Objectives.  The Distributor  desires ...",
-        "6.3      Invalid  Provisions.  If any terms,  provision,  co...",
-        "1.2      License.  The Company  hereby grants the  Distribut...",
-        "injunction or specific  performance  both parties  acknowled..."
+        "7.       NEW PRODUCTS...",
+        "injunction or specific  performance  both parties  acknowled...",
+        "1.2      License.  The Company  hereby grants the  Distribut..."
       ],
       "hit_at_1": true,
       "hit_at_3": true,
       "hit_at_5": true,
       "reciprocal_rank": 1.0,
-      "latency_ms": 13.424126998870634
+      "latency_ms": 40.89650002424605
     },
     {
       "contract_id": "CUAD-0001",
@@ -38,17 +38,17 @@
       "query": "agreement expiration date term duration renewal",
       "num_ground_truth_spans": 1,
       "retrieved_top_5": [
+        "4.1      Duration.   Unless  earlier   terminated   otherwis...",
         "1.3      Term.  The term of this  Agreement  shall be ten (1...",
         "4.4      Repurchase of Products.  Upon the expiration or ter...",
-        "4.       DURATION AND TERMINATION...",
-        "4.1      Duration.   Unless  earlier   terminated   otherwis...",
-        "In witness whereof the parties have executed this Agreement ..."
+        "(H)    2,856  unit each in the lat  three  years of         ...",
+        "6.6      Sample Products.  Company will,  during the Term of..."
       ],
-      "hit_at_1": true,
+      "hit_at_1": false,
       "hit_at_3": true,
       "hit_at_5": true,
-      "reciprocal_rank": 1.0,
-      "latency_ms": 12.5937580014579
+      "reciprocal_rank": 0.5,
+      "latency_ms": 41.96329999831505
     },
     {
       "contract_id": "CUAD-0001",
@@ -56,17 +56,17 @@
       "query": "warranties standard of performance defect remedy guarantee period",
       "num_ground_truth_spans": 8,
       "retrieved_top_5": [
-        "weather conditions,  governmental regulation, lack of Compan...",
-        "injunction or specific  performance  both parties  acknowled...",
         "3.4      Warranty Work. If, within the twenty-four  (24) mon...",
-        "5.2      Representations and Warranties of Distributor....",
-        "(B)      Defective  Products.  In the event of any  damages ..."
+        "injunction or specific  performance  both parties  acknowled...",
+        "6.1      Assignment.  No  assignment  of this  Agreement  or...",
+        "weather conditions,  governmental regulation, lack of Compan...",
+        "(A)      During the Term of this Agreement and for a period ..."
       ],
-      "hit_at_1": false,
+      "hit_at_1": true,
       "hit_at_3": true,
       "hit_at_5": true,
-      "reciprocal_rank": 0.3333333333333333,
-      "latency_ms": 12.66897300229175
+      "reciprocal_rank": 1.0,
+      "latency_ms": 40.24499998195097
     },
     {
       "contract_id": "CUAD-0002",
@@ -74,17 +74,17 @@
       "query": "governing law jurisdiction dispute resolution state courts",
       "num_ground_truth_spans": 1,
       "retrieved_top_5": [
-        "(b) any analogous event happens to the other party in any ju...",
         "11.10 Governing Law. This Agreement is governed by English l...",
-        "11.5 Compliance with Export Laws. Distributor shall comply w...",
         "6.2 The recipient of any Confidential Information shall not ...",
-        "5.5 Additional Termination Rights. Google may terminate this..."
+        "User to review such EULA via a hyperlink to such EULA: and (...",
+        "(f) interfere with the browser default search functionality ...",
+        "By Distributor...."
       ],
-      "hit_at_1": false,
+      "hit_at_1": true,
       "hit_at_3": true,
       "hit_at_5": true,
-      "reciprocal_rank": 0.5,
-      "latency_ms": 24.274112001876347
+      "reciprocal_rank": 1.0,
+      "latency_ms": 76.5833999903407
     },
     {
       "contract_id": "CUAD-0002",
@@ -93,16 +93,16 @@
       "num_ground_truth_spans": 1,
       "retrieved_top_5": [
         "(d) Records and Audit Rights. Distributor will keep and main...",
-        "7. PROPRIETARY RIGHTS...",
         "11.3 Assignment. [ * ] may [ * ]any of its rights or obligat...",
-        "7.1 Distributor acknowledges that Google and/or its licensor...",
-        "11.9 No Third-Party Beneficiaries. Except as expressly state..."
+        "6.2 The recipient of any Confidential Information shall not ...",
+        "(a) loss of anticipated savings;...",
+        "- 23 -..."
       ],
       "hit_at_1": true,
       "hit_at_3": true,
       "hit_at_5": true,
       "reciprocal_rank": 1.0,
-      "latency_ms": 27.472966998175252
+      "latency_ms": 77.02250001602806
     },
     {
       "contract_id": "CUAD-0002",
@@ -112,15 +112,15 @@
       "retrieved_top_5": [
         "3.4 Launch. Distributor shall begin distribution of Bundles ...",
         "5.1 Term. This Agreement shall commence on the Effective Dat...",
-        "11.7 Severability. The invalidity, illegality or unenforceab...",
-        "3.8 [ * ]. During the Term and for a period of [ * ] followi...",
-        "5.6 Effect of Termination. Upon expiration or termination of..."
+        "8. Information and Assistance. Subject to any confidentialit...",
+        "2.1 Products License Grant. Subject to the terms and conditi...",
+        "5.4 Change of Control. [ * ] may terminate this Agreement im..."
       ],
       "hit_at_1": false,
       "hit_at_3": true,
       "hit_at_5": true,
       "reciprocal_rank": 0.5,
-      "latency_ms": 24.31962199625559
+      "latency_ms": 78.96780001465231
     },
     {
       "contract_id": "CUAD-0002",
@@ -128,17 +128,17 @@
       "query": "limitation of liability aggregate damages maximum liability cap",
       "num_ground_truth_spans": 4,
       "retrieved_top_5": [
-        "9.1 Nothing in this Agreement shall exclude or limit either ...",
-        "9.2 Nothing in this Agreement shall exclude or limit either ...",
         "9. LIMITATION OF LIABILITY...",
-        "9.4 Subject to Clauses 9.1 and 9.2, each party's total liabi...",
-        "10.2 Google will not have any obligations or liability under..."
+        "9.1 Nothing in this Agreement shall exclude or limit either ...",
+        "- 32 -...",
+        "10.2 Extended Compliance Period. If, solely as a result of a...",
+        "(b) any corporate body of which that party directly or indir..."
       ],
       "hit_at_1": false,
       "hit_at_3": false,
-      "hit_at_5": true,
-      "reciprocal_rank": 0.25,
-      "latency_ms": 26.27457799826516
+      "hit_at_5": false,
+      "reciprocal_rank": 0.0,
+      "latency_ms": 79.35789998737164
     },
     {
       "contract_id": "CUAD-0002",
@@ -146,17 +146,17 @@
       "query": "warranties standard of performance defect remedy guarantee period",
       "num_ground_truth_spans": 1,
       "retrieved_top_5": [
-        "5.3 Termination for insolvency. A party may suspend performa...",
+        "10.6 The foregoing Clauses 10.1 to 10.5 states the parties' ...",
         "8.2 Google warrants that the Distribution Products will for ...",
+        "10.4 Distributor [ * ] and will indemnify Google against all...",
         "8.4 Google will not be liable for breach of any of the warra...",
-        "(b) is in material breach of this Agreement where the breach...",
-        "5.2 Termination for breach. A party may suspend performance ..."
+        "- 24 -..."
       ],
       "hit_at_1": false,
       "hit_at_3": true,
       "hit_at_5": true,
       "reciprocal_rank": 0.5,
-      "latency_ms": 23.464635996788274
+      "latency_ms": 80.21710001048632
     },
     {
       "contract_id": "CUAD-0003",
@@ -174,7 +174,7 @@
       "hit_at_3": false,
       "hit_at_5": false,
       "reciprocal_rank": 0.0,
-      "latency_ms": 2.1571029938058928
+      "latency_ms": 5.707300006179139
     },
     {
       "contract_id": "CUAD-0003",
@@ -192,7 +192,7 @@
       "hit_at_3": false,
       "hit_at_5": false,
       "reciprocal_rank": 0.0,
-      "latency_ms": 1.9702279969351366
+      "latency_ms": 5.86119998479262
     },
     {
       "contract_id": "CUAD-0003",
@@ -210,7 +210,7 @@
       "hit_at_3": true,
       "hit_at_5": true,
       "reciprocal_rank": 1.0,
-      "latency_ms": 1.960090005013626
+      "latency_ms": 6.070000003091991
     },
     {
       "contract_id": "CUAD-0004",
@@ -219,16 +219,16 @@
       "num_ground_truth_spans": 1,
       "retrieved_top_5": [
         "services, any information that is, in i-on's sole discretion...",
-        "5 fire, earthquake, labor dispute, sickness, accident, civil...",
-        "This Agreement was entered into in the State of Florida, and...",
         "The Customer expressly agrees to use all of i-on's services ...",
-        "The Customer is solely responsible for all customer support ..."
+        "This Agreement was entered into in the State of Florida, and...",
+        "I-on. (LOGO) www.i-on.com 561.394.9484 o 561.394-9773 fax 17...",
+        "Nothing contained herein shall be deemed or construed to cre..."
       ],
       "hit_at_1": false,
       "hit_at_3": true,
       "hit_at_5": true,
       "reciprocal_rank": 0.3333333333333333,
-      "latency_ms": 6.927854999958072
+      "latency_ms": 21.583299996564165
     },
     {
       "contract_id": "CUAD-0004",
@@ -237,16 +237,16 @@
       "num_ground_truth_spans": 1,
       "retrieved_top_5": [
         "Either party may terminate this Agreement without cause at a...",
-        "TERM AND TERMINATION...",
-        "4 Agreement, which notice must be given not less than fiftee...",
-        "5 fire, earthquake, labor dispute, sickness, accident, civil...",
-        "No waiver of any provision of this Agreement or any rights o..."
+        "such party's control....",
+        "10. use of the Microsoft SQL Server 6.5 or higher database s...",
+        "The Customer is solely responsible for all customer support ...",
+        "Nothing contained herein shall be deemed or construed to cre..."
       ],
       "hit_at_1": true,
       "hit_at_3": true,
       "hit_at_5": true,
       "reciprocal_rank": 1.0,
-      "latency_ms": 6.992369999352377
+      "latency_ms": 21.511900005862117
     },
     {
       "contract_id": "CUAD-0004",
@@ -254,17 +254,17 @@
       "query": "agreement expiration date term duration renewal",
       "num_ground_truth_spans": 1,
       "retrieved_top_5": [
-        "IN WITNESS WHEREOF, the parties have executed this Agreement...",
-        "4 Agreement, which notice must be given not less than fiftee...",
         "The term \"Hosted Site\" shall mean the Web site of the Custom...",
+        "4 Agreement, which notice must be given not less than fiftee...",
         "The term of this Agreement for the Hosted Site shall commenc...",
-        "The term \"Hosting Computer\" shall mean the computer system a..."
+        "As used in this Agreement, the term \"Web site\" shall mean a ...",
+        "The Customer acknowledges that the Internet is an unreliable..."
       ],
       "hit_at_1": false,
-      "hit_at_3": false,
+      "hit_at_3": true,
       "hit_at_5": true,
-      "reciprocal_rank": 0.25,
-      "latency_ms": 6.856106003397144
+      "reciprocal_rank": 0.3333333333333333,
+      "latency_ms": 21.284400019794703
     },
     {
       "contract_id": "CUAD-0004",
@@ -272,17 +272,17 @@
       "query": "limitation of liability aggregate damages maximum liability cap",
       "num_ground_truth_spans": 1,
       "retrieved_top_5": [
-        "LIMITATION OF LIABILITY...",
-        "i-on will not be liable under any circumstances for any lost...",
         "The Customer agrees to indemnify and hold harmless i-on, aga...",
-        "services, any information that is, in i-on's sole discretion...",
-        "The term \"Hosted Site\" shall mean the Web site of the Custom..."
+        "LIMITATION OF LIABILITY...",
+        "The term \"Hosted Site\" shall mean the Web site of the Custom...",
+        "The Customer expressly agrees to use all of i-on's services ...",
+        "The Customer is solely responsible for all customer support ..."
       ],
       "hit_at_1": false,
-      "hit_at_3": true,
-      "hit_at_5": true,
-      "reciprocal_rank": 0.5,
-      "latency_ms": 6.4959009978338145
+      "hit_at_3": false,
+      "hit_at_5": false,
+      "reciprocal_rank": 0.0,
+      "latency_ms": 21.223600022494793
     },
     {
       "contract_id": "CUAD-0006",
@@ -290,17 +290,17 @@
       "query": "governing law jurisdiction dispute resolution state courts",
       "num_ground_truth_spans": 1,
       "retrieved_top_5": [
-        "25. APPLICABLE LAW...",
         "In the event a dispute arises under this Agreement which can...",
-        "This Agreement shall be governed and construed according to ...",
         "A.committed or shall commit any public act that involves mor...",
-        "Any provision or part of this Agreement prohibited by applic..."
+        "Section headings contained herein are solely for the purpose...",
+        "This Agreement shall be governed and construed according to ...",
+        "9.     PRODUCT DESIGN   During the term of this Agreement, C..."
       ],
       "hit_at_1": false,
-      "hit_at_3": true,
+      "hit_at_3": false,
       "hit_at_5": true,
-      "reciprocal_rank": 0.3333333333333333,
-      "latency_ms": 13.534167999750935
+      "reciprocal_rank": 0.25,
+      "latency_ms": 43.580600002314895
     },
     {
       "contract_id": "CUAD-0006",
@@ -308,17 +308,17 @@
       "query": "agreement expiration date term duration renewal",
       "num_ground_truth_spans": 1,
       "retrieved_top_5": [
-        "APPROVED FOR CONSULTANT                       By: /s/ Tom Wa...",
-        "The Term of this Agreement shall be for a period of [* ****]...",
-        "1.   TERM OF CONTRACT...",
         "During the term of this Agreement, CONSULTANT shall use best...",
-        "For the entire term of this Agreement, from September 1, 200..."
+        "The Term of this Agreement shall be for a period of [* ****]...",
+        "A.During the term of this Agreement, CONSULTANT shall use be...",
+        "CONSULTANT hereby gives and grants to ADAMS GOLF the exclusi...",
+        "During the term of this Agreement, CONSULTANT shall exclusiv..."
       ],
       "hit_at_1": false,
       "hit_at_3": true,
       "hit_at_5": true,
       "reciprocal_rank": 0.5,
-      "latency_ms": 12.722776998998597
+      "latency_ms": 41.8698999856133
     },
     {
       "contract_id": "CUAD-0007",
@@ -328,15 +328,15 @@
       "retrieved_top_5": [
         "9. General. This Agreement (together with the Exhibits heret...",
         "13. Arbitration Agreement. Any controversy or claim arising ...",
-        "(a) Withholding. All forms of compensation referred to in th...",
         "3. Ownership. Consultant hereby irrevocably assigns to Compa...",
+        "(a) Withholding. All forms of compensation referred to in th...",
         "the Company and constitute the complete agreement between yo..."
       ],
       "hit_at_1": true,
       "hit_at_3": true,
       "hit_at_5": true,
       "reciprocal_rank": 1.0,
-      "latency_ms": 5.868626998562831
+      "latency_ms": 16.775199997937307
     },
     {
       "contract_id": "CUAD-0007",
@@ -344,17 +344,17 @@
       "query": "termination for convenience without cause advance written notice",
       "num_ground_truth_spans": 1,
       "retrieved_top_5": [
-        "Consultant agrees to sign, execute and acknowledge or cause ...",
-        "Either Consultant or Company may terminate this Agreement up...",
         "9. General. This Agreement (together with the Exhibits heret...",
-        "5. Term and Termination. This Agreement will commence on the...",
-        "Upon the termination of this Agreement, or upon Company's ea..."
+        "Either Consultant or Company may terminate this Agreement up...",
+        "2. Compensation. The Company will compensate Consultant at t...",
+        "Consultant agrees to sign, execute and acknowledge or cause ...",
+        "5. Term and Termination. This Agreement will commence on the..."
       ],
       "hit_at_1": false,
       "hit_at_3": true,
       "hit_at_5": true,
       "reciprocal_rank": 0.5,
-      "latency_ms": 8.060457999818027
+      "latency_ms": 16.516400006366894
     },
     {
       "contract_id": "CUAD-0007",
@@ -362,17 +362,17 @@
       "query": "agreement expiration date term duration renewal",
       "num_ground_truth_spans": 1,
       "retrieved_top_5": [
-        "IN WITNESS WHEREOF, the parties hereto have executed this Ag...",
-        "5. Term and Termination. This Agreement will commence on the...",
+        "Consultant recognizes that Company has received and in the f...",
+        "Consultant shall not, during or subsequent to the term of th...",
         "9. General. This Agreement (together with the Exhibits heret...",
-        "Consultant agrees that Consultant will not, during the term ...",
-        "Consultant shall not, during or subsequent to the term of th..."
+        "5. Term and Termination. This Agreement will commence on the...",
+        "Consultant agrees that Consultant will not, during the term ..."
       ],
       "hit_at_1": false,
-      "hit_at_3": true,
+      "hit_at_3": false,
       "hit_at_5": true,
-      "reciprocal_rank": 0.5,
-      "latency_ms": 5.8791529954760335
+      "reciprocal_rank": 0.25,
+      "latency_ms": 16.350599995348603
     }
   ],
   "sample_absence_cases": [
@@ -380,73 +380,73 @@
       "contract_id": "CUAD-0001",
       "absent_category": "Audit Rights",
       "query": "audit rights inspection books records accounts examination",
-      "abstained": false,
-      "top_score": 0.5566,
-      "latency_ms": 11.987476995273028
+      "abstained": true,
+      "top_score": 0.4185,
+      "latency_ms": 40.223200019681826
     },
     {
       "contract_id": "CUAD-0001",
       "absent_category": "Termination For Convenience",
       "query": "termination for convenience without cause advance written notice",
-      "abstained": false,
-      "top_score": 0.6129,
-      "latency_ms": 12.065877002896741
+      "abstained": true,
+      "top_score": 0.3915,
+      "latency_ms": 40.892999997595325
     },
     {
       "contract_id": "CUAD-0001",
       "absent_category": "Liquidated Damages",
       "query": "liquidated damages delay penalty compensation per day",
-      "abstained": false,
-      "top_score": 0.6624,
-      "latency_ms": 11.905451996426564
+      "abstained": true,
+      "top_score": 0.4035,
+      "latency_ms": 40.325499983737245
     },
     {
       "contract_id": "CUAD-0001",
       "absent_category": "Cap On Liability",
       "query": "limitation of liability aggregate damages maximum liability cap",
-      "abstained": false,
-      "top_score": 0.643,
-      "latency_ms": 11.869964000652544
+      "abstained": true,
+      "top_score": 0.3549,
+      "latency_ms": 41.067999991355464
     },
     {
       "contract_id": "CUAD-0002",
       "absent_category": "Termination For Convenience",
       "query": "termination for convenience without cause advance written notice",
-      "abstained": false,
-      "top_score": 0.7301,
-      "latency_ms": 22.973725004703738
+      "abstained": true,
+      "top_score": 0.4416,
+      "latency_ms": 77.19849998829886
     },
     {
       "contract_id": "CUAD-0002",
       "absent_category": "Liquidated Damages",
       "query": "liquidated damages delay penalty compensation per day",
-      "abstained": false,
-      "top_score": 0.7535,
-      "latency_ms": 22.82446900062496
+      "abstained": true,
+      "top_score": 0.3596,
+      "latency_ms": 80.28700001887046
     },
     {
       "contract_id": "CUAD-0003",
       "absent_category": "Audit Rights",
       "query": "audit rights inspection books records accounts examination",
       "abstained": true,
-      "top_score": 0.422,
-      "latency_ms": 2.0844520040554926
+      "top_score": 0.3636,
+      "latency_ms": 6.24200000311248
     },
     {
       "contract_id": "CUAD-0003",
       "absent_category": "Termination For Convenience",
       "query": "termination for convenience without cause advance written notice",
       "abstained": true,
-      "top_score": 0.4493,
-      "latency_ms": 1.9269990007160231
+      "top_score": 0.2574,
+      "latency_ms": 5.881699995370582
     },
     {
       "contract_id": "CUAD-0003",
       "absent_category": "Liquidated Damages",
       "query": "liquidated damages delay penalty compensation per day",
-      "abstained": false,
-      "top_score": 0.6396,
-      "latency_ms": 1.939779001986608
+      "abstained": true,
+      "top_score": 0.3793,
+      "latency_ms": 5.993500002659857
     },
     {
       "contract_id": "CUAD-0003",
@@ -454,31 +454,31 @@
       "query": "limitation of liability aggregate damages maximum liability cap",
       "abstained": true,
       "top_score": 0.3053,
-      "latency_ms": 1.9675869989441708
+      "latency_ms": 6.020299973897636
     },
     {
       "contract_id": "CUAD-0004",
       "absent_category": "Audit Rights",
       "query": "audit rights inspection books records accounts examination",
-      "abstained": false,
-      "top_score": 0.5662,
-      "latency_ms": 6.3393710006494075
+      "abstained": true,
+      "top_score": 0.3538,
+      "latency_ms": 21.709299995563924
     },
     {
       "contract_id": "CUAD-0004",
       "absent_category": "Liquidated Damages",
       "query": "liquidated damages delay penalty compensation per day",
-      "abstained": false,
-      "top_score": 0.6172,
-      "latency_ms": 6.429032997402828
+      "abstained": true,
+      "top_score": 0.4127,
+      "latency_ms": 22.611599997617304
     },
     {
       "contract_id": "CUAD-0004",
       "absent_category": "Warranty Duration",
       "query": "warranties standard of performance defect remedy guarantee period",
-      "abstained": false,
-      "top_score": 0.654,
-      "latency_ms": 6.557957000040915
+      "abstained": true,
+      "top_score": 0.3492,
+      "latency_ms": 22.175799997057766
     },
     {
       "contract_id": "CUAD-0005",
@@ -486,7 +486,7 @@
       "query": "governing law jurisdiction dispute resolution state courts",
       "abstained": true,
       "top_score": 0.3318,
-      "latency_ms": 1.1903519989573397
+      "latency_ms": 3.171499993186444
     },
     {
       "contract_id": "CUAD-0005",
@@ -494,7 +494,7 @@
       "query": "audit rights inspection books records accounts examination",
       "abstained": true,
       "top_score": 0.2722,
-      "latency_ms": 1.1241289976169355
+      "latency_ms": 3.175499994540587
     },
     {
       "contract_id": "CUAD-0005",
@@ -502,15 +502,15 @@
       "query": "termination for convenience without cause advance written notice",
       "abstained": true,
       "top_score": 0.1975,
-      "latency_ms": 1.1332610010867938
+      "latency_ms": 3.1644999980926514
     },
     {
       "contract_id": "CUAD-0005",
       "absent_category": "Expiration Date",
       "query": "agreement expiration date term duration renewal",
       "abstained": true,
-      "top_score": 0.437,
-      "latency_ms": 1.132953999331221
+      "top_score": 0.2809,
+      "latency_ms": 3.0562999891117215
     },
     {
       "contract_id": "CUAD-0005",
@@ -518,7 +518,7 @@
       "query": "liquidated damages delay penalty compensation per day",
       "abstained": true,
       "top_score": 0.3519,
-      "latency_ms": 1.1428699945099652
+      "latency_ms": 3.0497000261675566
     },
     {
       "contract_id": "CUAD-0005",
@@ -526,7 +526,7 @@
       "query": "limitation of liability aggregate damages maximum liability cap",
       "abstained": true,
       "top_score": 0.331,
-      "latency_ms": 1.1389139981474727
+      "latency_ms": 3.2783999922685325
     },
     {
       "contract_id": "CUAD-0005",
@@ -534,7 +534,7 @@
       "query": "warranties standard of performance defect remedy guarantee period",
       "abstained": true,
       "top_score": 0.3494,
-      "latency_ms": 1.1672520049614832
+      "latency_ms": 3.045999997993931
     }
   ]
 }

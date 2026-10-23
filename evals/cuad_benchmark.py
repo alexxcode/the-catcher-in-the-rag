@@ -167,7 +167,7 @@ class CUADBenchmarkRunner:
             "\n[Phase 2] Evaluating Bartleby Abstention on Genuine Real-World Clause Absences...",
             flush=True,
         )
-        for idx, cuad in enumerate(contracts):
+        for cuad in contracts:
             catcher_contract = self.loader.to_catcher_contract(cuad)
             retriever = ContractRetriever(catcher_contract)
 

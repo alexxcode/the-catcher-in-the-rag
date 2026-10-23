@@ -8,6 +8,7 @@ Parses real-world commercial contracts from The Atticus Project (CC BY 4.0):
 
 from __future__ import annotations
 
+import contextlib
 import json
 import re
 from dataclasses import dataclass, field
@@ -155,10 +156,6 @@ class CUADLoader:
         # 1. Extract vendor / buyer hints from annotations or fallback
         parties = cuad.get_spans("Parties")
         vendor_name = parties[0].text if parties else "Commercial Vendor"
-        if len(parties) > 1:
-            buyer_name = parties[1].text
-        else:
-            buyer_name = "Enterprise Buyer"
 
         # 2. Extract dates if annotated
         eff_spans = cuad.get_spans("Effective Date") or cuad.get_spans("Agreement Date")
@@ -167,20 +164,16 @@ class CUADLoader:
             # Try parsing a year
             match = re.search(r"\b(19\d\d|20\d\d)\b", eff_spans[0].text)
             if match:
-                try:
+                with contextlib.suppress(Exception):
                     effective_date = date(int(match.group(1)), 1, 1)
-                except Exception:
-                    pass
 
         exp_spans = cuad.get_spans("Expiration Date")
         expiration_date = date(2026, 12, 31)
         if exp_spans:
             match = re.search(r"\b(19\d\d|20\d\d)\b", exp_spans[0].text)
             if match:
-                try:
+                with contextlib.suppress(Exception):
                     expiration_date = date(int(match.group(1)), 12, 31)
-                except Exception:
-                    pass
 
         auto_renew = bool(cuad.get_spans("Renewal Term"))
 
