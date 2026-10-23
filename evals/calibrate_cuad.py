@@ -60,7 +60,7 @@ def run_cuad_calibration(
     output_path: str = "evals/reports/calibration_cuad_report.json",
 ) -> CUADCalibrationReport:
     loader = CUADLoader()
-    contracts = loader.load_all()[:sample_size]
+    contracts = loader.load_contracts(limit=sample_size)
     n_train = max(1, int(len(contracts) * train_ratio))
     train_contracts = contracts[:n_train]
     val_contracts = contracts[n_train:]
