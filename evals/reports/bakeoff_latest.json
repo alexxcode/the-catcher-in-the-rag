@@ -1,11 +1,13 @@
 {
-  "timestamp": "2026-10-23T04:08:09.481511+00:00",
-  "git_commit_sha": "2ce1fca9efa7bbe8354b60702727c3a780bd904a",
-  "command": "/home/alexisrrm12/the-catcher-in-the-rag/evals/run.py --bakeoff",
+  "timestamp": "2026-10-23T05:26:09.143676+00:00",
+  "git_commit_sha": "32194767da7e7f95781c7aaaf437cf47076cda2a",
+  "git_dirty": false,
+  "command": "python -m evals.run --bakeoff --sample-size 5",
   "provenance": {
-    "git_commit_sha": "2ce1fca9efa7bbe8354b60702727c3a780bd904a",
+    "git_commit_sha": "32194767da7e7f95781c7aaaf437cf47076cda2a",
     "git_branch": "main",
-    "command": "/home/alexisrrm12/the-catcher-in-the-rag/evals/run.py --bakeoff",
+    "git_dirty": false,
+    "command": "python -m evals.run --bakeoff --sample-size 5",
     "python_version": "3.13.16",
     "models_evaluated": [
       "deterministic-rules",
@@ -13,14 +15,14 @@
       "gemini-3.8-flash"
     ]
   },
-  "sample_size": 50,
+  "sample_size": 5,
   "candidates": [
     {
       "candidate_name": "Rule-Based Baseline (Regex/Parsing)",
       "model_id": "deterministic-rules",
       "provider_type": "rule_based",
-      "sample_size": 50,
-      "mean_latency_ms": 0.58,
+      "sample_size": 5,
+      "mean_latency_ms": 0.75,
       "estimated_cost_per_1k_usd": 0.0,
       "error_count": 0,
       "error_rate": 0.0,
@@ -35,42 +37,42 @@
       "is_simulated": false
     },
     {
-      "candidate_name": "Gemini 3.5 Flash (GA Active) [Offline Stub Simulation]",
+      "candidate_name": "Gemini 3.5 Flash (GA Active)",
       "model_id": "gemini-3.5-flash",
-      "provider_type": "stub",
-      "sample_size": 50,
-      "mean_latency_ms": 0.19,
-      "estimated_cost_per_1k_usd": 0.0,
-      "error_count": 50,
-      "error_rate": 1.0,
+      "provider_type": "vertex_ai",
+      "sample_size": 5,
+      "mean_latency_ms": 7836.49,
+      "estimated_cost_per_1k_usd": 0.2,
+      "error_count": 0,
+      "error_rate": 0.0,
       "field_accuracies": {
-        "payment_terms_days": 0.0,
-        "expiration_date": 0.0,
-        "late_delivery_penalty_pct_per_day": 0.0,
-        "auto_renew": 0.0,
-        "rate_sheet": 0.0
+        "payment_terms_days": 1.0,
+        "expiration_date": 1.0,
+        "late_delivery_penalty_pct_per_day": 1.0,
+        "auto_renew": 1.0,
+        "rate_sheet": 1.0
       },
-      "overall_perfect_accuracy": 0.0,
-      "is_simulated": true
+      "overall_perfect_accuracy": 1.0,
+      "is_simulated": false
     },
     {
-      "candidate_name": "Gemini 3.8 Flash (GA Active) [Offline Stub Simulation]",
+      "candidate_name": "Gemini 3.8 Flash (GA Active)",
       "model_id": "gemini-3.8-flash",
-      "provider_type": "stub",
-      "sample_size": 50,
-      "mean_latency_ms": 0.07,
-      "estimated_cost_per_1k_usd": 0.0,
-      "error_count": 50,
-      "error_rate": 1.0,
+      "provider_type": "vertex_ai",
+      "sample_size": 5,
+      "mean_latency_ms": 22889.63,
+      "estimated_cost_per_1k_usd": 0.26,
+      "error_count": 0,
+      "error_rate": 0.0,
       "field_accuracies": {
-        "payment_terms_days": 0.0,
-        "expiration_date": 0.0,
-        "late_delivery_penalty_pct_per_day": 0.0,
-        "auto_renew": 0.0,
-        "rate_sheet": 0.0
+        "payment_terms_days": 1.0,
+        "expiration_date": 1.0,
+        "late_delivery_penalty_pct_per_day": 1.0,
+        "auto_renew": 1.0,
+        "rate_sheet": 1.0
       },
-      "overall_perfect_accuracy": 0.0,
-      "is_simulated": true
+      "overall_perfect_accuracy": 1.0,
+      "is_simulated": false
     }
   ]
 }

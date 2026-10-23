@@ -142,48 +142,49 @@ El harness de evaluación somete al RAG híbrido (BM25 + Dense Vectors) a dos ti
 Los resultados se serializan automáticamente con procedencia criptográfica (SHA de commit de Git, timestamp ISO con microsegundos y comando exacto) en [`evals/reports/cuad_benchmark_latest.json`](evals/reports/cuad_benchmark_latest.json):
 
 * **Comando de Reproducción Offline (Stub / CI):** `make eval-cuad` o `uv run python -m evals.run --eval-cuad`
-* **Comando con Embeddings Reales Vertex AI:** `EMBEDDING_PROVIDER=vertex_ai uv run python -m evals.run --eval-cuad`
+* **Comando de Reproducción Offline (Stub / CI):** `make eval-cuad` o `uv run python -m evals.run --eval-cuad`
+* **Comando de Recalibración:** `make calibrate-cuad` o `uv run python -m evals.calibrate_cuad`
 * **Commit de Referencia:** Verificado en Git SHA registrado en metadata de reporte.
 
-| Métrica | Modo Offline (`stub-hash-768d`) | Vertex AI (`text-embedding-005` Live) | Intervalo de Confianza (95% Wilson) | Interpretación y Significado Práctico |
+| Métrica | Modo Offline (`stub-hash-768d`) | Vertex AI (`text-embedding-005` Live) | Intervalo de Confianza (95% Wilson Stub) | Interpretación y Significado Práctico |
 |---|:---:|:---:|:---:|---|
-| **Recall@1** | 35.5% | **41.2%** | `[33.9%, 48.9%]` | La cláusula exacta es la primera recomendación del ranking en 4 de cada 10 consultas. |
-| **Recall@3** | 72.4% | **72.1%** | `[64.8%, 78.4%]` | Casi tres cuartas partes de las cláusulas críticas están en el top 3 de relevancia. |
-| **Recall@5** | 81.6% | **81.8%** | `[75.2%, 87.0%]` | Cobertura robusta en contratos de 50.000 a 175.000 caracteres con RAG híbrido. |
-| **MRR** | 0.5336 | **0.5638** | — | Posición recíproca media superior a 0.50 en textos legales densos no estructurados. |
-| **Abstención en Negativos** | 51.5% | **97.3%** | `[93.8%, 98.9%]` | Ante cláusulas ausentes reales (`answers: []`), Bartleby rehúsa alucinar penalidades. |
-| **Abstención Errónea (Positivos)** | 14.5% | **3.0%** | `[1.3%, 6.9%]` | Tasa mínima de falsos negativos: rara vez declina evaluar una cláusula presente y válida. |
-| **Falsa Afirmación Espuria** | 48.5% | **2.7%** | — | Residuo mínimo de falsos positivos en documentos corporativos reales con dense embeddings. |
+| **Recall@1** | 35.5% | *Pendiente de cuota Vertex AI* | — | Precisión de primer ranking en contratos no estructurados. |
+| **Recall@3** | 72.4% | *Pendiente de cuota Vertex AI* | — | Cláusula relevante localizada dentro del top 3 de candidatos. |
+| **Recall@5** | 81.6% | *Pendiente de cuota Vertex AI* | — | Cobertura agregada en contratos extensos (50k a 175k caracteres). |
+| **MRR** | 0.5336 | *Pendiente de cuota Vertex AI* | — | Posición recíproca media del fragmento probatorio real. |
+| **Abstención en Negativos** | **51.5%** | *Pendiente de cuota Vertex AI* | `[41.8%, 61.1%]` | Ante cláusulas ausentes reales (`answers: []`), Bartleby rehúsa alucinar. |
+| **Abstención Errónea (Positivos)** | **14.5%** | *Pendiente de cuota Vertex AI* | `[8.3%, 24.1%]` | Tasa de sobre-abstención en presencia de cláusulas legítimas válidas. |
+| **Falsa Afirmación Espuria** | **48.5%** | *Pendiente de cuota Vertex AI* | — | Riesgo residual de afirmar falsamente una penalización inexistente. |
 
 #### E. Reproducción del Benchmark en Local
 Cualquier usuario puede verificar y regenerar estos reportes ejecutando:
 ```bash
 make download-data   # Descarga los contratos de la SEC y releases OCDS
 make eval-cuad       # Ejecuta la suite de evaluación CUAD con procedencia (Git SHA + microsegundos)
+make calibrate-cuad  # Ejecuta el barrido de calibración empírica sobre CUAD (Train/Val 60/40)
 ```
 Los resultados se serializan en `evals/reports/cuad_benchmark_latest.json` y se grafican de forma interactiva en las pantallas **"CUAD Real SEC Contracts"** y **"Evaluation Dashboard"** de la interfaz Streamlit.
 
 ---
 
 ### 3. Bake-Off de Extracción en Google Cloud Vertex AI
-Comparativa reproducible evaluada sobre contratos sintéticos con redacción y estilos no estándar (`style="diverse"`, $n=50$) tras el retiro formal de la serie Gemini 2.5 en Vertex AI el 20 de octubre de 2026.
+Comparativa reproducible evaluada sobre contratos sintéticos con redacción y estilos no estándar (`style="diverse"`) tras el retiro formal de la serie Gemini 2.5 en Vertex AI el 20 de octubre de 2026.
 
 * **Comando de Reproducción:** `make eval-bakeoff` o `uv run python -m evals.run --bakeoff`
 * **Reporte Oficial:** [`evals/reports/bakeoff_latest.json`](evals/reports/bakeoff_latest.json)
 
 | Modelo / Candidato | Proveedor | Latencia Media | Costo / 1k docs | Error% | Payment Terms | Rate Sheet | Exactitud Global Conjunta |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Rule-Based Baseline** | `rule_based` (Regex) | **0.6 ms** | **$0.00** | 0.0% | **100.0%** | **0.0%** (falla en tablas no estándar) | **0.0%** (colapso conjunto) |
-| **Gemini 3.5 Flash (GA)** | `vertex_ai` (ADC) | **5,120.4 ms** | **$0.18** | **0.0%** | **100.0%** | **100.0%** (extracción semántica) | **100.0%** |
-| **Gemini 3.8 Flash (GA)** | `vertex_ai` (ADC) | **6,240.2 ms** | **$0.24** | **0.0%** | **100.0%** | **100.0%** (extracción semántica) | **100.0%** |
-| *Modo Offline (Sin Credenciales)* | `stub` (Simulación) | 0.2 ms | $0.00 | 100.0% | 0.0% | 0.0% | 0.0% (rotulado transparentemente) |
+| **Rule-Based Baseline (Regex/Parsing)** | `rule_based` | **0.8 ms** | **$0.00** | 0.0% | **100.0%** | **0.0%** | **0.0%** |
+| **Gemini 3.5 Flash (GA Active)** | `vertex_ai` | **7836.5 ms** | **$0.20** | 0.0% | **100.0%** | **100.0%** | **100.0%** |
+| **Gemini 3.8 Flash (GA Active)** | `vertex_ai` | **22889.6 ms** | **$0.26** | 0.0% | **100.0%** | **100.0%** | **100.0%** |
 
 > **Diagnóstico Forense y Fidelidad de la Medición:**
-> En los contratos con redacción variada (`style="diverse"`), el extractor por reglas deterministas captura con éxito los plazos de pago estándar (100%), pero **colapsa al 0% en la tabla de tarifas** debido a la dispersión de estructuras narrativas, llevando la exactitud conjunta a 0.0%. Los modelos **Gemini 3.5 Flash** y **Gemini 3.8 Flash** en Vertex AI logran un 100% de extracción fiel con esquema estructurado estricto.
+> En los contratos con redacción variada (`style="diverse"`), el extractor por reglas deterministas captura con éxito los plazos de pago estándar (100%), pero **colapsa al 0% en la tabla de tarifas** debido a la dispersión de estructuras narrativas, llevando la exactitud conjunta a 0.0%. En los contratos evaluados en vivo con Vertex AI mediante esquema estructurado estricto, **Gemini 3.5 Flash** y **Gemini 3.8 Flash** recuperaron fielmente las tarifas tabulares y los plazos netos.
 >
 > **Salvaguarda de Ciclo de Vida y Fail-Fast:**
-> - `gemini-3.5-flash` es GA en Vertex AI con fecha de retiro fijada para el **19 de mayo de 2027 o posterior** (disponible en `us-central1`).
-> - `gemini-3.8-flash` es GA con retiro para el **2 de septiembre de 2027 o posterior** (regiones: `global`, multirregión `us`/`eu`).
+> - `gemini-3.5-flash` es GA en Vertex AI con fecha de retiro fijada para el **19 de mayo de 2027 o posterior** (región endpoint: `global`).
+> - `gemini-3.8-flash` es GA con retiro para el **2 de septiembre de 2027 o posterior** (región endpoint: `global`).
 > - Se implementó un canario semanal en GitHub Actions (`.github/workflows/model_canary.yml`) y sonda de verificación local (`make check-models`).
 
 ---
@@ -192,19 +193,31 @@ Comparativa reproducible evaluada sobre contratos sintéticos con redacción y e
 Para prevenir la degradación de presupuesto y proteger los modelos en Vertex AI:
 
 1. **API Privada en Cloud Run (IAM de Mínimo Privilegio):**
-   El servicio Cloud Run de la API elimina `allUsers` y exige autenticación IAM. Únicamente la cuenta de servicio de la UI (`catcher-run-sa`) con el rol `roles/run.invoker` tiene autorización de invocación directa.
+   El servicio Cloud Run de la API elimina `allUsers` y exige autenticación IAM. Únicamente la cuenta de servicio de la UI (`catcher-run-sa`) con el rol `roles/run.invoker` tiene autorización de invocación directa servicio a servicio.
 2. **Protección de `/api/audit` con PIN y Rate Limiting:**
-   El endpoint `/api/audit` valida la cabecera `X-API-Key` o `Authorization: Bearer <PIN>` sincronizada desde Secret Manager (`demo-access-pin`). Incluye un limitador de tasa en memoria (máximo 30 peticiones por minuto por IP).
+   El endpoint `/api/audit` valida la cabecera `X-API-Key` o `Authorization: Bearer <PIN>` sincronizada desde Secret Manager (`demo-access-pin`) con comparación en tiempo constante (`secrets.compare_digest`). Incluye un limitador de tasa deslizante que extrae la IP real del cliente detrás del proxy de Cloud Run (`X-Forwarded-For`), fijado a 30 peticiones por minuto.
 3. **Fallback Seguro en Modo Público (Zero-Cost Stub):**
-   Las peticiones no autenticadas que lleguen por acceso público ejecutan automáticamente la auditoría utilizando el proveedor `stub` offline ($0.00 de costo, sin llamadas a Vertex AI), garantizando que ningún actor externo pueda drenar la cuota de Google Cloud.
+   Las peticiones no autenticadas que lleguen por acceso público ejecutan automáticamente la auditoría utilizando el proveedor `stub` offline ($0.00 de costo, sin llamadas a Vertex AI), garantizando que ningún actor externo pueda drenar la cuota de Google Cloud. En entornos de producción, la UI implementa cierre estricto (*fail-closed*) si el PIN no se encuentra configurado.
 4. **Alertas Presupuestarias y Circuit Breaker:**
-   Terraform provisiona una alerta de facturación en Google Cloud al 50%, 80% y 100% del presupuesto mensual configurado.
+   Terraform provisiona una alerta de facturación en Google Cloud al 50%, 80% y 100% del presupuesto mensual configurado (`spend_basis = "CURRENT_SPEND"`).
 
 ---
 
-## 🎯 Metodología de Calibración de Bartleby
+## 🎯 Metodología de Calibración de Bartleby: Brecha de Transferencia de Dominio
 
-El umbral de decisión del guardia no fue fijado arbitrariamente. Se desarrolló un calibrador riguroso ([`evals/calibrate_bartleby.py`](evals/calibrate_bartleby.py)):
+El guardia de abstención fue sometido a calibración empírica tanto en el dominio sintético original como en contratos auténticos de la SEC ([`evals/reports/calibration_cuad_report.json`](evals/reports/calibration_cuad_report.json)):
+
+### Comparativa Multi-Dominio (Sintético vs CUAD Real)
+
+| Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\tau$) | F1-Score en Validación | Hallazgo Empírico de Transferencia |
+|---|---|:---:|:---:|---|
+| **Plantillas Sintéticas** | Datagen M1 (300 paquetes) | **0.50** | **0.9818** | Alta separabilidad sintética entre cláusulas estándar y recargos anómalos. |
+| **Contratos SEC Reales (Transfer)** | CUAD v1 (25 contratos) | **0.50** (fijado) | **0.2899** | **Colapso de transferencia:** el umbral 0.50 sobre-retiene y produce abstención errónea. |
+| **Contratos SEC Reales (Recalibrado)** | CUAD v1 Train/Val (60/40) | **0.60** (recalibrado) | **0.4557** | Requiere elevar el umbral a 0.60 para discriminar prosa legal dispersa. |
+
+> **Hallazgo Empírico Fundamental:**
+> En datos sintéticos controlados, un umbral de relevancia $\tau = 0.50$ logra un F1 de **0.9818**. Sin embargo, al aplicar ese mismo umbral sobre contratos reales de la SEC (CUAD), el desempeño colapsa a un F1 de **0.2899** (con solo 51.5% de abstención correcta en ausencias y 14.5% de abstención errónea en positivos). La recalibración estratificada 60/40 sobre contratos reales demuestra que la prosa legal no estructurada requiere elevar el umbral a **$\tau = 0.60$** para recuperar un F1 de **0.4557**.
+
 
 1. **Split Train / Validation:** Partición estratificada 60/40 para evitar sobreajuste.
 2. **Denominador Real contra Sobre-Abstención:** Para evitar divisiones indeterminadas ($0/0$), el calibrador contrasta paquetes con anomalía contractual real (donde Bartleby debe abstenerse) contra paquetes válidos con cláusulas de transporte estándar (donde abstenerse constituye un error de falso positivo).
