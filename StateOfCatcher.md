@@ -211,4 +211,19 @@ Habiendo culminado la fase de **Honestidad Primero**, la evolución hacia un sis
   - **Tasa de Abstención Correcta:** **97.3%** en categorías contractuales genuinamente ausentes (`answers: []`).
   - **Tasa de Falsas Afirmaciones:** **2.7%** (solo 1 caso espurio en contratos reales no estructurados).
 - [x] **Suite de Pruebas Unitarias & CI:** 58 tests unitarios pasando al 100% con 83% de cobertura en ingest y 82% global, 0 errores de Ruff, fixtures autocontenidas para ejecución offline en GitHub Actions CI.
-- [x] **Commit y CI Verificado:** Commit `5bee38f` en `main` verificado con GitHub Actions CI verde.
+- [x] **Commit y CI Verificado:** Commit `5bee38f` y `9fadc5c` en `main` verificados con GitHub Actions CI verde.
+
+### Fase 6: Interfaz de Usuario y Explorador CUAD en Streamlit (Completado)
+- [x] **Pantalla Interactiva `📜 CUAD Real SEC Contracts`:** Integración nativa de 510 contratos comerciales de la SEC con buscador reactivo y métricas KPI de volumen y categorías.
+- [x] **Inspección de 41 Categorías de Cláusulas:** Filtro por estado (*Present* con offsets verbatim vs *Absent* como negativos ground-truth para Bartleby).
+- [x] **Playground en Vivo de Hybrid RAG & Bartleby:** Recuperación en tiempo real (BM25 léxico + embeddings densos) sobre contratos de más de 50.000 caracteres (~40 ms) con evaluación del umbral de Bartleby (0.50).
+- [x] **Simulación de Auditoría de Compras con Contrato SEC:** Auditoría 4-way en 3 escenarios (*Compliant*, *Unauthorized Surcharge A09* con activación de Melville `NO_EVIDENCE`, y *Price Variance A01*).
+- [x] **Dashboard de Evaluación Multi-Pista:** Selector horizontal que unifica en una sola vista los benchmarks sintéticos (300 paquetes), el benchmark de CUAD en contratos reales, y el Bake-Off empírico de Vertex AI (Flash vs Pro vs Reglas).
+
+### Fase 7: Observabilidad en Tiempo Real con Langfuse (Completado)
+- [x] **Compatibilidad Universal con Langfuse (v5.x OpenTelemetry y v2.x/v3.x Legacy):** `LangfuseTracer` en `src/catcher_in_the_rag/providers/tracing.py` con detección dinámica de `start_observation` y fallback transparente a `client.trace`.
+- [x] **Configuración Flexible de Servidor:** Soporte para `LANGFUSE_BASE_URL` (estándar v5) y `LANGFUSE_HOST` en variables de entorno.
+- [x] **Instrumentación del Grafo de Auditoría (`graph.py`):** Cada ejecución de `audit_pipeline()` emite una traza de ejecución enriquecida con latencia en milisegundos, paquete, proveedor, monto total facturado, decisión final de política, hallazgos validados y estado de abstención de Bartleby.
+- [x] **Instrumentación de Modelos Generativos (`providers/gemini.py`):** Registro de llamadas LLM en `extract_structured` y `generate_text` extrayendo el conteo exacto de tokens de entrada (`prompt_token_count`), candidatos de salida (`candidates_token_count`) y totales (`total_token_count`) desde `usage_metadata`.
+- [x] **Indicador de Estado en la Interfaz Web (`ui/app.py`):** Monitorización visual en la barra lateral que reporta si el sistema opera con `Langfuse Active` o con el `NoOpTracer` offline.
+- [x] **Suite de Pruebas Unitarias Expandida:** 61 pruebas unitarias pasando al 100% en 15.60s con 83% de cobertura de código (87% en `tracing.py` y 90% en `graph.py`).

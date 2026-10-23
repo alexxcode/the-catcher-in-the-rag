@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import os
+import time
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
 from catcher_in_the_rag.providers.base import EmbeddingProvider, LLMProvider
+from catcher_in_the_rag.providers.tracing import get_tracer
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -89,6 +91,7 @@ class GeminiProvider(LLMProvider):
             f"Respond strictly in valid JSON adhering to schema: {schema.model_json_schema()}"
         )
 
+        t0 = time.perf_counter()
         if self._use_genai:
             response = self._genai_client.models.generate_content(
                 model=self.model_id,
@@ -113,6 +116,27 @@ class GeminiProvider(LLMProvider):
                 response = self._client.generate_content(prompt, generation_config=gen_config)
                 raw_json = (response.text or "").strip()
 
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+
+        # Extract usage metadata if available
+        usage: dict[str, int] = {}
+        if hasattr(response, "usage_metadata") and response.usage_metadata:
+            usage = {
+                "input": getattr(response.usage_metadata, "prompt_token_count", 0),
+                "output": getattr(response.usage_metadata, "candidates_token_count", 0),
+                "total": getattr(response.usage_metadata, "total_token_count", 0),
+            }
+
+        tracer = get_tracer()
+        tracer.trace_generation(
+            name=f"gemini_extract_{schema.__name__}",
+            model=self.model_id,
+            prompt=prompt,
+            completion=raw_json,
+            latency_ms=elapsed_ms,
+            usage=usage,
+        )
+
         if raw_json.startswith("```json"):
             raw_json = raw_json.removeprefix("```json").removesuffix("```").strip()
         elif raw_json.startswith("```"):
@@ -128,23 +152,46 @@ class GeminiProvider(LLMProvider):
         self._ensure_init()
         full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
 
+        t0 = time.perf_counter()
         if self._use_genai:
             response = self._genai_client.models.generate_content(
                 model=self.model_id,
                 contents=full_prompt,
                 config={"temperature": self.temperature},
             )
-            return response.text or ""
+            res_text = response.text or ""
+        else:
+            import warnings
 
-        import warnings
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning, module="vertexai")
+                from vertexai.generative_models import GenerationConfig
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=UserWarning, module="vertexai")
-            from vertexai.generative_models import GenerationConfig
+                gen_config = GenerationConfig(temperature=self.temperature)
+                response = self._client.generate_content(full_prompt, generation_config=gen_config)
+                res_text = response.text or ""
 
-            gen_config = GenerationConfig(temperature=self.temperature)
-            response = self._client.generate_content(full_prompt, generation_config=gen_config)
-            return response.text or ""
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+
+        usage: dict[str, int] = {}
+        if hasattr(response, "usage_metadata") and response.usage_metadata:
+            usage = {
+                "input": getattr(response.usage_metadata, "prompt_token_count", 0),
+                "output": getattr(response.usage_metadata, "candidates_token_count", 0),
+                "total": getattr(response.usage_metadata, "total_token_count", 0),
+            }
+
+        tracer = get_tracer()
+        tracer.trace_generation(
+            name="gemini_generate_text",
+            model=self.model_id,
+            prompt=full_prompt,
+            completion=res_text,
+            latency_ms=elapsed_ms,
+            usage=usage,
+        )
+
+        return res_text
 
 
 class GeminiEmbeddingProvider(EmbeddingProvider):

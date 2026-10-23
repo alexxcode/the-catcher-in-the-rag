@@ -93,7 +93,11 @@ class LangfuseTracer(BaseTracer):
     ) -> None:
         self.public_key = public_key or os.getenv("LANGFUSE_PUBLIC_KEY")
         self.secret_key = secret_key or os.getenv("LANGFUSE_SECRET_KEY")
-        self.host = host or os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+        self.host = (
+            host
+            or os.getenv("LANGFUSE_BASE_URL")
+            or os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+        )
         self._client: Any = None
 
     def _ensure_client(self) -> Any:
@@ -109,7 +113,6 @@ class LangfuseTracer(BaseTracer):
             )
             return self._client
         except Exception:
-            # Fall back gracefully without crashing the audit pipeline
             return None
 
     def trace_execution(
@@ -125,15 +128,34 @@ class LangfuseTracer(BaseTracer):
         if not client:
             return
         with contextlib.suppress(Exception):
-            trace = client.trace(
-                name=name,
-                input=input_data,
-                output=output_data,
-                metadata=metadata or {},
-                tags=tags or ["the-catcher-in-the-rag"],
-            )
+            meta = dict(metadata or {})
             if latency_ms is not None:
-                trace.update(metadata={"latency_ms": latency_ms})
+                meta["latency_ms"] = latency_ms
+            if tags:
+                meta["tags"] = tags
+
+            # Langfuse v5+ OpenTelemetry observation API
+            if hasattr(client, "start_observation"):
+                obs = client.start_observation(
+                    name=name,
+                    as_type="span",
+                    input=input_data,
+                    output=output_data,
+                    metadata=meta,
+                )
+                if obs and hasattr(obs, "end"):
+                    obs.end()
+            # Langfuse v2/v3 legacy API
+            elif hasattr(client, "trace"):
+                trace = client.trace(
+                    name=name,
+                    input=input_data,
+                    output=output_data,
+                    metadata=meta,
+                    tags=tags or ["the-catcher-in-the-rag"],
+                )
+                if latency_ms is not None and hasattr(trace, "update"):
+                    trace.update(metadata={"latency_ms": latency_ms})
 
     def trace_generation(
         self,
@@ -149,21 +171,45 @@ class LangfuseTracer(BaseTracer):
         if not client:
             return
         with contextlib.suppress(Exception):
-            trace = client.trace(name=f"trace-{name}", tags=["llm-generation"])
-            trace.generation(
-                name=name,
-                model=model,
-                input=prompt,
-                output=completion,
-                usage=usage,
-                metadata={"latency_ms": latency_ms, **(metadata or {})},
-            )
+            meta = dict(metadata or {})
+            if latency_ms is not None:
+                meta["latency_ms"] = latency_ms
+
+            # Langfuse v5+ OpenTelemetry generation API
+            if hasattr(client, "start_observation"):
+                gen = client.start_observation(
+                    name=name,
+                    as_type="generation",
+                    model=model,
+                    input=prompt,
+                    output=completion,
+                    usage_details=usage,
+                    metadata=meta,
+                )
+                if gen and hasattr(gen, "end"):
+                    gen.end()
+            # Langfuse v2/v3 legacy API
+            elif hasattr(client, "trace"):
+                trace = client.trace(name=f"trace-{name}", tags=["llm-generation"])
+                trace.generation(
+                    name=name,
+                    model=model,
+                    input=prompt,
+                    output=completion,
+                    usage=usage,
+                    metadata=meta,
+                )
 
     def flush(self) -> None:
         client = self._ensure_client()
-        if client:
+        if client and hasattr(client, "flush"):
             with contextlib.suppress(Exception):
                 client.flush()
+
+
+def is_tracing_enabled() -> bool:
+    """Return True if Langfuse environment variables are configured."""
+    return bool(os.getenv("LANGFUSE_PUBLIC_KEY") and os.getenv("LANGFUSE_SECRET_KEY"))
 
 
 def get_tracer(sample_rate: float = 1.0) -> BaseTracer:

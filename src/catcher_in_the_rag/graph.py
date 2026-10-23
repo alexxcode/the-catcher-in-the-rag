@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, TypedDict
@@ -16,6 +17,7 @@ from catcher_in_the_rag.match.matcher import run_three_way_match
 from catcher_in_the_rag.policy.engine import PolicyEngine
 from catcher_in_the_rag.providers.base import LLMProvider
 from catcher_in_the_rag.providers.factory import get_llm_provider
+from catcher_in_the_rag.providers.tracing import get_tracer
 from catcher_in_the_rag.schemas import (
     Decision,
     Finding,
@@ -226,7 +228,41 @@ def audit_pipeline(
     else:
         init_state["raw_input"] = source
 
+    t0 = time.perf_counter()
     final_state: AuditState = compiled.invoke(init_state)
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+
+    # Observability: Trace execution via Langfuse (or NoOp if offline)
+    pkg = final_state.get("package")
+    decision = final_state.get("decision")
+    findings = final_state.get("validated_findings", [])
+    tracer = get_tracer()
+
+    tracer.trace_execution(
+        name="audit_pipeline",
+        input_data={
+            "package_id": final_state.get("package_id"),
+            "vendor_name": pkg.invoice.vendor_name if pkg else None,
+            "invoice_total": float(pkg.invoice.total_amount) if pkg else None,
+        },
+        output_data={
+            "decision": decision.decision.value if decision else "UNKNOWN",
+            "justification": decision.justification if decision else None,
+            "findings_count": len(findings),
+        },
+        metadata={
+            "bartleby_abstained": final_state.get("bartleby_abstained", False),
+            "bartleby_reason": final_state.get("bartleby_reason"),
+            "requires_human_review": final_state.get("requires_human_review", False),
+        },
+        tags=[
+            "audit",
+            decision.decision.value.lower() if decision else "unknown",
+        ],
+        latency_ms=elapsed_ms,
+    )
+    tracer.flush()
+
     return final_state
 
 

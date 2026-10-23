@@ -12,6 +12,7 @@ from catcher_in_the_rag.providers.tracing import (
     LangfuseTracer,
     NoOpTracer,
     get_tracer,
+    is_tracing_enabled,
 )
 
 __all__ = [
@@ -25,5 +26,6 @@ __all__ = [
     "get_embedding_provider",
     "get_llm_provider",
     "get_tracer",
+    "is_tracing_enabled",
     "load_model_config",
 ]

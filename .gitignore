@@ -16,6 +16,8 @@ MANIFEST
 venv/
 env/
 .uv/
+.env
+.env/
 
 # Caches
 .pytest_cache/

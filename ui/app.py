@@ -1,4 +1,5 @@
 import json
+import os
 import time
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -13,6 +14,7 @@ from catcher_in_the_rag.ingest.cuad_loader import (
     CUADContract,
     CUADLoader,
 )
+from catcher_in_the_rag.providers.tracing import is_tracing_enabled
 from catcher_in_the_rag.retrieve.retriever import ContractRetriever
 from catcher_in_the_rag.schemas import (
     DecisionType,
@@ -391,6 +393,13 @@ with st.sidebar:
     st.markdown("🔒 **Abstention Guard:** Bartleby Active")
     st.markdown("📑 **Citations:** Strict Verbatim Matching")
     st.markdown("🤖 **Decision Logic:** Deterministic Policy Engine")
+    if is_tracing_enabled():
+        host_preview = os.getenv("LANGFUSE_BASE_URL") or os.getenv(
+            "LANGFUSE_HOST", "cloud.langfuse.com"
+        )
+        st.markdown(f"📡 **Observability:** 🟢 Langfuse Active (`{host_preview[:22]}`)")
+    else:
+        st.markdown("📡 **Observability:** ⚪ NoOpTracer (Offline)")
 
 
 # ── SCREEN 1: REVIEW WORKSPACE ────────────────────────────────────────────────
