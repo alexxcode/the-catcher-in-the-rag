@@ -61,6 +61,47 @@ def test_cuad_loader_with_fixture(tmp_path: Path) -> None:
     assert len(catcher.clauses) > 0
 
 
+def test_cuad_benchmark_with_fixture(tmp_path: Path) -> None:
+    """Test CUADBenchmarkRunner executing retrieval, dual-sided abstention and Wilson CI on a fixture."""
+    fixture_data = {
+        "version": "test_v1",
+        "data": [
+            {
+                "title": "TEST_DISTRIBUTOR_AGREEMENT",
+                "paragraphs": [
+                    {
+                        "context": "MASTER SERVICES AGREEMENT\nBetween Acme Corp and Beta LLC.\nSection 1. Governing Law\nThis agreement is governed by the laws of Delaware.",
+                        "qas": [
+                            {
+                                "id": "test__Governing Law",
+                                "question": "Governing Law",
+                                "is_impossible": False,
+                                "answers": [{"text": "laws of Delaware", "answer_start": 80}],
+                            },
+                            {
+                                "id": "test__Liquidated Damages",
+                                "question": "Liquidated Damages",
+                                "is_impossible": True,
+                                "answers": [],
+                            },
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+    fixture_file = tmp_path / "CUAD_fixture.json"
+    fixture_file.write_text(json.dumps(fixture_data), encoding="utf-8")
+
+    loader = CUADLoader(cuad_json_path=fixture_file)
+    runner = CUADBenchmarkRunner(loader=loader, sample_size=1)
+    report, ret_cases, abs_cases = runner.run_benchmark()
+    assert report.total_contracts_evaluated == 1
+    assert report.embedding_provider == "StubEmbeddingProvider"
+    assert len(report.bartleby_correct_abstention_ci95) == 2
+    assert len(report.bartleby_false_abstention_ci95) == 2
+
+
 def test_ocds_loader_with_fixture(tmp_path: Path) -> None:
     """Test OCDSLoader parsing releases into OCDSContractRecord with a fixture."""
     ocds_dir = tmp_path / "ocds"

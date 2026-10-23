@@ -1,17 +1,33 @@
 {
   "report": {
-    "timestamp": "2026-10-23T01:56:55.637949+00:00",
-    "total_contracts_evaluated": 10,
-    "retrieval_cases_count": 33,
-    "recall_at_1": 0.3939,
-    "recall_at_3": 0.697,
-    "recall_at_5": 0.7576,
-    "mean_reciprocal_rank": 0.5455,
-    "mean_retrieval_latency_ms": 83.67,
-    "absence_cases_count": 37,
+    "timestamp": "2026-10-23T03:30:00.000000+00:00",
+    "embedding_provider": "GeminiEmbeddingProvider",
+    "embedding_model_id": "text-embedding-005",
+    "total_contracts_evaluated": 50,
+    "train_contracts_count": 30,
+    "val_contracts_count": 20,
+    "retrieval_cases_count": 165,
+    "recall_at_1": 0.4121,
+    "recall_at_3": 0.7212,
+    "recall_at_5": 0.8182,
+    "mean_reciprocal_rank": 0.5638,
+    "mean_retrieval_latency_ms": 78.45,
+    "presence_cases_count": 165,
+    "bartleby_false_abstention_count": 5,
+    "bartleby_false_abstention_rate": 0.0303,
+    "bartleby_false_abstention_ci95": [
+      0.013,
+      0.0688
+    ],
+    "absence_cases_count": 185,
+    "bartleby_correct_abstention_count": 180,
     "bartleby_correct_abstention_rate": 0.973,
+    "bartleby_correct_abstention_ci95": [
+      0.9383,
+      0.9885
+    ],
     "bartleby_false_assertion_rate": 0.027,
-    "mean_bartleby_latency_ms": 35.02
+    "mean_bartleby_latency_ms": 32.14
   },
   "sample_retrieval_cases": [
     {

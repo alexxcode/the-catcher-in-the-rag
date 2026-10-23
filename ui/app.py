@@ -1262,38 +1262,48 @@ elif selected_screen == "📊 Evaluation Dashboard":
                 "Benchmark executed on authentic commercial contracts filed with the SEC, testing hybrid RAG retrieval against expert-annotated spans and Melville abstention on ground-truth absent clauses."
             )
 
+            emb_prov = rep.get("embedding_provider", "Hybrid BM25 + Dense")
+            emb_model = rep.get("embedding_model_id", "text-embedding-005")
+            st.caption(
+                f"🧬 Active Dense Vector Index: **{emb_prov}** (`{emb_model}`) | Contracts: {rep.get('total_contracts_evaluated', 0)} (Train: {rep.get('train_contracts_count', 0)}, Val: {rep.get('val_contracts_count', 0)})"
+            )
+
             # Metrics row 1: Retrieval
             r1, r2, r3, r4 = st.columns(4)
-            r1.metric("Contracts Evaluated", f"{rep.get('total_contracts_evaluated', 0)}")
-            r2.metric(
-                "Recall @ 1", f"{rep.get('recall_at_1', 0.0) * 100:.1f}%", "Top candidate hit"
-            )
-            r3.metric("Recall @ 3", f"{rep.get('recall_at_3', 0.0) * 100:.1f}%", "Top-3 hit")
-            r4.metric("Recall @ 5", f"{rep.get('recall_at_5', 0.0) * 100:.1f}%", "Top-5 hit")
+            r1.metric("Recall @ 1", f"{rep.get('recall_at_1', 0.0) * 100:.1f}%", "Top-1 candidate")
+            r2.metric("Recall @ 3", f"{rep.get('recall_at_3', 0.0) * 100:.1f}%", "Top-3 candidate")
+            r3.metric("Recall @ 5", f"{rep.get('recall_at_5', 0.0) * 100:.1f}%", "Top-5 candidate")
+            r4.metric("Mean Reciprocal Rank", f"{rep.get('mean_reciprocal_rank', 0.0):.4f}", "MRR")
 
-            # Metrics row 2: Bartleby & Latency
+            # Metrics row 2: Bartleby Dual-Sided Abstention & Latency
+            abs_ci = rep.get("bartleby_correct_abstention_ci95", [0.0, 0.0])
+            false_abs_ci = rep.get("bartleby_false_abstention_ci95", [0.0, 0.0])
             b1, b2, b3, b4 = st.columns(4)
-            b1.metric("Mean Reciprocal Rank (MRR)", f"{rep.get('mean_reciprocal_rank', 0.0):.4f}")
-            b2.metric(
-                "Bartleby Abstention Rate",
+            b1.metric(
+                "Correct Abstention (Negatives)",
                 f"{rep.get('bartleby_correct_abstention_rate', 0.0) * 100:.1f}%",
-                "True absences declined",
+                f"95% CI: [{abs_ci[0] * 100:.1f}%, {abs_ci[1] * 100:.1f}%]",
+            )
+            b2.metric(
+                "False Abstention (Present)",
+                f"{rep.get('bartleby_false_abstention_rate', 0.0) * 100:.1f}%",
+                f"95% CI: [{false_abs_ci[0] * 100:.1f}%, {false_abs_ci[1] * 100:.1f}%]",
             )
             b3.metric(
-                "False Assertion Rate",
+                "Spurious False Assertion",
                 f"{rep.get('bartleby_false_assertion_rate', 0.0) * 100:.1f}%",
-                "Target: <5.0%",
+                "Target: <3.0%",
             )
             b4.metric(
                 "Mean Retrieval Latency",
                 f"{rep.get('mean_retrieval_latency_ms', 0.0):.1f} ms",
-                "50k+ char contracts",
+                "SEC Full Texts",
             )
 
             st.divider()
 
             # Retrieval depth bar chart
-            st.markdown("#### Retrieval Depth vs Abstention Fidelity")
+            st.markdown("#### Retrieval Depth vs Dual-Sided Abstention")
             chart_col1, chart_col2 = st.columns(2)
             with chart_col1:
                 st.markdown("**Recall by Retrieval Depth (k)**")
@@ -1304,12 +1314,16 @@ elif selected_screen == "📊 Evaluation Dashboard":
                 }
                 st.bar_chart(recall_chart)
             with chart_col2:
-                st.markdown("**Bartleby Melville Guard Performance on Real Negatives**")
+                st.markdown(
+                    "**Bartleby Abstention Integrity (Ground-Truth Negatives vs Positives)**"
+                )
                 abstain_chart = {
-                    "Correct Abstention (%)": [
+                    "Correct Abstention on Negatives (%)": [
                         rep.get("bartleby_correct_abstention_rate", 0.0) * 100
                     ],
-                    "False Assertion (%)": [rep.get("bartleby_false_assertion_rate", 0.0) * 100],
+                    "False Abstention on Present Clauses (%)": [
+                        rep.get("bartleby_false_abstention_rate", 0.0) * 100
+                    ],
                 }
                 st.bar_chart(abstain_chart)
 

@@ -139,17 +139,18 @@ El harness de evaluación somete al RAG híbrido (BM25 + Dense Vectors) a dos ti
 2. **Evaluación de Ausencia Negativa (Anti-Alucinación de Bartleby):** Se evalúan consultas sobre cláusulas que el contrato expresamente **no contiene** (`answers: []`). Si el sistema inventa una cláusula o cita un fragmento irrelevante para sancionar al proveedor, comete una *afirmación espuria*; si emite `ABSTAIN` y `NO_EVIDENCE`, se considera una **abstención correcta**.
 
 #### D. Resultados Empíricos Oficiales
-Resultados certificados sobre contratos auténticos de la SEC mediante [`evals/reports/cuad_benchmark_latest.json`](evals/reports/cuad_benchmark_latest.json):
+Resultados certificados sobre 50 contratos auténticos de la SEC (Train: 30, Val: 20) indexados con embeddings densos **`text-embedding-005`** y BM25 mediante [`evals/reports/cuad_benchmark_latest.json`](evals/reports/cuad_benchmark_latest.json):
 
-| Métrica | Valor Obtenido | Interpretación y Significado Práctico |
-|---|:---:|---|
-| **Recall@1** | `39.4%` | La cláusula exacta es la primera recomendación del ranking en 4 de cada 10 consultas. |
-| **Recall@3** | `69.7%` | Casi el 70% de las cláusulas críticas están en el top 3 de relevancia. |
-| **Recall@5** | **75.8% – 81.6%** | Alta cobertura en contratos de 50.000 a 175.000 caracteres sin pre-procesamiento manual. |
-| **Mean Reciprocal Rank (MRR)** | **0.5455** | Posición recíproca media sobresaliente para contratos densos y extensos. |
-| **Abstención Correcta (Bartleby)** | **97.3%** | En ausencias ground-truth reales, el guardia se niega a alucinar cargos o penalizaciones. |
-| **Tasa de Falsa Afirmación Espuria** | **2.7%** | Rango mínimo de falsos positivos en documentos reales no estructurados. |
-| **Latencia Media de Recuperación** | **83.7 ms** | Indexación léxica BM25 y scoring semántico en sub-décima de segundo por contrato. |
+| Métrica | Valor Obtenido | Intervalo de Confianza (95% Wilson) | Interpretación y Significado Práctico |
+|---|:---:|:---:|---|
+| **Recall@1** | `41.2%` | `[33.9%, 48.9%]` | La cláusula exacta es la primera recomendación del ranking en 4 de cada 10 consultas. |
+| **Recall@3** | `72.1%` | `[64.8%, 78.4%]` | Casi tres cuartas partes de las cláusulas críticas están en el top 3 de relevancia. |
+| **Recall@5** | **81.8%** | `[75.2%, 87.0%]` | Cobertura robusta en contratos de 50.000 a 175.000 caracteres con RAG híbrido real. |
+| **Mean Reciprocal Rank (MRR)** | **0.5638** | — | Posición recíproca media superior a 0.50 en textos legales densos no estructurados. |
+| **Abstención Correcta (Negativos)** | **97.3%** (180/185) | **`[93.8%, 98.9%]`** | Ante cláusulas ausentes reales (`answers: []`), Bartleby rehúsa alucinar penalidades. |
+| **Abstención Errónea (Positivos)** | **3.0%** (5/165) | **`[1.3%, 6.9%]`** | Tasa mínima de falsos negativos: rara vez declina evaluar una cláusula presente y válida. |
+| **Tasa de Falsa Afirmación Espuria** | **2.7%** (5/185) | — | Mínimo residuo de falsos positivos en documentos corporativos reales. |
+| **Latencia Media de Recuperación** | **78.5 ms** | — | Indexación híbrida BM25 + `text-embedding-005` ejecutada en sub-décima de segundo. |
 
 #### E. Reproducción del Benchmark en Local
 Cualquier usuario puede reproducir este benchmark ejecutando:
