@@ -23,7 +23,7 @@ El núcleo del proyecto es un **harness de evaluación científica reproducible*
 2. [Arquitectura del Pipeline LangGraph](#-arquitectura-del-pipeline-langgraph)
 3. [Resultados Empíricos de Benchmarks](#-resultados-empíricos-de-benchmarks)
    - [Benchmark Sintético (300 Paquetes & Ablaciones)](#1-benchmark-sintético-300-paquetes-y-ablaciones)
-   - [Benchmark en Contratos Reales de la SEC (CUAD v1)](#2-benchmark-en-contratos-reales-de-la-sec-cuad-v1)
+   - [Procedimiento y Benchmark en Contratos Reales de la SEC (CUAD v1 & OCDS)](#2-procedimiento-y-benchmark-en-contratos-reales-de-la-sec-cuad-v1--ocds)
    - [Bake-off de Extracción en Vertex AI (Flash vs. Pro vs. Reglas)](#3-bake-off-de-extracción-en-google-cloud-vertex-ai)
 4. [Metodología de Calibración de Bartleby](#-metodología-de-calibración-de-bartleby)
 5. [Observabilidad en Tiempo Real con Langfuse](#-observabilidad-en-tiempo-real-con-langfuse)
@@ -109,16 +109,55 @@ Evaluado de forma automatizada sobre 300 paquetes generados proceduralmente con 
 
 ---
 
-### 2. Benchmark en Contratos Reales de la SEC (CUAD v1)
-Evaluado sobre contratos corporativos auténticos de **The Atticus Project** (de hasta 175.000 caracteres por documento) mediante [`evals/reports/cuad_benchmark_latest.json`](evals/reports/cuad_benchmark_latest.json):
+### 2. Procedimiento y Benchmark en Contratos Reales de la SEC (CUAD v1 & OCDS)
 
-* **Recall@1:** `39.4%` (la cláusula exacta es el candidato superior en 4 de cada 10 consultas)
-* **Recall@3:** `69.7%`
-* **Recall@5:** **75.8% – 81.6%** (alta cobertura en contratos densos sin pre-procesamiento manual)
-* **Mean Reciprocal Rank (MRR):** `0.5455`
-* **Abstención Correcta de Bartleby:** **97.3%** sobre ausencias ground-truth reales (`answers: []`)
-* **Tasa de Falsa Afirmación Espuria:** `2.7%`
-* **Latencia Media de Recuperación:** `83.7 ms` sobre textos de 50.000+ caracteres
+Para contrastar el comportamiento del sistema fuera del laboratorio sintético, se integró el estándar de oro de comprensión de contratos corporativos: **CUAD v1** (*Contract Understanding Atticus Dataset*, 510 contratos presentados ante la **SEC EDGAR**, con hasta 175.000 caracteres por documento) junto con releases estándar de compras públicas **OCDS 1.1** (*Open Contracting Data Standard*).
+
+#### A. Flujo de Adquisición y Descarga (`datagen/download.py`)
+El pipeline incluye un script desacoplado con control de integridad, hashes y licenciamiento:
+```bash
+make download-data
+# Descarga automatizada:
+# 1. CUAD_v1.json (~50 MB, The Atticus Project, bajo licencia CC BY 4.0)
+# 2. ocds_sample.json (Open Contracting Partnership, bajo licencia ODC-BY)
+# Almacenamiento local en data/real/ (aislado e ignorado por Git)
+```
+
+#### B. Arquitectura de Ingesta y Mapeo Ontológico (`ingest/`)
+Los contratos corporativos de la SEC no están estructurados como bases de datos. El proceso de ingesta traduce el formato nativo SQuAD 2.0 a entidades auditables:
+* **Mapeo Ontológico de 41 Categorías Jurídicas ([`cuad_loader.py`](src/catcher_in_the_rag/ingest/cuad_loader.py)):** Mapea las 41 clases legales anotadas por juristas a tópicos contractuales auditables por la política:
+  * `Payment Terms` ➔ Días de crédito, plazos de facturación y descuentos por pronto pago.
+  * `Price Restrictions / Most Favored Nation` ➔ Topes de precios y prohibiciones de ajustes unilaterales.
+  * `Liquidated Damages / Penalties` ➔ Tasas de penalización por mora en entrega.
+  * `Governing Law / Termination` ➔ Jurisdicción y cláusulas de rescisión anticipada.
+* **Preservación de Spans Verbatim con Coordenadas Físicas:** Cada cláusula retiene su offset exacto de caracteres `[start_char, end_char]` y número de párrafo dentro del texto completo de 50 a 80 páginas, posibilitando la trazabilidad y la citación infalsificable.
+* **Normalización OCDS ([`ocds_loader.py`](src/catcher_in_the_rag/ingest/ocds_loader.py)):** Estructura transacciones públicas enlazando el ID de licitación (`tender`), el contrato adjudicado (`award`) y los hitos de entrega correspondientes.
+
+#### C. Metodología del Benchmark Real ([`evals/cuad_benchmark.py`](evals/cuad_benchmark.py))
+El harness de evaluación somete al RAG híbrido (BM25 + Dense Vectors) a dos tipos de pruebas:
+1. **Recuperación Positiva (Cláusula Presente):** Evalúa si, ante una consulta sobre una política de auditoría (ej. *"What are the penalty terms for late delivery?"*), el motor RAG es capaz de posicionar la cláusula real anotada por los abogados dentro de su ranking.
+2. **Evaluación de Ausencia Negativa (Anti-Alucinación de Bartleby):** Se evalúan consultas sobre cláusulas que el contrato expresamente **no contiene** (`answers: []`). Si el sistema inventa una cláusula o cita un fragmento irrelevante para sancionar al proveedor, comete una *afirmación espuria*; si emite `ABSTAIN` y `NO_EVIDENCE`, se considera una **abstención correcta**.
+
+#### D. Resultados Empíricos Oficiales
+Resultados certificados sobre contratos auténticos de la SEC mediante [`evals/reports/cuad_benchmark_latest.json`](evals/reports/cuad_benchmark_latest.json):
+
+| Métrica | Valor Obtenido | Interpretación y Significado Práctico |
+|---|:---:|---|
+| **Recall@1** | `39.4%` | La cláusula exacta es la primera recomendación del ranking en 4 de cada 10 consultas. |
+| **Recall@3** | `69.7%` | Casi el 70% de las cláusulas críticas están en el top 3 de relevancia. |
+| **Recall@5** | **75.8% – 81.6%** | Alta cobertura en contratos de 50.000 a 175.000 caracteres sin pre-procesamiento manual. |
+| **Mean Reciprocal Rank (MRR)** | **0.5455** | Posición recíproca media sobresaliente para contratos densos y extensos. |
+| **Abstención Correcta (Bartleby)** | **97.3%** | En ausencias ground-truth reales, el guardia se niega a alucinar cargos o penalizaciones. |
+| **Tasa de Falsa Afirmación Espuria** | **2.7%** | Rango mínimo de falsos positivos en documentos reales no estructurados. |
+| **Latencia Media de Recuperación** | **83.7 ms** | Indexación léxica BM25 y scoring semántico en sub-décima de segundo por contrato. |
+
+#### E. Reproducción del Benchmark en Local
+Cualquier usuario puede reproducir este benchmark ejecutando:
+```bash
+make download-data   # Descarga los contratos de la SEC y releases OCDS
+make eval-cuad       # Ejecuta la suite de evaluación CUAD
+```
+Los resultados se serializan automáticamente en `evals/reports/cuad_benchmark_latest.json` y se grafican de forma interactiva en las pantallas **"CUAD Real SEC Contracts"** y **"Evaluation Dashboard"** de la interfaz Streamlit.
 
 ---
 
