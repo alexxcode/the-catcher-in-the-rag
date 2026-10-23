@@ -332,8 +332,22 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
                 TextEmbeddingInput(text=t[:6000], task_type="RETRIEVAL_DOCUMENT")
                 for t in batch
             ]
-            embeddings = self._model.get_embeddings(inputs, output_dimensionality=self.dimensionality)
-            all_embeddings.extend([list(e.values) for e in embeddings])
+            max_retries = 5
+            for attempt in range(max_retries):
+                try:
+                    embeddings = self._model.get_embeddings(
+                        inputs, output_dimensionality=self.dimensionality
+                    )
+                    all_embeddings.extend([list(e.values) for e in embeddings])
+                    time.sleep(0.15)
+                    break
+                except Exception as err:
+                    err_str = str(err).lower()
+                    if ("429" in err_str or "quota" in err_str or "resource" in err_str) and attempt < max_retries - 1:
+                        backoff = 2.0 * (2**attempt)
+                        time.sleep(backoff)
+                        continue
+                    raise
         return all_embeddings
 
     def embed_query(self, query: str) -> list[float]:
@@ -342,5 +356,18 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
         from vertexai.language_models import TextEmbeddingInput
 
         inputs = [TextEmbeddingInput(text=query, task_type="RETRIEVAL_QUERY")]
-        embeddings = self._model.get_embeddings(inputs, output_dimensionality=self.dimensionality)
-        return list(embeddings[0].values)
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                embeddings = self._model.get_embeddings(
+                    inputs, output_dimensionality=self.dimensionality
+                )
+                return list(embeddings[0].values)
+            except Exception as err:
+                err_str = str(err).lower()
+                if ("429" in err_str or "quota" in err_str or "resource" in err_str) and attempt < max_retries - 1:
+                    backoff = 2.0 * (2**attempt)
+                    time.sleep(backoff)
+                    continue
+                raise
+        return []
