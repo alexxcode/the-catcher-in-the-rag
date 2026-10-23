@@ -72,6 +72,8 @@ class CUADBenchmarkReport:
     timestamp: str
     embedding_provider: str
     embedding_model_id: str
+    git_commit_sha: str
+    command: str
     total_contracts_evaluated: int
     train_contracts_count: int
     val_contracts_count: int
@@ -273,10 +275,21 @@ class CUADBenchmarkRunner:
         false_abs_rate = false_abstention_count / max(1, presence_cases_count)
         false_abs_ci95 = _wilson_score_interval(false_abstention_count, presence_cases_count)
 
+        from evals.provenance import get_provenance_metadata
+
+        provenance = get_provenance_metadata(
+            {
+                "embedding_provider": provider_name,
+                "embedding_model_id": str(model_id),
+            }
+        )
+
         report = CUADBenchmarkReport(
             timestamp=datetime.now(UTC).isoformat(),
             embedding_provider=provider_name,
             embedding_model_id=str(model_id),
+            git_commit_sha=provenance["git_commit_sha"],
+            command=provenance["command"],
             total_contracts_evaluated=len(contracts),
             train_contracts_count=len(train_contracts),
             val_contracts_count=len(val_contracts),
@@ -348,6 +361,8 @@ def save_cuad_report(
 
     data = {
         "report": asdict(report),
+        "git_commit_sha": report.git_commit_sha,
+        "command": report.command,
         "sample_retrieval_cases": [asdict(c) for c in retrieval_cases[:20]],
         "sample_absence_cases": [asdict(a) for a in absence_cases[:20]],
     }

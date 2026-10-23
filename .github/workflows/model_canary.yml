@@ -1,0 +1,52 @@
+name: Model Lifecycle Canary
+
+on:
+  schedule:
+    # Run every Monday at 08:00 UTC
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  check-model-availability:
+    name: Vertex AI Model Deprecation Canary
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Authenticate to Google Cloud (Workload Identity Federation if configured)
+        if: env.WIF_PROVIDER != ''
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Run Model Lifecycle Canary
+        run: |
+          echo "Checking active GA models pinned in config/models.yaml..."
+          uv run python -c "
+          from catcher_in_the_rag.providers.factory import get_llm_provider
+          provider = get_llm_provider()
+          health = provider.check_model_health()
+          print('Model Health Status:', health)
+          assert health['status'] == 'healthy', f'Unhealthy model status: {health}'
+          "
+        env:
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID || 'the-catcher-in-the-rag' }}
+          GOOGLE_CLOUD_REGION: "us-central1"

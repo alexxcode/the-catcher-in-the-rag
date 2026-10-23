@@ -180,3 +180,73 @@ def test_reports_endpoints(client: TestClient, tmp_path: Path) -> None:
     response_latest = client.get(f"/api/reports/latest?reports_dir={tmp_path}")
     assert response_latest.status_code == 200
     assert response_latest.json()["decision_accuracy"] == 1.0
+
+
+def test_audit_pin_authentication_and_fallback(
+    client: TestClient,
+    clean_procurement_package: ProcurementPackage,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from catcher_in_the_rag.api.main import _RATE_LIMIT_BUCKET
+
+    _RATE_LIMIT_BUCKET.clear()
+
+    pkg_dict = json.loads(clean_procurement_package.model_dump_json())
+    monkeypatch.setenv("DEMO_ACCESS_PIN", "secret-pin-1234")
+
+    # 1. Valid X-API-Key executes normally
+    resp = client.post(
+        "/api/audit",
+        json={"package": pkg_dict},
+        headers={"X-API-Key": "secret-pin-1234"},
+    )
+    assert resp.status_code == 200
+
+    # 2. Valid Bearer Token executes normally
+    resp_bearer = client.post(
+        "/api/audit",
+        json={"package": pkg_dict},
+        headers={"Authorization": "Bearer secret-pin-1234"},
+    )
+    assert resp_bearer.status_code == 200
+
+    # 3. Missing PIN with ALLOW_PUBLIC_STUB=true falls back to zero-cost stub execution
+    monkeypatch.setenv("ALLOW_PUBLIC_STUB", "true")
+    resp_stub = client.post(
+        "/api/audit",
+        json={"package": pkg_dict},
+    )
+    assert resp_stub.status_code == 200
+    assert resp_stub.json()["execution_provider"] == "stub"
+
+    # 4. Missing PIN with ALLOW_PUBLIC_STUB=false returns 401 Unauthorized
+    monkeypatch.setenv("ALLOW_PUBLIC_STUB", "false")
+    resp_unauth = client.post(
+        "/api/audit",
+        json={"package": pkg_dict},
+    )
+    assert resp_unauth.status_code == 401
+
+
+def test_audit_rate_limiting(
+    client: TestClient,
+    clean_procurement_package: ProcurementPackage,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from catcher_in_the_rag.api.main import _RATE_LIMIT_BUCKET
+
+    _RATE_LIMIT_BUCKET.clear()
+
+    pkg_dict = json.loads(clean_procurement_package.model_dump_json())
+    monkeypatch.setenv("RATE_LIMIT_RPM", "2")
+
+    # Request 1 & 2 pass
+    r1 = client.post("/api/audit", json={"package": pkg_dict})
+    assert r1.status_code == 200
+    r2 = client.post("/api/audit", json={"package": pkg_dict})
+    assert r2.status_code == 200
+
+    # Request 3 triggers 429
+    r3 = client.post("/api/audit", json={"package": pkg_dict})
+    assert r3.status_code == 429
+    assert "Rate limit exceeded" in r3.json()["detail"]

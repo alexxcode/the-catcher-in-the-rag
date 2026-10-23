@@ -14,6 +14,8 @@ T = TypeVar("T", bound=BaseModel)
 class StubLLMProvider(LLMProvider):
     """Deterministic, zero-network LLM provider for tests, CI, and offline execution."""
 
+    provider_type: str = "stub"
+
     def __init__(
         self, registered_responses: dict[type[BaseModel], BaseModel] | None = None
     ) -> None:

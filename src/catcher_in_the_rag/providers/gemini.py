@@ -20,6 +20,8 @@ class GeminiProvider(LLMProvider):
     https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versioning
     """
 
+    provider_type: str = "vertex_ai"
+
     def __init__(
         self,
         config: dict[str, Any] | None = None,
@@ -76,6 +78,38 @@ class GeminiProvider(LLMProvider):
             )
             raise ImportError(msg) from err
 
+    def _call_with_retry(
+        self,
+        call_fn: Any,
+        max_retries: int = 3,
+        base_delay: float = 0.5,
+    ) -> Any:
+        """Execute Vertex AI generation with bounded exponential backoff on transient 429 / 503 errors."""
+        for attempt in range(max_retries):
+            try:
+                return call_fn()
+            except Exception as err:
+                err_str = str(err).lower()
+                is_rate_limit = (
+                    "429" in err_str
+                    or "resource exhausted" in err_str
+                    or "resourceexhausted" in err_str
+                    or "quota" in err_str
+                )
+                is_transient = (
+                    "503" in err_str
+                    or "service unavailable" in err_str
+                    or "timeout" in err_str
+                    or "deadline" in err_str
+                )
+                if (is_rate_limit or is_transient) and attempt < max_retries - 1:
+                    delay = base_delay * (2**attempt)
+                    time.sleep(delay)
+                    continue
+                raise RuntimeError(
+                    f"Vertex AI LLM call failed after {attempt + 1} attempt(s): {err}"
+                ) from err
+
     def extract_structured(
         self,
         text: str,
@@ -91,18 +125,16 @@ class GeminiProvider(LLMProvider):
             f"Respond strictly in valid JSON adhering to schema: {schema.model_json_schema()}"
         )
 
-        t0 = time.perf_counter()
-        if self._use_genai:
-            response = self._genai_client.models.generate_content(
-                model=self.model_id,
-                contents=prompt,
-                config={
-                    "temperature": self.temperature,
-                    "response_mime_type": "application/json",
-                },
-            )
-            raw_json = (response.text or "").strip()
-        else:
+        def _invoke_extract() -> Any:
+            if self._use_genai:
+                return self._genai_client.models.generate_content(
+                    model=self.model_id,
+                    contents=prompt,
+                    config={
+                        "temperature": self.temperature,
+                        "response_mime_type": "application/json",
+                    },
+                )
             import warnings
 
             with warnings.catch_warnings():
@@ -113,9 +145,11 @@ class GeminiProvider(LLMProvider):
                     temperature=self.temperature,
                     response_mime_type="application/json",
                 )
-                response = self._client.generate_content(prompt, generation_config=gen_config)
-                raw_json = (response.text or "").strip()
+                return self._client.generate_content(prompt, generation_config=gen_config)
 
+        t0 = time.perf_counter()
+        response = self._call_with_retry(_invoke_extract)
+        raw_json = (response.text or "").strip()
         elapsed_ms = (time.perf_counter() - t0) * 1000
 
         # Extract usage metadata if available
@@ -152,15 +186,13 @@ class GeminiProvider(LLMProvider):
         self._ensure_init()
         full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
 
-        t0 = time.perf_counter()
-        if self._use_genai:
-            response = self._genai_client.models.generate_content(
-                model=self.model_id,
-                contents=full_prompt,
-                config={"temperature": self.temperature},
-            )
-            res_text = response.text or ""
-        else:
+        def _invoke_generate() -> Any:
+            if self._use_genai:
+                return self._genai_client.models.generate_content(
+                    model=self.model_id,
+                    contents=full_prompt,
+                    config={"temperature": self.temperature},
+                )
             import warnings
 
             with warnings.catch_warnings():
@@ -168,9 +200,11 @@ class GeminiProvider(LLMProvider):
                 from vertexai.generative_models import GenerationConfig
 
                 gen_config = GenerationConfig(temperature=self.temperature)
-                response = self._client.generate_content(full_prompt, generation_config=gen_config)
-                res_text = response.text or ""
+                return self._client.generate_content(full_prompt, generation_config=gen_config)
 
+        t0 = time.perf_counter()
+        response = self._call_with_retry(_invoke_generate)
+        res_text = response.text or ""
         elapsed_ms = (time.perf_counter() - t0) * 1000
 
         usage: dict[str, int] = {}

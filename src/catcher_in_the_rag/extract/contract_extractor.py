@@ -263,6 +263,11 @@ class HybridContractExtractor:
 
         Tracks attempts, successes, and fallbacks transparently.
         """
+        # When running under offline stub provider (tests/CI), rule extractor is the intended offline path
+        if getattr(self.provider, "provider_type", None) == "stub":
+            self.last_method_used = "rule_based"
+            return self.rule_extractor.extract(raw_text)
+
         self.llm_attempts += 1
         try:
             contract = self.provider.extract_structured(

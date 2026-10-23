@@ -193,6 +193,19 @@ resource "google_cloud_run_v2_service" "api" {
         name  = "EMBEDDING_PROVIDER"
         value = "vertex_ai"
       }
+      env {
+        name = "DEMO_ACCESS_PIN"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.demo_access_pin.secret_id
+            version = "latest"
+          }
+        }
+      }
+      env {
+        name  = "ALLOW_PUBLIC_STUB"
+        value = "true"
+      }
 
       startup_probe {
         http_get {
@@ -274,6 +287,15 @@ resource "google_cloud_run_v2_service" "ui" {
         name  = "API_URL"
         value = google_cloud_run_v2_service.api.uri
       }
+      env {
+        name = "DEMO_ACCESS_PIN"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.demo_access_pin.secret_id
+            version = "latest"
+          }
+        }
+      }
 
       startup_probe {
         http_get {
@@ -310,12 +332,12 @@ resource "google_cloud_run_v2_service" "ui" {
   ]
 }
 
-# Public invoker access for demo showcase
-resource "google_cloud_run_v2_service_iam_member" "api_public" {
+# Private API: Invokable exclusively by the UI Service Account (Cloud Run IAM)
+resource "google_cloud_run_v2_service_iam_member" "api_private_ui_invoker" {
   location = google_cloud_run_v2_service.api.location
   name     = google_cloud_run_v2_service.api.name
   role     = "roles/run.invoker"
-  member   = "allUsers"
+  member   = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
 
 resource "google_cloud_run_v2_service_iam_member" "ui_public" {
@@ -350,7 +372,7 @@ resource "google_billing_budget" "catcher_budget" {
   }
   threshold_rules {
     threshold_percent = 1.00
-    basis             = "CURRENT_SPEND"
+    spend_basis       = "CURRENT_SPEND"
   }
 
   depends_on = [google_project_service.apis]

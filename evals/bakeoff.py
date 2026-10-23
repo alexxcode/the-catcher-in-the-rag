@@ -22,6 +22,7 @@ from catcher_in_the_rag.providers.factory import get_llm_provider
 from catcher_in_the_rag.providers.tracing import get_tracer
 from catcher_in_the_rag.schemas.contract import Contract
 from evals.extraction_eval import evaluate_contract_extraction
+from evals.provenance import get_provenance_metadata
 
 
 @dataclass
@@ -290,8 +291,18 @@ def save_bakeoff_report(
     report_file = out_path / f"bakeoff_report_{ts}.json"
     latest_file = out_path / "bakeoff_latest.json"
 
+    provenance = get_provenance_metadata(
+        {
+            "models_evaluated": [r.model_id for r in results],
+        }
+    )
+
     data = {
         "timestamp": datetime.now(UTC).isoformat(),
+        "git_commit_sha": provenance["git_commit_sha"],
+        "command": provenance["command"],
+        "provenance": provenance,
+        "sample_size": results[0].sample_size if results else 0,
         "candidates": [asdict(r) for r in results],
     }
 

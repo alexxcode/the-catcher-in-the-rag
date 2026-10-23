@@ -84,6 +84,8 @@ class EvaluationReport(BaseModel):
 
     version: str = "0.4.0"
     timestamp: str
+    git_commit_sha: str = ""
+    command: str = ""
     environment: str = "offline_stub"
     config_name: str = "baseline"
     total_packages: int

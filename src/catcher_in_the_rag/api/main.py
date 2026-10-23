@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import os
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -35,6 +37,64 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── In-Memory Rate Limiter ───────────────────────────────────────────────────
+_RATE_LIMIT_BUCKET: dict[str, list[float]] = {}
+RATE_LIMIT_WINDOW_SECONDS = 60.0
+DEFAULT_MAX_RPM = 30
+
+
+def _enforce_rate_limit(client_ip: str) -> None:
+    """Enforce rolling rate limit per IP to prevent API exhaustion and DoS."""
+    now = time.time()
+    max_rpm = int(os.getenv("RATE_LIMIT_RPM", str(DEFAULT_MAX_RPM)))
+    bucket = _RATE_LIMIT_BUCKET.setdefault(client_ip, [])
+    # Evict timestamps outside rolling window
+    valid_bucket = [t for t in bucket if now - t < RATE_LIMIT_WINDOW_SECONDS]
+    if len(valid_bucket) >= max_rpm:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded (maximum {max_rpm} requests per minute). Try again shortly.",
+        )
+    valid_bucket.append(now)
+    _RATE_LIMIT_BUCKET[client_ip] = valid_bucket
+
+
+def _resolve_llm_provider(
+    x_api_key: str | None = None,
+    authorization: str | None = None,
+) -> Any:
+    """Determine LLM provider based on PIN authentication to safeguard LLM budget.
+
+    Spend Safeguard:
+    - If DEMO_ACCESS_PIN is configured and verified (via X-API-Key or Authorization Bearer),
+      returns the active production provider (e.g., vertex_ai).
+    - If unauthenticated:
+      - If ALLOW_PUBLIC_STUB=true (default): executes safely using zero-cost offline stub.
+      - If ALLOW_PUBLIC_STUB=false: rejects with 401 Unauthorized.
+    - If DEMO_ACCESS_PIN is not configured (local dev): returns active default provider.
+    """
+    configured_pin = os.getenv("DEMO_ACCESS_PIN", "").strip()
+    if not configured_pin:
+        return get_llm_provider()
+
+    token = None
+    if x_api_key:
+        token = x_api_key.strip()
+    elif authorization and authorization.lower().startswith("bearer "):
+        token = authorization[7:].strip()
+
+    if token == configured_pin:
+        return get_llm_provider()
+
+    allow_stub = os.getenv("ALLOW_PUBLIC_STUB", "true").lower() in ("1", "true", "yes")
+    if allow_stub:
+        return get_llm_provider(provider_type="stub")
+
+    raise HTTPException(
+        status_code=401,
+        detail="Unauthorized: valid DEMO_ACCESS_PIN required via X-API-Key or Bearer token.",
+    )
+
 
 class HealthResponse(BaseModel):
     status: str = "ok"
@@ -58,6 +118,7 @@ class AuditResponse(BaseModel):
     bartleby_abstained: bool
     bartleby_reason: str | None = None
     requires_human_review: bool
+    execution_provider: str = "default"
 
 
 class ReviewOverrideRequest(BaseModel):
@@ -149,8 +210,18 @@ def get_package(package_id: str, data_dir: str = "data/synthetic") -> dict[str, 
 
 
 @app.post("/api/audit", response_model=AuditResponse)
-def audit_package_endpoint(req: AuditRequest, data_dir: str = "data/synthetic") -> AuditResponse:
+def audit_package_endpoint(
+    req: AuditRequest,
+    request: Request,
+    data_dir: str = "data/synthetic",
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> AuditResponse:
     """Execute the end-to-end audit agent on a package."""
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    _enforce_rate_limit(client_ip)
+    provider = _resolve_llm_provider(x_api_key=x_api_key, authorization=authorization)
+
     package_to_audit: ProcurementPackage | dict[str, Any]
 
     if req.package is not None:
@@ -170,7 +241,8 @@ def audit_package_endpoint(req: AuditRequest, data_dir: str = "data/synthetic") 
             detail="Either package_id or package payload must be provided",
         )
 
-    final_state = audit_pipeline(package_to_audit)
+    final_state = audit_pipeline(package_to_audit, llm_provider=provider)
+    provider_name = getattr(provider, "provider_type", type(provider).__name__)
 
     return AuditResponse(
         package_id=package_id,
@@ -181,6 +253,7 @@ def audit_package_endpoint(req: AuditRequest, data_dir: str = "data/synthetic") 
         bartleby_abstained=final_state.get("bartleby_abstained", False),
         bartleby_reason=final_state.get("bartleby_reason"),
         requires_human_review=final_state.get("requires_human_review", False),
+        execution_provider=str(provider_name),
     )
 
 

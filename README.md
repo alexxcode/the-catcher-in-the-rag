@@ -138,42 +138,67 @@ El harness de evaluación somete al RAG híbrido (BM25 + Dense Vectors) a dos ti
 1. **Recuperación Positiva (Cláusula Presente):** Evalúa si, ante una consulta sobre una política de auditoría (ej. *"What are the penalty terms for late delivery?"*), el motor RAG es capaz de posicionar la cláusula real anotada por los abogados dentro de su ranking.
 2. **Evaluación de Ausencia Negativa (Anti-Alucinación de Bartleby):** Se evalúan consultas sobre cláusulas que el contrato expresamente **no contiene** (`answers: []`). Si el sistema inventa una cláusula o cita un fragmento irrelevante para sancionar al proveedor, comete una *afirmación espuria*; si emite `ABSTAIN` y `NO_EVIDENCE`, se considera una **abstención correcta**.
 
-#### D. Resultados Empíricos Oficiales
-Resultados certificados sobre 50 contratos auténticos de la SEC (Train: 30, Val: 20) indexados con embeddings densos **`text-embedding-005`** y BM25 mediante [`evals/reports/cuad_benchmark_latest.json`](evals/reports/cuad_benchmark_latest.json):
+#### D. Resultados Empíricos y Reproducibilidad
+Los resultados se serializan automáticamente con procedencia criptográfica (SHA de commit de Git, timestamp ISO con microsegundos y comando exacto) en [`evals/reports/cuad_benchmark_latest.json`](evals/reports/cuad_benchmark_latest.json):
 
-| Métrica | Valor Obtenido | Intervalo de Confianza (95% Wilson) | Interpretación y Significado Práctico |
-|---|:---:|:---:|---|
-| **Recall@1** | `41.2%` | `[33.9%, 48.9%]` | La cláusula exacta es la primera recomendación del ranking en 4 de cada 10 consultas. |
-| **Recall@3** | `72.1%` | `[64.8%, 78.4%]` | Casi tres cuartas partes de las cláusulas críticas están en el top 3 de relevancia. |
-| **Recall@5** | **81.8%** | `[75.2%, 87.0%]` | Cobertura robusta en contratos de 50.000 a 175.000 caracteres con RAG híbrido real. |
-| **Mean Reciprocal Rank (MRR)** | **0.5638** | — | Posición recíproca media superior a 0.50 en textos legales densos no estructurados. |
-| **Abstención Correcta (Negativos)** | **97.3%** (180/185) | **`[93.8%, 98.9%]`** | Ante cláusulas ausentes reales (`answers: []`), Bartleby rehúsa alucinar penalidades. |
-| **Abstención Errónea (Positivos)** | **3.0%** (5/165) | **`[1.3%, 6.9%]`** | Tasa mínima de falsos negativos: rara vez declina evaluar una cláusula presente y válida. |
-| **Tasa de Falsa Afirmación Espuria** | **2.7%** (5/185) | — | Mínimo residuo de falsos positivos en documentos corporativos reales. |
-| **Latencia Media de Recuperación** | **78.5 ms** | — | Indexación híbrida BM25 + `text-embedding-005` ejecutada en sub-décima de segundo. |
+* **Comando de Reproducción Offline (Stub / CI):** `make eval-cuad` o `uv run python -m evals.run --eval-cuad`
+* **Comando con Embeddings Reales Vertex AI:** `EMBEDDING_PROVIDER=vertex_ai uv run python -m evals.run --eval-cuad`
+* **Commit de Referencia:** Verificado en Git SHA registrado en metadata de reporte.
+
+| Métrica | Modo Offline (`stub-hash-768d`) | Vertex AI (`text-embedding-005` Live) | Intervalo de Confianza (95% Wilson) | Interpretación y Significado Práctico |
+|---|:---:|:---:|:---:|---|
+| **Recall@1** | 35.5% | **41.2%** | `[33.9%, 48.9%]` | La cláusula exacta es la primera recomendación del ranking en 4 de cada 10 consultas. |
+| **Recall@3** | 72.4% | **72.1%** | `[64.8%, 78.4%]` | Casi tres cuartas partes de las cláusulas críticas están en el top 3 de relevancia. |
+| **Recall@5** | 81.6% | **81.8%** | `[75.2%, 87.0%]` | Cobertura robusta en contratos de 50.000 a 175.000 caracteres con RAG híbrido. |
+| **MRR** | 0.5336 | **0.5638** | — | Posición recíproca media superior a 0.50 en textos legales densos no estructurados. |
+| **Abstención en Negativos** | 51.5% | **97.3%** | `[93.8%, 98.9%]` | Ante cláusulas ausentes reales (`answers: []`), Bartleby rehúsa alucinar penalidades. |
+| **Abstención Errónea (Positivos)** | 14.5% | **3.0%** | `[1.3%, 6.9%]` | Tasa mínima de falsos negativos: rara vez declina evaluar una cláusula presente y válida. |
+| **Falsa Afirmación Espuria** | 48.5% | **2.7%** | — | Residuo mínimo de falsos positivos en documentos corporativos reales con dense embeddings. |
 
 #### E. Reproducción del Benchmark en Local
-Cualquier usuario puede reproducir este benchmark ejecutando:
+Cualquier usuario puede verificar y regenerar estos reportes ejecutando:
 ```bash
 make download-data   # Descarga los contratos de la SEC y releases OCDS
-make eval-cuad       # Ejecuta la suite de evaluación CUAD
+make eval-cuad       # Ejecuta la suite de evaluación CUAD con procedencia (Git SHA + microsegundos)
 ```
-Los resultados se serializan automáticamente en `evals/reports/cuad_benchmark_latest.json` y se grafican de forma interactiva en las pantallas **"CUAD Real SEC Contracts"** y **"Evaluation Dashboard"** de la interfaz Streamlit.
+Los resultados se serializan en `evals/reports/cuad_benchmark_latest.json` y se grafican de forma interactiva en las pantallas **"CUAD Real SEC Contracts"** y **"Evaluation Dashboard"** de la interfaz Streamlit.
 
 ---
 
 ### 3. Bake-Off de Extracción en Google Cloud Vertex AI
-Comparativa transparente evaluada sobre contratos con redacción y estilos no estándar (`style="diverse"`, $n=50$) tras el retiro formal de la serie Gemini 2.5 en Vertex AI el 20 de octubre de 2026 ([`evals/reports/bakeoff_latest.json`](evals/reports/bakeoff_latest.json)):
+Comparativa reproducible evaluada sobre contratos sintéticos con redacción y estilos no estándar (`style="diverse"`, $n=50$) tras el retiro formal de la serie Gemini 2.5 en Vertex AI el 20 de octubre de 2026.
 
-| Modelo / Candidato | Proveedor | Latencia Media | Costo Estimado / 1k docs | Tasa de Error | Exactitud Global (Diverse) | Exactitud Rate Sheet |
-|---|---|:---:|:---:|:---:|:---:|:---:|
-| **Rule-Based Baseline** | Regex / Heurística | **0.6 ms** | **$0.00** | 0.0% | **0.0%** (falla en redacción diversa) | **0.0%** (tablas no estándar) |
-| **Gemini 3.5 Flash (GA)** | Vertex AI (ADC) | **5,120.4 ms** | **$0.18** | **0.0%** | **100.0%** (extracción semántica) | **100.0%** |
-| **Gemini 3.8 Flash (GA)** | Vertex AI (ADC) | **6,240.2 ms** | **$0.24** | **0.0%** | **100.0%** (extracción semántica) | **100.0%** |
+* **Comando de Reproducción:** `make eval-bakeoff` o `uv run python -m evals.run --bakeoff`
+* **Reporte Oficial:** [`evals/reports/bakeoff_latest.json`](evals/reports/bakeoff_latest.json)
 
-> **Hallazgo Empírico Clave:** Cuando los contratos se redactan con variabilidad narrativa (`style="diverse"`: ej. *"Agreed Cap of $X"*, *"within N calendar days following invoice presentation"*), el extractor determinista por regex **colapsa al 0%** de exactitud. Los modelos **Gemini 3.5 Flash** y **Gemini 3.8 Flash** procesan con 100% de fidelidad los esquemas estructurados a un costo de fracción de centavo por contrato ($0.18 - $0.24 por cada 1.000 documentos).
+| Modelo / Candidato | Proveedor | Latencia Media | Costo / 1k docs | Error% | Payment Terms | Rate Sheet | Exactitud Global Conjunta |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Rule-Based Baseline** | `rule_based` (Regex) | **0.6 ms** | **$0.00** | 0.0% | **100.0%** | **0.0%** (falla en tablas no estándar) | **0.0%** (colapso conjunto) |
+| **Gemini 3.5 Flash (GA)** | `vertex_ai` (ADC) | **5,120.4 ms** | **$0.18** | **0.0%** | **100.0%** | **100.0%** (extracción semántica) | **100.0%** |
+| **Gemini 3.8 Flash (GA)** | `vertex_ai` (ADC) | **6,240.2 ms** | **$0.24** | **0.0%** | **100.0%** | **100.0%** (extracción semántica) | **100.0%** |
+| *Modo Offline (Sin Credenciales)* | `stub` (Simulación) | 0.2 ms | $0.00 | 100.0% | 0.0% | 0.0% | 0.0% (rotulado transparentemente) |
+
+> **Diagnóstico Forense y Fidelidad de la Medición:**
+> En los contratos con redacción variada (`style="diverse"`), el extractor por reglas deterministas captura con éxito los plazos de pago estándar (100%), pero **colapsa al 0% en la tabla de tarifas** debido a la dispersión de estructuras narrativas, llevando la exactitud conjunta a 0.0%. Los modelos **Gemini 3.5 Flash** y **Gemini 3.8 Flash** en Vertex AI logran un 100% de extracción fiel con esquema estructurado estricto.
 >
-> **Salvaguarda de Ciclo de Vida y Fail-Fast:** Se implementó una verificación activa de salud (`check_model_health()` y comando `make check-models`) que comprueba la disponibilidad en Vertex AI y detiene inmediatamente el servicio si el modelo es marcado como retirado o deprecado por Google.
+> **Salvaguarda de Ciclo de Vida y Fail-Fast:**
+> - `gemini-3.5-flash` es GA en Vertex AI con fecha de retiro fijada para el **19 de mayo de 2027 o posterior** (disponible en `us-central1`).
+> - `gemini-3.8-flash` es GA con retiro para el **2 de septiembre de 2027 o posterior** (regiones: `global`, multirregión `us`/`eu`).
+> - Se implementó un canario semanal en GitHub Actions (`.github/workflows/model_canary.yml`) y sonda de verificación local (`make check-models`).
+
+---
+
+### 4. Seguridad de la API y Control Estricto de Gasto
+Para prevenir la degradación de presupuesto y proteger los modelos en Vertex AI:
+
+1. **API Privada en Cloud Run (IAM de Mínimo Privilegio):**
+   El servicio Cloud Run de la API elimina `allUsers` y exige autenticación IAM. Únicamente la cuenta de servicio de la UI (`catcher-run-sa`) con el rol `roles/run.invoker` tiene autorización de invocación directa.
+2. **Protección de `/api/audit` con PIN y Rate Limiting:**
+   El endpoint `/api/audit` valida la cabecera `X-API-Key` o `Authorization: Bearer <PIN>` sincronizada desde Secret Manager (`demo-access-pin`). Incluye un limitador de tasa en memoria (máximo 30 peticiones por minuto por IP).
+3. **Fallback Seguro en Modo Público (Zero-Cost Stub):**
+   Las peticiones no autenticadas que lleguen por acceso público ejecutan automáticamente la auditoría utilizando el proveedor `stub` offline ($0.00 de costo, sin llamadas a Vertex AI), garantizando que ningún actor externo pueda drenar la cuota de Google Cloud.
+4. **Alertas Presupuestarias y Circuit Breaker:**
+   Terraform provisiona una alerta de facturación en Google Cloud al 50%, 80% y 100% del presupuesto mensual configurado.
 
 ---
 
@@ -257,7 +282,7 @@ make setup
 make format
 make lint
 
-# 4. Correr la suite completa de 61 tests unitarios (83% de cobertura)
+# 4. Correr la suite completa de 69 tests unitarios e integrales (84% de cobertura)
 make test
 ```
 
@@ -331,7 +356,7 @@ the-catcher-in-the-rag/
 ├── evals/                     # Harness de evaluación, runners y calibradores
 │   └── reports/               # Reportes canónicos JSON versionados en Git
 ├── ui/                        # Interfaz interactiva de usuario en Streamlit
-└── tests/                     # Suite de 64 tests unitarios e integrales (82% cobertura)
+└── tests/                     # Suite de 69 tests unitarios e integrales (84% cobertura)
 ```
 
 ---

@@ -241,8 +241,14 @@ class EvaluationRunner:
             else 0.0
         )
 
+        from evals.provenance import get_provenance_metadata
+
+        provenance = get_provenance_metadata({"mode": self.mode})
+
         return EvaluationReport(
             timestamp=datetime.now(UTC).isoformat(),
+            git_commit_sha=provenance["git_commit_sha"],
+            command=provenance["command"],
             config_name=self.mode,
             total_packages=total_pkgs,
             mean_latency_ms=mean_latency,
@@ -256,5 +262,6 @@ class EvaluationRunner:
             metadata={
                 "duration_seconds": round(time.perf_counter() - start_eval_time, 2),
                 "mode": self.mode,
+                "provenance": provenance,
             },
         )

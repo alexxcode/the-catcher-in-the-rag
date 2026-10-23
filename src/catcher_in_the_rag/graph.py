@@ -39,6 +39,7 @@ class AuditState(TypedDict, total=False):
     bartleby_reason: str | None
     decision: Decision
     requires_human_review: bool
+    llm_extraction_failed: bool
 
 
 NodeFn = Callable[[AuditState], dict[str, Any]]
@@ -62,8 +63,16 @@ def create_extract_node(
         else:
             pkg = extractor.extract_package(raw)
 
+        llm_extraction_failed = False
         if extract_contract_from_text and pkg.contract and pkg.contract.raw_text:
             extracted_contract = extractor.extract_contract(pkg.contract.raw_text)
+            if (
+                hasattr(extractor, "contract_extractor")
+                and getattr(extractor.contract_extractor, "last_method_used", None)
+                == "fallback_rule"
+            ):
+                llm_extraction_failed = True
+
             updated_contract = pkg.contract.model_copy(
                 update={
                     "payment_terms_days": extracted_contract.payment_terms_days,
@@ -78,6 +87,8 @@ def create_extract_node(
         return {
             "package_id": pkg.package_id,
             "package": pkg,
+            "llm_extraction_failed": llm_extraction_failed,
+            "requires_human_review": llm_extraction_failed,
         }
 
     return extract_node
@@ -122,6 +133,8 @@ def create_policy_node(policy_engine: PolicyEngine) -> NodeFn:
         abstained = state.get("bartleby_abstained", False)
         reason = state.get("bartleby_reason")
 
+        extraction_failed = state.get("llm_extraction_failed", False)
+
         decision = policy_engine.evaluate(
             package_id=pkg.package_id,
             invoice_total=pkg.invoice.total_amount,
@@ -129,6 +142,16 @@ def create_policy_node(policy_engine: PolicyEngine) -> NodeFn:
             bartleby_abstained=abstained,
             bartleby_reason=reason,
         )
+        if extraction_failed:
+            decision = decision.model_copy(
+                update={
+                    "requires_human_review": True,
+                    "justification": (
+                        f"{decision.justification} [WARNING: LLM extraction degraded to heuristics "
+                        f"due to provider error; human review mandatory.]"
+                    ),
+                }
+            )
         return {
             "decision": decision,
             "requires_human_review": decision.requires_human_review,
