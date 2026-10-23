@@ -10,8 +10,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-load_dotenv()
-
 from catcher_in_the_rag.graph import audit_pipeline
 from catcher_in_the_rag.schemas import (
     Decision,
@@ -19,6 +17,8 @@ from catcher_in_the_rag.schemas import (
     Finding,
     ProcurementPackage,
 )
+
+load_dotenv()
 
 app = FastAPI(
     title="The Catcher in the RAG — Audit API",
