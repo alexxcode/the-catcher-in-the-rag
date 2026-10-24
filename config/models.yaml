@@ -22,6 +22,7 @@ extraction_llm:
   retirement_date: "2027-05-19"
   supported_regions: ["us-central1", "us-east4", "europe-west1"]
   temperature: 0.0   # deterministic extraction
+  thinking_budget: 0  # minimize latency and token consumption for structured extraction
 
 clause_llm:
   provider: vertex_ai
@@ -29,6 +30,7 @@ clause_llm:
   retirement_date: "2027-05-19"
   supported_regions: ["us-central1", "us-east4", "europe-west1"]
   temperature: 0.0
+  thinking_budget: 0  # low latency verification guard
 
 # ── Embedding model ───────────────────────────────────────────────────────────
 embeddings:

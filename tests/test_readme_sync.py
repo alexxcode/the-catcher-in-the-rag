@@ -115,3 +115,20 @@ def test_table_numbers_grounded_in_json_reports() -> None:
     assert f"{cuad_data['cuad_optimal_threshold']:.2f}" in bold_metrics
     assert f"{cuad_data['validation_f1_at_optimal']:.4f}" in bold_metrics
     assert f"{cuad_data['auc_roc_val']:.4f}" in bold_metrics
+
+
+def test_committed_reports_are_not_git_dirty() -> None:
+    """Verify that committed benchmark reports in evals/reports/ do not have git_dirty: true."""
+    report_files = [
+        Path("evals/reports/bartleby_llm_verification_report.json"),
+        Path("evals/reports/cuad_benchmark_latest.json"),
+        Path("evals/reports/bakeoff_latest.json"),
+    ]
+    for rep_path in report_files:
+        if rep_path.exists():
+            data = json.loads(rep_path.read_text(encoding="utf-8"))
+            if "git_dirty" in data:
+                assert data["git_dirty"] is False, (
+                    f"Report {rep_path} was generated from a dirty git tree (git_dirty: True). "
+                    "Reports must be generated with a clean git working directory."
+                )

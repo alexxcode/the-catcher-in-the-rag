@@ -30,6 +30,7 @@ class GeminiProvider(LLMProvider):
         self,
         config: dict[str, Any] | None = None,
         model_id: str | None = None,
+        thinking_budget: int | None = None,
     ) -> None:
         self.config = config or {}
         self.project = os.getenv(
@@ -42,6 +43,15 @@ class GeminiProvider(LLMProvider):
             model_candidate = "gemini-3.5-flash"
         self.model_id = model_candidate
         self.temperature = float(ext_cfg.get("temperature", 0.0))
+
+        # Configurable thinking budget (default to GEMINI_THINKING_BUDGET env var if set)
+        tb = thinking_budget if thinking_budget is not None else ext_cfg.get("thinking_budget")
+        if tb is None and os.getenv("GEMINI_THINKING_BUDGET") is not None:
+            try:
+                tb = int(os.getenv("GEMINI_THINKING_BUDGET", "0"))
+            except ValueError:
+                tb = None
+        self.thinking_budget = tb
 
         # Model location routing: Gemini 3.5 & 3.8 Flash GA endpoints are hosted in global / multi-region
         default_region = self.config.get("region", "us-central1")
@@ -141,14 +151,17 @@ class GeminiProvider(LLMProvider):
 
         def _invoke_extract() -> Any:
             if self._use_genai:
+                cfg: dict[str, Any] = {
+                    "temperature": self.temperature,
+                    "response_mime_type": "application/json",
+                    "response_schema": schema,
+                }
+                if self.thinking_budget is not None:
+                    cfg["thinking_config"] = {"thinking_budget": self.thinking_budget}
                 return self._genai_client.models.generate_content(
                     model=self.model_id,
                     contents=prompt,
-                    config={
-                        "temperature": self.temperature,
-                        "response_mime_type": "application/json",
-                        "response_schema": schema,
-                    },
+                    config=cfg,
                 )
             import warnings
 
@@ -167,20 +180,32 @@ class GeminiProvider(LLMProvider):
         raw_json = (response.text or "").strip()
         elapsed_ms = (time.perf_counter() - t0) * 1000
 
-        # Extract usage metadata if available
+        # Extract usage metadata if available (including thoughts tokens billed as output)
         usage: dict[str, int] = {}
         if hasattr(response, "usage_metadata") and response.usage_metadata:
+            p_tok = getattr(response.usage_metadata, "prompt_token_count", 0)
+            c_tok = getattr(response.usage_metadata, "candidates_token_count", 0)
+            tot_tok = getattr(response.usage_metadata, "total_token_count", 0)
+            th_tok = getattr(response.usage_metadata, "thoughts_token_count", 0) or getattr(
+                response.usage_metadata, "thinking_token_count", 0
+            )
+            if not th_tok and tot_tok > (p_tok + c_tok):
+                th_tok = tot_tok - (p_tok + c_tok)
+
+            # In Vertex AI pricing, reasoning/thinking tokens are billed at the candidate token rate
+            billable_output = c_tok if (c_tok >= (tot_tok - p_tok)) else (c_tok + (th_tok or 0))
+
             usage = {
-                "input": getattr(response.usage_metadata, "prompt_token_count", 0),
-                "output": getattr(response.usage_metadata, "candidates_token_count", 0),
-                "total": getattr(response.usage_metadata, "total_token_count", 0),
+                "input": p_tok,
+                "output": billable_output,
+                "thoughts": th_tok or 0,
+                "total": tot_tok,
             }
-            self.total_prompt_tokens = getattr(self, "total_prompt_tokens", 0) + usage.get(
-                "input", 0
+            self.total_prompt_tokens = getattr(self, "total_prompt_tokens", 0) + p_tok
+            self.total_candidate_tokens = (
+                getattr(self, "total_candidate_tokens", 0) + billable_output
             )
-            self.total_candidate_tokens = getattr(self, "total_candidate_tokens", 0) + usage.get(
-                "output", 0
-            )
+            self.total_thoughts_tokens = getattr(self, "total_thoughts_tokens", 0) + (th_tok or 0)
 
         tracer = get_tracer()
         tracer.trace_generation(
@@ -220,10 +245,13 @@ class GeminiProvider(LLMProvider):
 
         def _invoke_generate() -> Any:
             if self._use_genai:
+                cfg: dict[str, Any] = {"temperature": self.temperature}
+                if self.thinking_budget is not None:
+                    cfg["thinking_config"] = {"thinking_budget": self.thinking_budget}
                 return self._genai_client.models.generate_content(
                     model=self.model_id,
                     contents=full_prompt,
-                    config={"temperature": self.temperature},
+                    config=cfg,
                 )
             import warnings
 
@@ -241,11 +269,28 @@ class GeminiProvider(LLMProvider):
 
         usage: dict[str, int] = {}
         if hasattr(response, "usage_metadata") and response.usage_metadata:
+            p_tok = getattr(response.usage_metadata, "prompt_token_count", 0)
+            c_tok = getattr(response.usage_metadata, "candidates_token_count", 0)
+            tot_tok = getattr(response.usage_metadata, "total_token_count", 0)
+            th_tok = getattr(response.usage_metadata, "thoughts_token_count", 0) or getattr(
+                response.usage_metadata, "thinking_token_count", 0
+            )
+            if not th_tok and tot_tok > (p_tok + c_tok):
+                th_tok = tot_tok - (p_tok + c_tok)
+
+            billable_output = c_tok if (c_tok >= (tot_tok - p_tok)) else (c_tok + (th_tok or 0))
+
             usage = {
-                "input": getattr(response.usage_metadata, "prompt_token_count", 0),
-                "output": getattr(response.usage_metadata, "candidates_token_count", 0),
-                "total": getattr(response.usage_metadata, "total_token_count", 0),
+                "input": p_tok,
+                "output": billable_output,
+                "thoughts": th_tok or 0,
+                "total": tot_tok,
             }
+            self.total_prompt_tokens = getattr(self, "total_prompt_tokens", 0) + p_tok
+            self.total_candidate_tokens = (
+                getattr(self, "total_candidate_tokens", 0) + billable_output
+            )
+            self.total_thoughts_tokens = getattr(self, "total_thoughts_tokens", 0) + (th_tok or 0)
 
         tracer = get_tracer()
         tracer.trace_generation(

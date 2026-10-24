@@ -36,6 +36,17 @@ class BartlebyAssessment(BaseModel):
     )
 
 
+_LEGAL_TOPIC_DESCRIPTIONS: dict[str, str] = {
+    "governing law": "governing law, jurisdiction, choice of law, or forum selection",
+    "payment terms": "payment terms, invoice payment schedules, late fees, or billing procedures",
+    "liquidated damages": "liquidated damages, predetermined damage amounts, or penalty fees for default",
+    "cap on liability": "cap or limitation on liability, including aggregate monetary liability limits or exclusion/waiver of consequential, punitive, or indirect damages",
+    "audit rights": "audit or inspection rights regarding books, records, facilities, or work performance",
+    "termination": "termination rights, termination for convenience, termination for cause, or notice periods",
+    "warranties": "warranties, representations, disclaimers of warranties, or covenants",
+}
+
+
 class BartlebyGuard:
     """Abstention guard ensuring the agent declines to guess when contract evidence is absent."""
 
@@ -68,15 +79,19 @@ class BartlebyGuard:
             )
             reason: str = Field(..., description="Brief rationale")
 
+        topic_lower = query_topic.strip().lower()
+        topic_desc = _LEGAL_TOPIC_DESCRIPTIONS.get(topic_lower)
+        topic_spec = f"{query_topic} ({topic_desc})" if topic_desc else query_topic
+
         prompt = (
             f"You are a strict legal contract auditor. Determine whether the provided contract passage "
             f"actually addresses or contains legal terms regarding the requested topic.\n\n"
-            f"Requested Topic: {query_topic}\n"
+            f"Requested Topic: {topic_spec}\n"
             f"Contract Clause Title: {candidate_clause.title}\n"
             f'Contract Clause Text:\n"""{candidate_clause.text[:2500]}"""\n\n'
-            f"Return is_relevant=true ONLY if this passage specifically and directly governs or sets obligations/rights "
+            f"Return is_relevant=true if this passage specifically and directly governs, limits, or sets obligations/rights "
             f"for '{query_topic}'. Return is_relevant=false if the passage is unrelated, merely mentions a tangential word, "
-            f"or does not contain substantive terms on '{query_topic}'."
+            f"or does not contain substantive terms on this topic."
         )
 
         try:

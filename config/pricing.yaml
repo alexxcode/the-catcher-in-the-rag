@@ -1,23 +1,34 @@
 # ── Pricing Configuration ─────────────────────────────────────────────────────
-# Official Vertex AI pay-as-you-go pricing per 1 Million tokens.
-# Source: https://cloud.google.com/vertex-ai/pricing
+# Official Vertex AI / Google Cloud Generative AI pricing per 1 Million tokens.
+# Sources:
+#   - Google Cloud Vertex AI Pricing: https://cloud.google.com/vertex-ai/generative-ai/pricing
+#   - Gemini 3.5 Flash Pricing Reference: https://www.getmaxim.ai/bifrost/llm-cost-calculator/provider/vertex_ai/model/gemini-3.5-flash
 # Last verified: 2026-10-24
 #
 # Rates apply to standard prompt tiers (<= 128k context window).
 
 last_verified: "2026-10-24"
-source: "https://cloud.google.com/vertex-ai/pricing"
+source: "https://cloud.google.com/vertex-ai/generative-ai/pricing"
 
 models:
   gemini-3.5-flash:
-    prompt_cost_per_1m: 0.50
-    candidate_cost_per_1m: 3.00
-    description: "Vertex AI standard pay-as-you-go rate for Gemini 3.5 Flash"
+    prompt_cost_per_1m: 1.50
+    candidate_cost_per_1m: 9.00
+    description: "Vertex AI standard pay-as-you-go rate for Gemini 3.5 Flash ($1.50/1M prompt, $9.00/1M candidate)"
+    notes: "Verified via Vertex AI pricing and Maxim LLM calculator (October 2026)"
 
   gemini-3.8-flash:
-    prompt_cost_per_1m: 0.50
-    candidate_cost_per_1m: 3.00
-    description: "Vertex AI standard pay-as-you-go rate for Gemini 3.8 Flash"
+    prompt_cost_per_1m: 0.75
+    candidate_cost_per_1m: 3.75
+    description: "Vertex AI introductory promotional rate for Gemini 3.8 Flash (active until Dec 31, 2026)"
+    notes: "Introductory price: $0.75/1M prompt, $3.75/1M candidate. Reverts to standard rate on Jan 1, 2027."
+    effective_until: "2026-12-31"
+
+  gemini-3.8-flash-post-2026:
+    prompt_cost_per_1m: 1.50
+    candidate_cost_per_1m: 7.50
+    description: "Vertex AI standard rate for Gemini 3.8 Flash (effective Jan 1, 2027)"
+    effective_from: "2027-01-01"
 
   gemini-1.5-flash-legacy:
     prompt_cost_per_1m: 0.075

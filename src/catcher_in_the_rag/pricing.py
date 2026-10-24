@@ -12,12 +12,16 @@ _PRICING_CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config" 
 
 _FALLBACK_RATES: dict[str, dict[str, Any]] = {
     "gemini-3.5-flash": {
-        "prompt_cost_per_1m": 0.50,
-        "candidate_cost_per_1m": 3.00,
+        "prompt_cost_per_1m": 1.50,
+        "candidate_cost_per_1m": 9.00,
     },
     "gemini-3.8-flash": {
-        "prompt_cost_per_1m": 0.50,
-        "candidate_cost_per_1m": 3.00,
+        "prompt_cost_per_1m": 0.75,
+        "candidate_cost_per_1m": 3.75,
+    },
+    "gemini-3.8-flash-post-2026": {
+        "prompt_cost_per_1m": 1.50,
+        "candidate_cost_per_1m": 7.50,
     },
     "gemini-1.5-flash-legacy": {
         "prompt_cost_per_1m": 0.075,
@@ -40,7 +44,7 @@ def load_pricing_config() -> dict[str, Any]:
 def get_model_rates(model_id: str) -> tuple[float, float]:
     """Return (prompt_cost_per_1m, candidate_cost_per_1m) for a given model ID.
 
-    If model is unknown, falls back to gemini-3.5-flash standard rates ($0.50 / $3.00).
+    If model is unknown, falls back to gemini-3.5-flash standard rates ($1.50 / $9.00).
     """
     config = load_pricing_config()
     models = config.get("models", {})

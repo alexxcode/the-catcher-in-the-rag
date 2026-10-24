@@ -161,7 +161,7 @@ def run_bartleby_llm_eval(
     for mode in modes_to_test:
         guard = BartlebyGuard(
             thresholds={"min_relevance_score": mode["threshold"], "min_evidence_spans": 1},
-            max_verification_candidates=3,
+            max_verification_candidates=5,
         )
         t_start = time.perf_counter()
 
