@@ -96,16 +96,16 @@ El flujo de auditoría se modela como una máquina de estados dirigida mediante 
 ### 1. Benchmark Sintético (300 Paquetes y Ablaciones)
 Evaluado de forma automatizada sobre 300 paquetes generados proceduralmente con inyección controlada de errores ([`evals/reports/canonical_baseline_report.json`](evals/reports/canonical_baseline_report.json)):
 
-| Métrica de Evaluación | Full RAG (Baseline) | Ablación Sin-RAG (Solo 3-Way) | Impacto / Delta |
+| Métrica de Evaluación | Con Términos Contractuales (Baseline) | Sin Términos (Solo Cotejo 3-Way) | Impacto / Delta |
 |---|:---:|:---:|:---:|
-| **Exactitud Global de Decisión** | **100.0%** (300/300) | **60.0%** (180/300) | **+40.0% Valor del RAG Contractual** |
+| **Exactitud Global de Decisión** | **100.0%** (300/300) | **60.0%** (180/300) | **+40.0% Valor de Términos Contractuales** |
 | **Validez de Citas Verbatim** | **100.0%** (120/120) | N/A | Cero alucinaciones de citas |
-| **Abstención Correcta de Bartleby** | **100.0%** (30/30 en A09) | 0.0% (0/30 en A09) | Detección de silencios contractuales |
+| **Abstención Correcta de Bartleby** | **100.0%** (30/30 en A09*) | 0.0% (0/30 en A09) | Detección de silencios (vía heurística 3a*) |
 | **Tasa de Falsos Positivos (A10)** | **0.0%** (0/30) | 0.0% (0/30) | Paquetes limpios aprobados sin fricción |
-| **Recall@5 de Recuperación** | **100.0%** | N/A | Recuperación multi-sección robusta |
+| **Recall@5 de Recuperación** | **100.0%** | N/A | Recuperación en plantillas sintéticas |
 | **Latencia Media por Paquete** | **9.9 ms** | 1.1 ms | Ejecución determinista local |
 
-> **Conclusión Científica:** Prescindir de la recuperación de cláusulas contractuales degrada la exactitud del sistema en un **40%**, dejando escapar discrepancias críticas en plazos de pago (A04), penalizaciones por entrega tardía (A05) y vigencia de acuerdos (A06).
+> **Nota Metodológica:** Esta ablación evalúa el impacto de aplicar las reglas contractuales (penalizaciones por retraso, plazos de pago netos y topes de precios) frente a un cotejo tripartito puramente aritmético. Prescindir de los términos contractuales estructurados degrada la decisión financiera en un **40%**, dejando escapar cargos indebidos (A04, A05, A06). (*La abstención del 100% en A09 en datos sintéticos depende de la heurística de plantilla 3a descrita abajo; el score de recuperación pura en contratos abiertos se evalúa en CUAD).*
 
 ---
 
@@ -235,11 +235,11 @@ Medición empírica en vivo sobre 15 contratos auténticos de la SEC (CUAD, 105 
 
 *\*Costo estimado a partir de tokens medidos (100,766 prompt / 11,315 candidate, incluyendo tokens de pensamiento contabilizados como salida) y tarifas pay-as-you-go oficiales en Vertex AI ($1.50 / $9.00 por millón de tokens para Gemini 3.5 Flash según [`config/pricing.yaml`](config/pricing.yaml)). Con Gemini 3.8 Flash, el costo estimado resulta en ~$0.88/1k con la tarifa introductoria vigente ($0.75 / $3.75 hasta el 31 de diciembre de 2026) y en ~$1.77/1k con la tarifa estándar ($1.50 / $7.50 a partir del 1 de enero de 2027).*
 
-> **Diagnóstico Empírico: Resolución del Rechazo en Top-k y Cuello de Botella de Recuperación**
-> 1. **Inspección de Casos Rechazados:** La auditoría caso por caso de los 26 casos presentes ([`evals/reports/audit_rejected_cases_report.json`](evals/reports/audit_rejected_cases_report.json)) reveló que las discrepancias iniciales en el top-5 no eran alucinaciones del modelo, sino un sesgo de especificidad léxica en el prompt: en contratos reales de la SEC, categorías como *Cap on Liability* cubren exclusiones de daños indirectos/consecuentes, y *Audit Rights* cubren inspección de obra. Al enriquecer el prompt con el alcance legal canónico de cada categoría, el verificador LLM aceptó **16 de 16 casos (100.0%)** cuando la cláusula correcta estaba presente en el top-5.
-> 2. **El Cuello de Botella es la Recuperación:** En los 26 casos con cláusula presente, la búsqueda léxica/hash ubica la cláusula correcta en el rango #1 solo en el **26.9%** de los casos (7/26), y en el top-5 solo en el **61.5%** (16/26). Cuando la recuperación fracasa completamente trayendo únicamente ruido irrelevante (10 casos), el verificador LLM **rechazó correctamente 8 de los 10 pasajes (80.0%)**, actuando como filtro riguroso de distractoras espurias.
-> 3. **Ganancia Neta en Discriminación:** El filtro semántico eleva la abstención correcta ante ausencias reales del 27.9% al **63.3%**, reduciendo la falsa abstención al **46.2%** (frente al 76.9% original) y alcanzando el Macro F1 más alto de todas las arquitecturas evaluadas (**0.5575**).
-> 4. **Trade-off Operativo:** Añade ~4.5 segundos de latencia media y un costo proyectado de ~$2.41 por cada 1,000 consultas auditadas en Gemini 3.5 Flash (~$0.88 en Gemini 3.8 Flash). Para mitigar la latencia sin pérdida de precisión en clasificación binaria, el proveedor admite `thinking_budget: 0`.
+> **Diagnóstico Empírico: Rendimiento Condicionado del Verificador y Cuello de Botella de Recuperación**
+> 1. **Inspección de Casos Condicionados a Recuperación:** En los 26 casos con cláusula presente ([`evals/reports/bartleby_llm_verification_report.json`](evals/reports/bartleby_llm_verification_report.json)), cuando la recuperación ubicó la cláusula correcta dentro del top-5 (16 casos), el verificador LLM confirmó **12 de 16 casos (75.0%)**. Cuando la recuperación fracasó por completo trayendo únicamente fragmentos irrelevantes (10 casos), el verificador **rechazó correctamente 8 de los 10 pasajes (80.0%)**, actuando como filtro de distractores espurios.
+> 2. **El Cuello de Botella es la Recuperación:** En los 26 casos presentes, la búsqueda léxica/hash ubica la cláusula correcta en el rango #1 solo en el **26.9%** de los casos (7/26), y en el top-5 solo en el **61.5%** (16/26). La tasa de falsa abstención (46.2%, 12/26) está gobernada principalmente por las ausencias en el top-5 recuperado.
+> 3. **Ganancia Neta en Discriminación:** El filtro semántico eleva la abstención correcta ante ausencias reales del 27.9% al **63.3%** (50/79), reduciendo la falsa abstención al **46.2%** (12/26 frente a 17/26 en la corrida inicial sin enriquecimiento de categorías) y alcanzando el Macro F1 más alto de todas las arquitecturas evaluadas (**0.5575**).
+> 4. **Trade-off Operativo:** Añade ~4.5 segundos de latencia media por consulta y un costo proyectado de ~$2.41 por cada 1,000 consultas auditadas en Gemini 3.5 Flash (~$0.88 en Gemini 3.8 Flash). Fijar `thinking_budget: 0` reduce la latencia de 5,153 ms a 4,511 ms (una mejora del 12.5%), suprimiendo tokens de pensamiento redundantes en clasificación binaria.
 
 1. **Split Train / Validation:** Partición reproducible 60/40 (semilla 42) sobre 50 contratos de la SEC para evaluar transferencia sin sobreajuste.
 2. **Métricas sin Umbral (AUC-ROC):** Mide la capacidad intrínseca del ranking de recuperación de separar presencia vs ausencia con independencia del umbral.

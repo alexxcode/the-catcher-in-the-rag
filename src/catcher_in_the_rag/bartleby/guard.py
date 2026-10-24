@@ -55,12 +55,14 @@ class BartlebyGuard:
         thresholds: dict[str, Any] | None = None,
         enable_template_heuristics: bool = True,
         max_verification_candidates: int = 5,
+        category_descriptions: dict[str, str] | None = None,
     ) -> None:
         cfg = thresholds or load_bartleby_thresholds()
         self.min_relevance_score = float(cfg.get("min_relevance_score", 0.5))
         self.min_evidence_spans = int(cfg.get("min_evidence_spans", 1))
         self.enable_template_heuristics = enable_template_heuristics
         self.max_verification_candidates = max_verification_candidates
+        self.category_descriptions = category_descriptions or {}
 
     def verify_relevance_with_llm(
         self,
@@ -80,7 +82,17 @@ class BartlebyGuard:
             reason: str = Field(..., description="Brief rationale")
 
         topic_lower = query_topic.strip().lower()
-        topic_desc = _LEGAL_TOPIC_DESCRIPTIONS.get(topic_lower)
+        topic_desc = self.category_descriptions.get(query_topic) or self.category_descriptions.get(
+            topic_lower
+        )
+        if not topic_desc:
+            for k, v in self.category_descriptions.items():
+                if k.lower() == topic_lower:
+                    topic_desc = v
+                    break
+        if not topic_desc:
+            topic_desc = _LEGAL_TOPIC_DESCRIPTIONS.get(topic_lower)
+
         topic_spec = f"{query_topic} ({topic_desc})" if topic_desc else query_topic
 
         prompt = (

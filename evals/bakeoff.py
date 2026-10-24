@@ -228,30 +228,34 @@ class ExtractionBakeOff:
         )
 
     def run_bakeoff(self) -> list[CandidateResult]:
+        from catcher_in_the_rag.pricing import get_model_rates
+
         results: list[CandidateResult] = []
 
         # 1. Baseline Rule-Based
         results.append(self.evaluate_rule_based())
 
         # 2. Gemini 3.5 Flash (GA Active Model on Vertex AI)
+        p35, c35 = get_model_rates("gemini-3.5-flash")
         results.append(
             self.evaluate_llm_candidate(
                 candidate_name="Gemini 3.5 Flash (GA Active)",
                 provider_type="vertex_ai",
                 model_id="gemini-3.5-flash",
-                prompt_cost_per_1m=0.075,
-                completion_cost_per_1m=0.30,
+                prompt_cost_per_1m=p35,
+                completion_cost_per_1m=c35,
             )
         )
 
         # 3. Gemini 3.8 Flash (GA Active Model on Vertex AI)
+        p38, c38 = get_model_rates("gemini-3.8-flash")
         results.append(
             self.evaluate_llm_candidate(
                 candidate_name="Gemini 3.8 Flash (GA Active)",
                 provider_type="vertex_ai",
                 model_id="gemini-3.8-flash",
-                prompt_cost_per_1m=0.10,
-                completion_cost_per_1m=0.40,
+                prompt_cost_per_1m=p38,
+                completion_cost_per_1m=c38,
             )
         )
 

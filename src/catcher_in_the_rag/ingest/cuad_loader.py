@@ -151,6 +151,23 @@ class CUADLoader:
 
         return contracts
 
+    def get_category_descriptions(self) -> dict[str, str]:
+        """Extract official Atticus category descriptions directly from CUAD questions."""
+        self._ensure_loaded()
+        descriptions: dict[str, str] = {}
+        for item in self._data or []:
+            for p in item.get("paragraphs", []):
+                for qa in p.get("qas", []):
+                    q_id = qa.get("id", "")
+                    cat_name = q_id.split("__")[-1] if "__" in q_id else ""
+                    q_text = qa.get("question", "")
+                    if cat_name and "Details:" in q_text and cat_name not in descriptions:
+                        details = q_text.split("Details:", 1)[-1].strip()
+                        descriptions[cat_name] = details
+            if len(descriptions) >= 41:
+                break
+        return descriptions
+
     def to_catcher_contract(self, cuad: CUADContract) -> Contract:
         """Convert a real CUAD contract into a Catcher Contract schema instance."""
         # 1. Extract vendor / buyer hints from annotations or fallback
