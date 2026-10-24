@@ -12,6 +12,7 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -42,6 +43,9 @@ class CalibrationReport:
     validation_packages: int
     optimal_threshold: float
     optimal_spans: int
+    auc_roc_train: float
+    auc_roc_val: float
+    validation_macro_f1: float
     candidates: list[SweepCandidate]
     validation_candidate: SweepCandidate | None = None
 
@@ -277,6 +281,33 @@ class BartlebyCalibrator:
             spans_th=best_cand.min_evidence_spans,
         )
 
+        def _get_auc(retrieval_set: list[Any]) -> float:
+            pres = [r[2][0].score if r[2] else 0.0 for r in retrieval_set if not r[4]]
+            abs_ = [r[2][0].score if r[2] else 0.0 for r in retrieval_set if r[4]]
+            if not pres or not abs_:
+                return 0.5
+            wins = sum(1.0 if p > a else (0.5 if p == a else 0.0) for p in pres for a in abs_)
+            return round(wins / (len(pres) * len(abs_)), 4)
+
+        auc_train = _get_auc(train_retrievals)
+        auc_val = _get_auc(val_retrievals)
+
+        # Macro F1 across Absence and Presence classes on Validation set
+        tp_a = val_cand.a09_abstained
+        fp_a = val_cand.non_a09_over_abstained
+        fn_a = val_cand.a09_total - val_cand.a09_abstained
+        p_a = tp_a / (tp_a + fp_a) if (tp_a + fp_a) > 0 else 0.0
+        r_a = tp_a / (tp_a + fn_a) if (tp_a + fn_a) > 0 else 0.0
+        f1_a = (2 * p_a * r_a) / (p_a + r_a) if (p_a + r_a) > 0 else 0.0
+
+        tp_p = val_cand.non_a09_total - val_cand.non_a09_over_abstained
+        fp_p = fn_a
+        fn_p = fp_a
+        p_p = tp_p / (tp_p + fp_p) if (tp_p + fp_p) > 0 else 0.0
+        r_p = tp_p / (tp_p + fn_p) if (tp_p + fn_p) > 0 else 0.0
+        f1_p = (2 * p_p * r_p) / (p_p + r_p) if (p_p + r_p) > 0 else 0.0
+        val_macro_f1 = round((f1_a + f1_p) / 2.0, 4)
+
         return CalibrationReport(
             timestamp=datetime.now(UTC).isoformat(),
             total_packages=len(self.dataset),
@@ -284,6 +315,9 @@ class BartlebyCalibrator:
             validation_packages=len(val_data),
             optimal_threshold=best_cand.min_relevance_score,
             optimal_spans=best_cand.min_evidence_spans,
+            auc_roc_train=auc_train,
+            auc_roc_val=auc_val,
+            validation_macro_f1=val_macro_f1,
             candidates=candidates,
             validation_candidate=val_cand,
         )
@@ -315,7 +349,9 @@ def print_calibration_summary(report: CalibrationReport) -> None:
             f" [VALIDATION SET EVALUATION (HELD-OUT {report.validation_packages} PKGS)]\n"
             f"   * A09 Abstention (Recall)    : {vc.a09_abstention_rate * 100:.1f}% ({vc.a09_abstained}/{vc.a09_total})\n"
             f"   * Over-Abstention (False Pos): {vc.non_a09_over_abstention_rate * 100:.1f}% ({vc.non_a09_over_abstained}/{vc.non_a09_total})\n"
-            f"   * Held-out F1-Score          : {vc.f1_score:.4f}"
+            f"   * Held-out F1-Score          : {vc.f1_score:.4f}\n"
+            f"   * Held-out Macro F1          : {report.validation_macro_f1:.4f}\n"
+            f"   * AUC-ROC Separability       : {report.auc_roc_val:.4f}"
         )
     print(
         f" [RESULT] Calibrated Optimal Plateau Center: min_relevance_score = {report.optimal_threshold:.2f}, "
@@ -339,6 +375,9 @@ def save_calibration_report(
         "validation_packages": report.validation_packages,
         "optimal_threshold": report.optimal_threshold,
         "optimal_spans": report.optimal_spans,
+        "auc_roc_train": report.auc_roc_train,
+        "auc_roc_val": report.auc_roc_val,
+        "validation_macro_f1": report.validation_macro_f1,
         "candidates": [asdict(c) for c in report.candidates],
         "validation_candidate": asdict(report.validation_candidate)
         if report.validation_candidate

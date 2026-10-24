@@ -1,10 +1,10 @@
 {
-  "timestamp": "2026-10-24T06:46:03.447002+00:00",
-  "git_commit_sha": "9a3d4bc646ff2c9e566bb7c57c19762240e5b48a",
+  "timestamp": "2026-10-24T07:24:35.231346+00:00",
+  "git_commit_sha": "d1bb4633d910afaf66baea55cd6fda483a64e348",
   "git_dirty": true,
-  "command": "eval_bartleby_llm.py --sample-size 15",
+  "command": "eval_bartleby_llm.py --llm-provider vertex_ai --sample-size 15",
   "total_contracts_evaluated": 15,
-  "llm_provider_used": "stub",
+  "llm_provider_used": "vertex_ai",
   "modes": [
     {
       "mode_name": "Pure Vector Hybrid (tau=0.50)",
@@ -23,8 +23,10 @@
       "f1_abstain": 0.4356,
       "f1_presence": 0.4771,
       "macro_f1": 0.4564,
-      "mean_latency_ms": 13.92,
-      "estimated_cost_usd_per_1k": 0.0
+      "mean_latency_ms": 14.32,
+      "estimated_cost_usd_per_1k": 0.0,
+      "prompt_tokens": 0,
+      "candidate_tokens": 0
     },
     {
       "mode_name": "Pure Vector Hybrid (tau=0.70)",
@@ -43,8 +45,10 @@
       "f1_abstain": 0.5424,
       "f1_presence": 0.413,
       "macro_f1": 0.4777,
-      "mean_latency_ms": 13.98,
-      "estimated_cost_usd_per_1k": 0.0
+      "mean_latency_ms": 14.47,
+      "estimated_cost_usd_per_1k": 0.0,
+      "prompt_tokens": 0,
+      "candidate_tokens": 0
     },
     {
       "mode_name": "Bartleby Condition 3 (tau=0.50 + LLM Verification)",
@@ -53,19 +57,21 @@
       "use_llm_verification": true,
       "total_queries": 105,
       "total_absences": 79,
-      "correct_abstentions": 22,
-      "correct_abstention_rate": 0.2785,
+      "correct_abstentions": 67,
+      "correct_abstention_rate": 0.8481,
       "total_presences": 26,
-      "false_abstentions": 0,
-      "false_abstention_rate": 0.0,
-      "precision_abstain": 1.0,
-      "recall_abstain": 0.2785,
-      "f1_abstain": 0.4356,
-      "f1_presence": 0.4771,
-      "macro_f1": 0.4564,
-      "mean_latency_ms": 14.07,
-      "estimated_cost_usd_per_1k": 0.25
+      "false_abstentions": 20,
+      "false_abstention_rate": 0.7692,
+      "precision_abstain": 0.7701,
+      "recall_abstain": 0.8481,
+      "f1_abstain": 0.8072,
+      "f1_presence": 0.2727,
+      "macro_f1": 0.54,
+      "mean_latency_ms": 2353.01,
+      "estimated_cost_usd_per_1k": 0.0376,
+      "prompt_tokens": 38226,
+      "candidate_tokens": 3602
     }
   ],
-  "findings_summary": "Compared 3 guard architectures on 15 authentic CUAD contracts (105 cases). Pure vector retrieval at tau=0.50 under-abstains (27.9% correct abs). Raising to tau=0.70 improves abstention to 40.5%, but induces 26.9% false abstentions on legitimate clauses. Bartleby Condition 3 LLM Verification provides the semantic discriminator necessary to filter out spurious vector matches without blanket over-abstention."
+  "findings_summary": "Evaluated 3 guard architectures on 15 authentic CUAD contracts (105 cases) using live Vertex AI (vertex_ai, model=gemini-3.5-flash). Pure vector retrieval at tau=0.50 achieves 27.9% correct abstention (false abs: 0.0%, Macro F1: 0.4564). Raising threshold to tau=0.70 yields 40.5% correct abstention at cost of 26.9% false abstentions (Macro F1: 0.4777). Condition 3 LLM verification achieves 84.8% correct abstention with 76.9% false abstentions (Macro F1: 0.5400), with measured latency 2353.0ms and measured cost $0.04/1k queries."
 }

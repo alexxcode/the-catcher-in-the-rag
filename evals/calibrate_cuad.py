@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import random
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -131,6 +132,7 @@ class CUADCalibrationReport:
     total_contracts: int
     train_contracts_count: int
     val_contracts_count: int
+    embedding_provider: str
     auc_roc_train: float
     auc_roc_val: float
     synthetic_optimal_threshold: float
@@ -154,6 +156,7 @@ def run_cuad_calibration(
     train_ratio: float = 0.60,
     output_path: str = "evals/reports/calibration_cuad_report.json",
     seed: int = 42,
+    embedding_provider_type: str | None = None,
 ) -> CUADCalibrationReport:
     loader = CUADLoader()
     contracts = loader.load_contracts(limit=sample_size)
@@ -169,12 +172,15 @@ def run_cuad_calibration(
     train_contracts = shuffled_contracts[:n_train]
     val_contracts = shuffled_contracts[n_train:]
 
+    emb_prov_type = embedding_provider_type or os.getenv("EMBEDDING_PROVIDER", "stub")
+    emb_provider = get_embedding_provider(provider_type=emb_prov_type)
+    emb_model_id = getattr(emb_provider, "model_id", "stub-hash-768d")
+
     print(
         f"Calibrating Bartleby on CUAD: {len(shuffled_contracts)} contracts "
-        f"(Train: {len(train_contracts)}, Val: {len(val_contracts)}, seed: {seed})"
+        f"(Train: {len(train_contracts)}, Val: {len(val_contracts)}, seed: {seed}, "
+        f"embeddings: {emb_model_id})"
     )
-
-    emb_provider = get_embedding_provider()
 
     categories = [
         "Governing Law",
@@ -229,7 +235,9 @@ def run_cuad_calibration(
         fn_abs = tot_abs - correct_abs
         prec_abs = tp_abs / (tp_abs + fp_abs) if (tp_abs + fp_abs) > 0 else 0.0
         rec_abs = tp_abs / (tp_abs + fn_abs) if (tp_abs + fn_abs) > 0 else 0.0
-        f1_abs = (2 * prec_abs * rec_abs) / (prec_abs + rec_abs) if (prec_abs + rec_abs) > 0 else 0.0
+        f1_abs = (
+            (2 * prec_abs * rec_abs) / (prec_abs + rec_abs) if (prec_abs + rec_abs) > 0 else 0.0
+        )
 
         # Class 0: Presence (Accept / Retrieve)
         tp_pres = tot_pres - false_abs
@@ -237,7 +245,11 @@ def run_cuad_calibration(
         fn_pres = false_abs
         prec_pres = tp_pres / (tp_pres + fp_pres) if (tp_pres + fp_pres) > 0 else 0.0
         rec_pres = tp_pres / (tp_pres + fn_pres) if (tp_pres + fn_pres) > 0 else 0.0
-        f1_pres = (2 * prec_pres * rec_pres) / (prec_pres + rec_pres) if (prec_pres + rec_pres) > 0 else 0.0
+        f1_pres = (
+            (2 * prec_pres * rec_pres) / (prec_pres + rec_pres)
+            if (prec_pres + rec_pres) > 0
+            else 0.0
+        )
 
         macro_f1 = (f1_abs + f1_pres) / 2.0
 
@@ -319,10 +331,10 @@ def run_cuad_calibration(
 
     domain_gap_analysis = (
         f"At synthetic threshold tau=0.50, Bartleby under-abstains on absent clauses: "
-        f"it correctly abstains on only {val_c_synth*100:.1f}% of absences in validation, leaving through "
-        f"{(1-val_c_synth)*100:.1f}% of missing clauses (hallucination vulnerability). "
-        f"Raising threshold to tau={optimal_thresh:.2f} increases validation correct abstention to {val_c_opt*100:.1f}%, "
-        f"but incurs {val_f_opt*100:.1f}% false abstentions on present clauses. "
+        f"it correctly abstains on only {val_c_synth * 100:.1f}% of absences in validation, leaving through "
+        f"{(1 - val_c_synth) * 100:.1f}% of missing clauses (hallucination vulnerability). "
+        f"Raising threshold to tau={optimal_thresh:.2f} increases validation correct abstention to {val_c_opt * 100:.1f}%, "
+        f"but incurs {val_f_opt * 100:.1f}% false abstentions on present clauses. "
         f"AUC-ROC is {auc_val:.4f} (near-uninformative separability), and optimal Macro F1 ({val_f1_optimal:.4f}) "
         f"exceeds the trivial Always-Abstain baseline ({baselines_val['always_abstain']['macro_f1']:.4f}) by only marginal gap. "
         f"Vector similarity alone cannot reliably guard real contracts, proving the necessity of Condition 3 LLM verification."
@@ -338,6 +350,7 @@ def run_cuad_calibration(
         total_contracts=len(shuffled_contracts),
         train_contracts_count=len(train_contracts),
         val_contracts_count=len(val_contracts),
+        embedding_provider=emb_model_id,
         auc_roc_train=auc_train,
         auc_roc_val=auc_val,
         synthetic_optimal_threshold=0.50,
@@ -364,14 +377,15 @@ def run_cuad_calibration(
     print("=" * 80)
     print(" BARTLEBY CUAD REAL-WORLD CALIBRATION REPORT (GRID 0.20 -> 0.90)")
     print(f" Train Contracts: {len(train_contracts)} | Val Contracts: {len(val_contracts)}")
+    print(f" Embedding Provider: {emb_model_id}")
     print(f" AUC-ROC Separability: Train={auc_train:.4f} | Val={auc_val:.4f}")
     print(
         f" Synthetic Threshold (tau=0.50): Val Macro F1={val_f1_synthetic:.4f} "
-        f"(Correct Abs: {val_c_synth*100:.1f}%, False Abs: {val_f_synth*100:.1f}%)"
+        f"(Correct Abs: {val_c_synth * 100:.1f}%, False Abs: {val_f_synth * 100:.1f}%)"
     )
     print(
         f" Optimal Threshold (tau={optimal_thresh:.2f}): Val Macro F1={val_f1_optimal:.4f} "
-        f"(Correct Abs: {val_c_opt*100:.1f}%, False Abs: {val_f_opt*100:.1f}%)"
+        f"(Correct Abs: {val_c_opt * 100:.1f}%, False Abs: {val_f_opt * 100:.1f}%)"
     )
     print(
         f" Trivial Baseline 1 (Always Abstain): Val Macro F1={baselines_val['always_abstain']['macro_f1']:.4f}"
@@ -384,8 +398,8 @@ def run_cuad_calibration(
         star = " ★ (Optimal)" if c.is_optimal else ""
         print(
             f"Thresh: {c.min_relevance_score:.2f} | "
-            f"Correct Abs: {c.abstention_rate*100:.1f}% {c.abstention_rate_ci} | "
-            f"False Abs: {c.false_abstention_rate*100:.1f}% {c.false_abstention_rate_ci} | "
+            f"Correct Abs: {c.abstention_rate * 100:.1f}% {c.abstention_rate_ci} | "
+            f"False Abs: {c.false_abstention_rate * 100:.1f}% {c.false_abstention_rate_ci} | "
             f"F1: {c.f1_score:.4f}{star}"
         )
     print("=" * 80)
@@ -395,6 +409,16 @@ def run_cuad_calibration(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Calibrate Bartleby on CUAD")
     parser.add_argument("--sample-size", type=int, default=50, help="Number of contracts")
+    parser.add_argument(
+        "--embedding-provider",
+        type=str,
+        default=None,
+        help="Embedding provider (stub|vertex_ai). Defaults to EMBEDDING_PROVIDER env or stub.",
+    )
     parser.add_argument("--output", type=str, default="evals/reports/calibration_cuad_report.json")
     args = parser.parse_args()
-    run_cuad_calibration(sample_size=args.sample_size, output_path=args.output)
+    run_cuad_calibration(
+        sample_size=args.sample_size,
+        output_path=args.output,
+        embedding_provider_type=args.embedding_provider,
+    )

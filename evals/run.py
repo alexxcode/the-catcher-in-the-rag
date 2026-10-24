@@ -129,7 +129,8 @@ def main() -> int:
         args.eval_extraction or args.bakeoff or args.calibrate_bartleby or args.eval_cuad
     )
 
-    if not has_subcommand or args.ablations:
+    dataset: list[Any] = []
+    if not has_subcommand or args.ablations or args.calibrate_bartleby or args.eval_extraction:
         print(f"Loading evaluation dataset from {args.dataset_dir}...")
         dataset = load_dataset(args.dataset_dir)
         if not dataset:
@@ -138,6 +139,7 @@ def main() -> int:
         if args.sample_size and args.sample_size < len(dataset):
             dataset = dataset[: args.sample_size]
 
+    if not has_subcommand or args.ablations:
         print(f"Loaded {len(dataset)} package(s). Running baseline evaluation...")
         runner = EvaluationRunner(mode="baseline")
         baseline_report = runner.run_eval(dataset)

@@ -112,11 +112,15 @@ def test_bartleby_llm_verification_confirms_valid_clause() -> None:
     )
 
     mock_llm = MockLLMVerificationProvider(is_relevant=True)
-    is_rel = guard.verify_relevance_with_llm(clause, query_topic="audit rights", llm_provider=mock_llm)
+    is_rel = guard.verify_relevance_with_llm(
+        clause, query_topic="audit rights", llm_provider=mock_llm
+    )
     assert is_rel is True
     assert mock_llm.call_count == 1
 
-    assessment = guard.evaluate_retrieval([clause], query_topic="audit rights", llm_provider=mock_llm)
+    assessment = guard.evaluate_retrieval(
+        [clause], query_topic="audit rights", llm_provider=mock_llm
+    )
     assert not assessment.abstained
     assert len(assessment.surviving_clauses) == 1
 
@@ -135,7 +139,9 @@ def test_bartleby_llm_verification_abstains_on_false_positive_clause() -> None:
     )
 
     mock_llm = MockLLMVerificationProvider(is_relevant=False)
-    is_rel = guard.verify_relevance_with_llm(distractor_clause, query_topic="audit rights", llm_provider=mock_llm)
+    is_rel = guard.verify_relevance_with_llm(
+        distractor_clause, query_topic="audit rights", llm_provider=mock_llm
+    )
     assert is_rel is False
 
     assessment = guard.evaluate_retrieval(
@@ -161,6 +167,7 @@ def test_bartleby_llm_verification_graceful_fallback_on_error() -> None:
 
     failing_llm = MockLLMVerificationProvider(is_relevant=True, should_fail=True)
     # When LLM raises error, should fallback to passing through rather than hard crash
-    is_rel = guard.verify_relevance_with_llm(clause, query_topic="warranties", llm_provider=failing_llm)
+    is_rel = guard.verify_relevance_with_llm(
+        clause, query_topic="warranties", llm_provider=failing_llm
+    )
     assert is_rel is True
-

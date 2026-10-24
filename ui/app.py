@@ -84,6 +84,7 @@ def execute_audit(package: ProcurementPackage) -> dict[str, Any]:
 
     return audit_pipeline(package)
 
+
 # ── Streamlit Configuration ──────────────────────────────────────────────────
 st.set_page_config(
     page_title="The Catcher in the RAG",

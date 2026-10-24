@@ -45,7 +45,11 @@ class GeminiProvider(LLMProvider):
 
         # Model location routing: Gemini 3.5 & 3.8 Flash GA endpoints are hosted in global / multi-region
         default_region = self.config.get("region", "us-central1")
-        if self.model_id in ("gemini-3.5-flash", "gemini-3.8-flash") and default_region == "us-central1" and not os.getenv("GOOGLE_CLOUD_REGION"):
+        if (
+            self.model_id in ("gemini-3.5-flash", "gemini-3.8-flash")
+            and default_region == "us-central1"
+            and not os.getenv("GOOGLE_CLOUD_REGION")
+        ):
             default_region = "global"
         self.region = os.getenv("GOOGLE_CLOUD_REGION", default_region)
 
@@ -171,6 +175,12 @@ class GeminiProvider(LLMProvider):
                 "output": getattr(response.usage_metadata, "candidates_token_count", 0),
                 "total": getattr(response.usage_metadata, "total_token_count", 0),
             }
+            self.total_prompt_tokens = getattr(self, "total_prompt_tokens", 0) + usage.get(
+                "input", 0
+            )
+            self.total_candidate_tokens = getattr(self, "total_candidate_tokens", 0) + usage.get(
+                "output", 0
+            )
 
         tracer = get_tracer()
         tracer.trace_generation(
@@ -187,6 +197,17 @@ class GeminiProvider(LLMProvider):
         elif raw_json.startswith("```"):
             raw_json = raw_json.removeprefix("```").removesuffix("```").strip()
         return schema.model_validate_json(raw_json)
+
+    def generate_structured(
+        self,
+        prompt: str,
+        response_schema: type[T],
+        system_prompt: str | None = None,
+    ) -> T:
+        """Alias for extract_structured for API symmetry."""
+        return self.extract_structured(
+            text=prompt, schema=response_schema, system_prompt=system_prompt
+        )
 
     def generate_text(
         self,

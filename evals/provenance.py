@@ -98,4 +98,3 @@ def get_provenance_metadata(
     if extra:
         meta.update(extra)
     return meta
-

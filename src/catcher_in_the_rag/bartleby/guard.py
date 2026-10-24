@@ -56,7 +56,8 @@ class BartlebyGuard:
 
         class RelevanceVerification(BaseModel):
             is_relevant: bool = Field(
-                ..., description="Whether the excerpt actually answers or governs the requested topic"
+                ...,
+                description="Whether the excerpt actually answers or governs the requested topic",
             )
             reason: str = Field(..., description="Brief rationale")
 
@@ -65,14 +66,19 @@ class BartlebyGuard:
             f"actually addresses or contains legal terms regarding the requested topic.\n\n"
             f"Requested Topic: {query_topic}\n"
             f"Contract Clause Title: {candidate_clause.title}\n"
-            f"Contract Clause Text:\n\"\"\"{candidate_clause.text[:2500]}\"\"\"\n\n"
+            f'Contract Clause Text:\n"""{candidate_clause.text[:2500]}"""\n\n'
             f"Return is_relevant=true ONLY if this passage specifically and directly governs or sets obligations/rights "
             f"for '{query_topic}'. Return is_relevant=false if the passage is unrelated, merely mentions a tangential word, "
             f"or does not contain substantive terms on '{query_topic}'."
         )
 
         try:
-            decision = llm_provider.generate_structured(prompt, RelevanceVerification)
+            if hasattr(llm_provider, "extract_structured"):
+                decision = llm_provider.extract_structured(prompt, RelevanceVerification)
+            elif hasattr(llm_provider, "generate_structured"):
+                decision = llm_provider.generate_structured(prompt, RelevanceVerification)
+            else:
+                return True
             return bool(decision.is_relevant)
         except Exception:
             return True

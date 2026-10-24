@@ -1,14 +1,15 @@
 """Empirical evaluation harness for Bartleby Condition 3 LLM Verification Guard.
 
 Measures the impact of LLM semantic verification on real CUAD SEC contracts:
-1. Pure Vector Hybrid Retrieval (Thresholding alone)
-2. Vector Hybrid + Bartleby LLM Verification (Condition 3)
+1. Pure Vector Hybrid Retrieval (tau=0.50 without LLM)
+2. Pure Vector Hybrid Retrieval (tau=0.70 without LLM)
+3. Vector Hybrid + Bartleby LLM Verification (Condition 3 with Gemini)
 
 Metrics measured:
 - Correct Abstention Rate on true absences
 - False Abstention Rate on present valid clauses
 - Macro F1 across both classes
-- Query latency (ms) and estimated cost per query ($)
+- Query latency (ms) and measured cost per 1k queries ($) based on actual tokens
 """
 
 from __future__ import annotations
@@ -51,6 +52,8 @@ class GuardEvaluationModeResult:
     macro_f1: float
     mean_latency_ms: float
     estimated_cost_usd_per_1k: float
+    prompt_tokens: int = 0
+    candidate_tokens: int = 0
 
 
 @dataclass
@@ -68,8 +71,16 @@ class BartlebyLLMVerificationReport:
 def run_bartleby_llm_eval(
     sample_size: int = 15,
     output_path: str = "evals/reports/bartleby_llm_verification_report.json",
-    llm_provider_type: str = "stub",
+    llm_provider_type: str = "vertex_ai",
+    allow_stub: bool = False,
 ) -> BartlebyLLMVerificationReport:
+    # Fail fast if attempting to measure LLM verification with stub without explicit override
+    if llm_provider_type == "stub" and not allow_stub:
+        raise ValueError(
+            "Cannot evaluate Bartleby Condition 3 LLM verification with stub provider because stub always returns True "
+            "and does not perform semantic discrimination. Pass --llm-provider vertex_ai (or set --allow-stub for offline testing)."
+        )
+
     loader = CUADLoader()
     contracts = loader.load_contracts(limit=sample_size)
     if not contracts:
@@ -87,6 +98,10 @@ def run_bartleby_llm_eval(
 
     emb_provider = get_embedding_provider()
     llm_provider = get_llm_provider(provider_type=llm_provider_type)
+
+    if llm_provider_type != "stub":
+        health = llm_provider.check_model_health()
+        print(f"Connected to LLM provider '{llm_provider_type}': {health}")
 
     # Build query test cases: (contract, category, is_present, query)
     test_cases: list[dict[str, Any]] = []
@@ -118,21 +133,18 @@ def run_bartleby_llm_eval(
             "description": "Baseline transfer: hybrid retrieval thresholded at synthetic tau=0.50 without LLM",
             "threshold": 0.50,
             "use_llm": False,
-            "cost_per_1k": 0.0,
         },
         {
             "name": "Pure Vector Hybrid (tau=0.70)",
             "description": "Recalibrated vector: hybrid retrieval thresholded at tau=0.70 without LLM",
             "threshold": 0.70,
             "use_llm": False,
-            "cost_per_1k": 0.0,
         },
         {
             "name": "Bartleby Condition 3 (tau=0.50 + LLM Verification)",
             "description": "Hybrid retrieval with tau=0.50 passed to Condition 3 LLM Semantic Verification",
             "threshold": 0.50,
             "use_llm": True,
-            "cost_per_1k": 0.25,
         },
     ]
 
@@ -143,6 +155,10 @@ def run_bartleby_llm_eval(
             thresholds={"min_relevance_score": mode["threshold"], "min_evidence_spans": 1}
         )
         t_start = time.perf_counter()
+
+        # Track tokens consumed by LLM calls in this mode
+        prompt_tokens_before = getattr(llm_provider, "total_prompt_tokens", 0)
+        candidate_tokens_before = getattr(llm_provider, "total_candidate_tokens", 0)
 
         correct_abs = 0
         tot_abs = 0
@@ -171,6 +187,16 @@ def run_bartleby_llm_eval(
 
         elapsed_ms = (time.perf_counter() - t_start) * 1000.0
         mean_lat = round(elapsed_ms / max(1, len(test_cases)), 2)
+
+        p_tokens = getattr(llm_provider, "total_prompt_tokens", 0) - prompt_tokens_before
+        c_tokens = getattr(llm_provider, "total_candidate_tokens", 0) - candidate_tokens_before
+
+        if mode["use_llm"] and (p_tokens > 0 or c_tokens > 0):
+            # Gemini 3.5 Flash: $0.075 / 1M prompt, $0.30 / 1M completion
+            measured_cost = (p_tokens * 0.075 / 1_000_000) + (c_tokens * 0.30 / 1_000_000)
+            cost_per_1k = round((measured_cost / max(1, len(test_cases))) * 1000, 4)
+        else:
+            cost_per_1k = 0.00
 
         # Class 1: Absence (Abstain)
         tp_a = correct_abs
@@ -211,20 +237,32 @@ def run_bartleby_llm_eval(
                 f1_presence=round(f1_p, 4),
                 macro_f1=macro_f1,
                 mean_latency_ms=mean_lat,
-                estimated_cost_usd_per_1k=mode["cost_per_1k"],
+                estimated_cost_usd_per_1k=cost_per_1k,
+                prompt_tokens=p_tokens,
+                candidate_tokens=c_tokens,
             )
         )
 
     provenance = get_provenance_metadata({"eval": "Bartleby LLM Verification"})
 
-    summary = (
-        f"Compared 3 guard architectures on {len(contracts)} authentic CUAD contracts ({len(test_cases)} cases). "
-        f"Pure vector retrieval at tau=0.50 under-abstains ({mode_results[0].correct_abstention_rate*100:.1f}% correct abs). "
-        f"Raising to tau=0.70 improves abstention to {mode_results[1].correct_abstention_rate*100:.1f}%, but induces "
-        f"{mode_results[1].false_abstention_rate*100:.1f}% false abstentions on legitimate clauses. "
-        f"Bartleby Condition 3 LLM Verification provides the semantic discriminator necessary to filter out "
-        f"spurious vector matches without blanket over-abstention."
-    )
+    if llm_provider_type == "stub":
+        summary = (
+            "[HYPOTHESIS ONLY - SIMULATED STUB] Mode 3 ran with stub provider, which returns True unconditionally. "
+            "Mode 3 results are identical to Mode 1 (tau=0.50). Real semantic discrimination must be evaluated "
+            "against live Vertex AI (`--llm-provider vertex_ai`)."
+        )
+    else:
+        summary = (
+            f"Evaluated 3 guard architectures on {len(contracts)} authentic CUAD contracts ({len(test_cases)} cases) "
+            f"using live Vertex AI ({llm_provider_type}, model={getattr(llm_provider, 'model_id', 'unknown')}). "
+            f"Pure vector retrieval at tau=0.50 achieves {mode_results[0].correct_abstention_rate * 100:.1f}% correct abstention "
+            f"(false abs: {mode_results[0].false_abstention_rate * 100:.1f}%, Macro F1: {mode_results[0].macro_f1:.4f}). "
+            f"Raising threshold to tau=0.70 yields {mode_results[1].correct_abstention_rate * 100:.1f}% correct abstention "
+            f"at cost of {mode_results[1].false_abstention_rate * 100:.1f}% false abstentions (Macro F1: {mode_results[1].macro_f1:.4f}). "
+            f"Condition 3 LLM verification achieves {mode_results[2].correct_abstention_rate * 100:.1f}% correct abstention "
+            f"with {mode_results[2].false_abstention_rate * 100:.1f}% false abstentions (Macro F1: {mode_results[2].macro_f1:.4f}), "
+            f"with measured latency {mode_results[2].mean_latency_ms:.1f}ms and measured cost ${mode_results[2].estimated_cost_usd_per_1k:.2f}/1k queries."
+        )
 
     report = BartlebyLLMVerificationReport(
         timestamp=datetime.now(UTC).isoformat(),
@@ -244,12 +282,18 @@ def run_bartleby_llm_eval(
 
     print("=" * 80)
     print(" BARTLEBY LLM VERIFICATION EVALUATION REPORT")
+    print(f" LLM Provider: {llm_provider_type} | Contracts: {len(contracts)}")
     print("=" * 80)
     for m in mode_results:
+        tokens_info = (
+            f" | Tokens: {m.prompt_tokens}in/{m.candidate_tokens}out"
+            if m.use_llm_verification
+            else ""
+        )
         print(
-            f"Mode: {m.mode_name} | Correct Abs: {m.correct_abstention_rate*100:.1f}% | "
-            f"False Abs: {m.false_abstention_rate*100:.1f}% | Macro F1: {m.macro_f1:.4f} | "
-            f"Latency: {m.mean_latency_ms}ms | Cost/1k: ${m.estimated_cost_usd_per_1k:.2f}"
+            f"Mode: {m.mode_name} | Correct Abs: {m.correct_abstention_rate * 100:.1f}% | "
+            f"False Abs: {m.false_abstention_rate * 100:.1f}% | Macro F1: {m.macro_f1:.4f} | "
+            f"Latency: {m.mean_latency_ms}ms | Cost/1k: ${m.estimated_cost_usd_per_1k:.4f}{tokens_info}"
         )
     print("=" * 80)
     return report
@@ -258,11 +302,24 @@ def run_bartleby_llm_eval(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate Bartleby LLM Verification")
     parser.add_argument("--sample-size", type=int, default=15, help="Number of contracts")
-    parser.add_argument("--llm-provider", type=str, default="stub", help="LLM provider (stub|vertex_ai)")
-    parser.add_argument("--output", type=str, default="evals/reports/bartleby_llm_verification_report.json")
+    parser.add_argument(
+        "--llm-provider",
+        type=str,
+        default="vertex_ai",
+        help="LLM provider (default: vertex_ai; must pass --allow-stub for stub)",
+    )
+    parser.add_argument(
+        "--allow-stub",
+        action="store_true",
+        help="Allow running with stub provider (offline simulation only; results are hypothetical)",
+    )
+    parser.add_argument(
+        "--output", type=str, default="evals/reports/bartleby_llm_verification_report.json"
+    )
     args = parser.parse_args()
     run_bartleby_llm_eval(
         sample_size=args.sample_size,
         output_path=args.output,
         llm_provider_type=args.llm_provider,
+        allow_stub=args.allow_stub,
     )
