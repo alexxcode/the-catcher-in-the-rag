@@ -44,17 +44,52 @@ class BartlebyGuard:
         self.min_relevance_score = float(cfg.get("min_relevance_score", 0.5))
         self.min_evidence_spans = int(cfg.get("min_evidence_spans", 1))
 
+    def verify_relevance_with_llm(
+        self,
+        candidate_clause: ScoredClause,
+        query_topic: str,
+        llm_provider: Any = None,
+    ) -> bool:
+        """Condition 3: Use LLM to verify whether candidate clause actually answers or governs the topic."""
+        if not llm_provider or getattr(llm_provider, "provider_type", "") == "stub":
+            return True
+
+        class RelevanceVerification(BaseModel):
+            is_relevant: bool = Field(
+                ..., description="Whether the excerpt actually answers or governs the requested topic"
+            )
+            reason: str = Field(..., description="Brief rationale")
+
+        prompt = (
+            f"You are a strict legal contract auditor. Determine whether the provided contract passage "
+            f"actually addresses or contains legal terms regarding the requested topic.\n\n"
+            f"Requested Topic: {query_topic}\n"
+            f"Contract Clause Title: {candidate_clause.title}\n"
+            f"Contract Clause Text:\n\"\"\"{candidate_clause.text[:2500]}\"\"\"\n\n"
+            f"Return is_relevant=true ONLY if this passage specifically and directly governs or sets obligations/rights "
+            f"for '{query_topic}'. Return is_relevant=false if the passage is unrelated, merely mentions a tangential word, "
+            f"or does not contain substantive terms on '{query_topic}'."
+        )
+
+        try:
+            decision = llm_provider.generate_structured(prompt, RelevanceVerification)
+            return bool(decision.is_relevant)
+        except Exception:
+            return True
+
     def evaluate_retrieval(
         self,
         retrieved_clauses: list[ScoredClause],
         query_topic: str | None = None,
+        llm_provider: Any = None,
     ) -> BartlebyAssessment:
         """Evaluate candidate clauses against relevance thresholds and authorization criteria.
 
         Implements SPEC §5 (Bartleby Abstention Conditions):
         Condition 1: No retrieved span passes the relevance threshold.
         Condition 3: The cited span does not actually grant authorization (e.g. explicitly
-                     prohibits the fee or requires a written change order not present).
+                     prohibits the fee or requires a written change order not present),
+                     or fails LLM semantic verification of topical relevance.
         """
         passing = [c for c in retrieved_clauses if c.score >= self.min_relevance_score]
 
@@ -70,7 +105,7 @@ class BartlebyGuard:
                 surviving_clauses=[],
             )
 
-        # Condition 3: Span does not actually grant authorization for requested surcharge/fee
+        # Condition 3a: Span does not actually grant authorization for requested surcharge/fee
         if query_topic:
             is_surcharge_query = any(
                 term in query_topic.lower()
@@ -110,6 +145,20 @@ class BartlebyGuard:
                         ),
                         surviving_clauses=[],
                     )
+
+        # Condition 3b: LLM Semantic Verification Guard
+        if llm_provider and query_topic and passing:
+            top_clause = passing[0]
+            is_confirmed = self.verify_relevance_with_llm(top_clause, query_topic, llm_provider)
+            if not is_confirmed:
+                return BartlebyAssessment(
+                    abstained=True,
+                    reason=(
+                        f"NO_EVIDENCE: LLM verification determined candidate clause does not "
+                        f"materially govern '{query_topic}'. I would prefer not to guess."
+                    ),
+                    surviving_clauses=[],
+                )
 
         return BartlebyAssessment(
             abstained=False,

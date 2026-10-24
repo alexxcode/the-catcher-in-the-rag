@@ -6,7 +6,7 @@ PYTHON := uv run python
 PYTEST := uv run pytest
 RUFF   := uv run ruff
 
-.PHONY: help setup install lint format test eval eval-ablations eval-extraction eval-bakeoff calibrate-bartleby eval-cuad run-api run-ui clean tf-init tf-plan tf-apply
+.PHONY: help setup install lint format test eval eval-ablations eval-extraction eval-bakeoff calibrate-bartleby eval-cuad calibrate-cuad sync-readme-tables run-api run-ui clean tf-init tf-plan tf-apply
 
 help:  ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -57,6 +57,9 @@ eval-cuad: ## Run benchmark on real-world CUAD commercial contracts (Phase 5)
 
 calibrate-cuad: ## Re-calibrate Bartleby on real-world SEC CUAD contracts across train/val split
 	$(PYTHON) -m evals.calibrate_cuad
+
+sync-readme-tables: ## Sync README benchmark tables from report JSONs
+	$(PYTHON) evals/generate_readme_tables.py
 
 check-models: ## Verify Vertex AI model availability and detect retirement
 	LLM_PROVIDER=vertex_ai $(PYTHON) -c "from catcher_in_the_rag.providers.factory import get_llm_provider; p = get_llm_provider('vertex_ai'); assert p.provider_type == 'vertex_ai', 'check-models requires LLM_PROVIDER=vertex_ai'; h = p.check_model_health(); print(f'Model health: {h}')"

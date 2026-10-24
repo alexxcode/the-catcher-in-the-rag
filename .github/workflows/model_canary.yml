@@ -13,6 +13,10 @@ jobs:
   check-model-availability:
     name: Vertex AI Model Deprecation Canary
     runs-on: ubuntu-latest
+    env:
+      WIF_PROVIDER: ${{ secrets.WIF_PROVIDER }}
+      WIF_SERVICE_ACCOUNT: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
 
     steps:
       - name: Checkout
@@ -32,11 +36,11 @@ jobs:
 
       - name: Authenticate to Google Cloud (Workload Identity Federation)
         id: gcp_auth
-        if: ${{ secrets.WIF_PROVIDER != '' }}
+        if: env.WIF_PROVIDER != ''
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
 
       - name: Run Model Lifecycle Canary against Vertex AI
         run: |
@@ -44,11 +48,11 @@ jobs:
           uv run python -c "
           import os
           has_creds = bool(os.getenv('GOOGLE_APPLICATION_CREDENTIALS') or os.getenv('CLOUDSDK_AUTH_ACCESS_TOKEN'))
-          wif_configured = bool('${{ secrets.WIF_PROVIDER }}')
+          wif_configured = bool(os.getenv('WIF_PROVIDER'))
           if not has_creds and not wif_configured:
               raise RuntimeError(
                   'FATAL: Model canary requires active GCP credentials. '
-                  'Configure secrets.WIF_PROVIDER and secrets.WIF_SERVICE_ACCOUNT in GitHub Actions.'
+                  'Configure WIF_PROVIDER and WIF_SERVICE_ACCOUNT in GitHub Actions secrets.'
               )
           from catcher_in_the_rag.providers.factory import get_llm_provider
           for model_id in ['gemini-3.5-flash', 'gemini-3.8-flash']:
@@ -60,6 +64,6 @@ jobs:
           "
         env:
           LLM_PROVIDER: "vertex_ai"
-          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID || 'the-catcher-in-the-rag' }}
+          GOOGLE_CLOUD_PROJECT: ${{ env.GCP_PROJECT_ID != '' && env.GCP_PROJECT_ID || 'the-catcher-in-the-rag' }}
           GOOGLE_CLOUD_REGION: "global"
 

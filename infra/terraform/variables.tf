@@ -41,8 +41,9 @@ variable "monthly_budget_amount" {
 }
 
 variable "demo_access_pin" {
-  description = "Initial access PIN for authorized demo auditors stored in Secret Manager."
+  description = "Access PIN for authorized demo auditors stored in Secret Manager. If null, a secure random password is automatically generated. Set via TF_VAR_demo_access_pin."
   type        = string
   sensitive   = true
-  default     = "audit-2026-secure"
+  default     = null
 }
+

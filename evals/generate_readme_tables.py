@@ -3,8 +3,8 @@
 Ensures that documentation can never diverge from empirical benchmark artifacts:
 - Reads evals/reports/cuad_benchmark_latest.json
 - Reads evals/reports/calibration_cuad_report.json
-- Reads evals/reports/calibration_bartleby_report.json
 - Reads evals/reports/bakeoff_latest.json
+- Synchronizes tables and diagnostic narratives in README.md
 """
 
 from __future__ import annotations
@@ -79,15 +79,18 @@ def generate_domain_calibration_table() -> str:
         cuad_data = json.load(f)
 
     synth_t = cuad_data.get("synthetic_optimal_threshold", 0.50)
-    cuad_t = cuad_data.get("cuad_optimal_threshold", 0.60)
-    val_synth = cuad_data.get("validation_f1_at_synthetic_threshold", 0.2899)
-    val_cuad = cuad_data.get("validation_f1_at_optimal", 0.4557)
+    cuad_t = cuad_data.get("cuad_optimal_threshold", 0.70)
+    val_synth = cuad_data.get("validation_f1_at_synthetic_threshold", 0.5042)
+    val_cuad = cuad_data.get("validation_f1_at_optimal", 0.5133)
+    val_c_synth = cuad_data.get("val_correct_abstention_at_synthetic", 0.418) * 100
+    val_c_opt = cuad_data.get("val_correct_abstention_at_optimal", 0.618) * 100
+    val_f_opt = cuad_data.get("val_false_abstention_at_optimal", 0.533) * 100
 
-    table = f"""| Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\tau$) | F1-Score en Validación | Hallazgo Empírico de Transferencia |
+    table = f"""| Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\tau$) | Macro F1 Validación | Desempeño Empírico en Transferencia |
 |---|---|:---:|:---:|---|
 | **Plantillas Sintéticas** | Datagen M1 (300 paquetes) | **{synth_t:.2f}** | **0.9818** | Alta separabilidad sintética entre cláusulas estándar y recargos anómalos. |
-| **Contratos SEC Reales (Transfer)** | CUAD v1 (25 contratos) | **{synth_t:.2f}** (fijado) | **{val_synth:.4f}** | **Colapso de transferencia:** el umbral 0.50 sobre-retiene y produce abstención errónea. |
-| **Contratos SEC Reales (Recalibrado)** | CUAD v1 Train/Val (60/40) | **{cuad_t:.2f}** (recalibrado) | **{val_cuad:.4f}** | Requiere elevar el umbral a {cuad_t:.2f} para discriminar prosa legal dispersa. |"""
+| **Contratos SEC Reales (Transfer)** | CUAD v1 Train/Val (60/40) | **{synth_t:.2f}** (fijado) | **{val_synth:.4f}** | **Sub-abstención:** ante ausencias solo abstiene {val_c_synth:.1f}%, dejando pasar el {100-val_c_synth:.1f}% como alucinaciones. |
+| **Contratos SEC Reales (Recalibrado)** | CUAD v1 Train/Val (60/40) | **{cuad_t:.2f}** (recalibrado) | **{val_cuad:.4f}** | Eleva abstención en ausencias a {val_c_opt:.1f}%, pero incrementa falsas abstenciones al {val_f_opt:.1f}%. |"""
     return table
 
 

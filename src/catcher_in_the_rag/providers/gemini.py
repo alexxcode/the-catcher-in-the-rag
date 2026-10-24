@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import os
+import sqlite3
 import time
+from pathlib import Path
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
@@ -289,7 +293,7 @@ class GeminiProvider(LLMProvider):
 
 
 class GeminiEmbeddingProvider(EmbeddingProvider):
-    """Dense embedding provider using Vertex AI text-embedding models."""
+    """Dense embedding provider using Vertex AI text-embedding models with disk caching."""
 
     def __init__(self, config: dict[str, Any] | None = None) -> None:
         self.config = config or {}
@@ -303,6 +307,60 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
         self._model: Any = None
         self._genai_client: Any = None
         self._use_genai: bool = False
+        self._init_cache()
+
+    def _init_cache(self) -> None:
+        cache_dir = Path(".cache/embeddings")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        self._cache_db_path = cache_dir / "embeddings.db"
+        try:
+            with sqlite3.connect(self._cache_db_path, timeout=10.0) as conn:
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS embeddings_cache (
+                        model_id TEXT,
+                        text_sha256 TEXT,
+                        embedding TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (model_id, text_sha256)
+                    )
+                    """
+                )
+                conn.commit()
+        except Exception:
+            pass
+
+    def _get_cached(self, text: str) -> list[float] | None:
+        if not hasattr(self, "_cache_db_path") or not self._cache_db_path.exists():
+            return None
+        sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        try:
+            with sqlite3.connect(self._cache_db_path, timeout=5.0) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT embedding FROM embeddings_cache WHERE model_id = ? AND text_sha256 = ?",
+                    (self.model_id, sha),
+                )
+                row = cursor.fetchone()
+                if row:
+                    return json.loads(row[0])
+        except Exception:
+            return None
+        return None
+
+    def _put_cached(self, text: str, embedding: list[float]) -> None:
+        if not hasattr(self, "_cache_db_path"):
+            return
+        sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        try:
+            with sqlite3.connect(self._cache_db_path, timeout=10.0) as conn:
+                conn.execute(
+                    "INSERT OR REPLACE INTO embeddings_cache (model_id, text_sha256, embedding) VALUES (?, ?, ?)",
+                    (self.model_id, sha, json.dumps(embedding)),
+                )
+                conn.commit()
+        except Exception:
+            pass
 
     def _ensure_init(self) -> None:
         if self._model is not None or self._genai_client is not None:
@@ -338,37 +396,50 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
             )
             raise ImportError(msg) from err
 
-    def embed_texts(self, texts: list[str], batch_size: int = 10) -> list[list[float]]:
-        """Embed a batch of document texts in chunks to respect Vertex AI token limits."""
+    def embed_texts(
+        self, texts: list[str], batch_size: int = 10, pace_delay_seconds: float = 0.2
+    ) -> list[list[float]]:
+        """Embed a batch of document texts with persistent disk caching and quota pacing."""
         if not texts:
             return []
+
+        # 1. Check disk cache for each text
+        results: list[list[float] | None] = [self._get_cached(t) for t in texts]
+        missing_indices = [i for i, r in enumerate(results) if r is None]
+
+        if not missing_indices:
+            # Complete cache hit! 0 external API calls needed
+            return [r for r in results if r is not None]
+
         self._ensure_init()
 
-        all_embeddings: list[list[float]] = []
-        for i in range(0, len(texts), batch_size):
-            batch = [t[:6000] for t in texts[i : i + batch_size]]
+        # 2. Fetch missing texts in batches with pacing
+        for chunk_start in range(0, len(missing_indices), batch_size):
+            chunk_indices = missing_indices[chunk_start : chunk_start + batch_size]
+            batch_texts = [texts[idx][:6000] for idx in chunk_indices]
             max_retries = 5
+            batch_embeddings: list[list[float]] = []
+
             for attempt in range(max_retries):
                 try:
                     if self._use_genai:
                         res = self._genai_client.models.embed_content(
                             model=self.model_id,
-                            contents=batch,
+                            contents=batch_texts,
                             config={"output_dimensionality": self.dimensionality},
                         )
-                        all_embeddings.extend([list(e.values) for e in res.embeddings])
+                        batch_embeddings = [list(e.values) for e in res.embeddings]
                     else:
                         from vertexai.language_models import TextEmbeddingInput
 
                         inputs = [
                             TextEmbeddingInput(text=t, task_type="RETRIEVAL_DOCUMENT")
-                            for t in batch
+                            for t in batch_texts
                         ]
                         embeddings = self._model.get_embeddings(
                             inputs, output_dimensionality=self.dimensionality
                         )
-                        all_embeddings.extend([list(e.values) for e in embeddings])
-                    time.sleep(0.1)
+                        batch_embeddings = [list(e.values) for e in embeddings]
                     break
                 except Exception as err:
                     err_str = str(err).lower()
@@ -379,10 +450,24 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
                         time.sleep(backoff)
                         continue
                     raise
-        return all_embeddings
+
+            # Store in cache and update results
+            for idx, emb in zip(chunk_indices, batch_embeddings, strict=False):
+                results[idx] = emb
+                self._put_cached(texts[idx], emb)
+
+            if chunk_start + batch_size < len(missing_indices):
+                time.sleep(pace_delay_seconds)
+
+        return [r or [] for r in results]
 
     def embed_query(self, query: str) -> list[float]:
-        """Embed a single search query."""
+        """Embed a single search query with persistent disk caching."""
+        cache_key = f"query:{query}"
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
         self._ensure_init()
         max_retries = 5
         for attempt in range(max_retries):
@@ -393,14 +478,18 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
                         contents=query[:6000],
                         config={"output_dimensionality": self.dimensionality},
                     )
-                    return list(res.embeddings[0].values)
-                from vertexai.language_models import TextEmbeddingInput
+                    emb = list(res.embeddings[0].values)
+                else:
+                    from vertexai.language_models import TextEmbeddingInput
 
-                inputs = [TextEmbeddingInput(text=query[:6000], task_type="RETRIEVAL_QUERY")]
-                embeddings = self._model.get_embeddings(
-                    inputs, output_dimensionality=self.dimensionality
-                )
-                return list(embeddings[0].values)
+                    inputs = [TextEmbeddingInput(text=query[:6000], task_type="RETRIEVAL_QUERY")]
+                    embeddings = self._model.get_embeddings(
+                        inputs, output_dimensionality=self.dimensionality
+                    )
+                    emb = list(embeddings[0].values)
+
+                self._put_cached(cache_key, emb)
+                return emb
             except Exception as err:
                 err_str = str(err).lower()
                 if (

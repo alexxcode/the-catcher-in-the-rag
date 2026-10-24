@@ -138,9 +138,19 @@ resource "google_secret_manager_secret" "demo_access_pin" {
   depends_on = [google_project_service.apis]
 }
 
+resource "random_password" "demo_access_pin" {
+  count   = var.demo_access_pin == null ? 1 : 0
+  length  = 24
+  special = false
+}
+
+locals {
+  effective_demo_access_pin = var.demo_access_pin != null ? var.demo_access_pin : random_password.demo_access_pin[0].result
+}
+
 resource "google_secret_manager_secret_version" "demo_access_pin_version" {
   secret      = google_secret_manager_secret.demo_access_pin.id
-  secret_data = var.demo_access_pin
+  secret_data = local.effective_demo_access_pin
 }
 
 # ── Cloud Run Services (API & UI) ─────────────────────────────────────────────

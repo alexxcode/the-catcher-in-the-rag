@@ -27,3 +27,10 @@ output "ui_uri" {
   description = "Public URL for Catcher Streamlit UI."
   value       = google_cloud_run_v2_service.ui.uri
 }
+
+output "demo_access_pin" {
+  description = "Effective demo access PIN for authorized auditors."
+  value       = local.effective_demo_access_pin
+  sensitive   = true
+}
+

@@ -42,7 +42,7 @@ El núcleo del proyecto es un **harness de evaluación científica reproducible*
 | **1. El LLM Extrae, el Código Decide** | Las decisiones financieras (`APPROVE`, `REVIEW`, `REJECT`, `ABSTAIN`) son emitidas por un motor de políticas determinista ([`policy/engine.py`](src/catcher_in_the_rag/policy/engine.py)). Jamás se delega la aprobación monetaria al criterio estocástico de un prompt. |
 | **2. Citas Textuales Infalsificables** | Todo hallazgo contractual exige document ID, rango de caracteres `[start_char:end_char]` y cita literal. El validador ([`validate/validator.py`](src/catcher_in_the_rag/validate/validator.py)) descarta implacablemente cualquier hallazgo cuya cita no coincida byte a byte con el contrato. |
 | **3. Preferiría No Hacerlo (`bartleby`)** | Cuando un contrato no regula un cargo (ej. recargos de flete o seguros no pactados), el guardia de abstención [Bartleby](src/catcher_in_the_rag/bartleby/guard.py) emite `NO_EVIDENCE` y `ABSTAIN`. La arquitectura prefiere no dictaminar antes que inventar reglas contractuales. |
-| **4. Desacoplamiento Offline / Determinista** | La suite completa de 61 tests unitarios y las evaluaciones basales corren en CI de forma 100% offline y determinista con el proveedor `stub`, eliminando costos de red y flakiness en integración continua. |
+| **4. Desacoplamiento Offline / Determinista** | La suite completa de tests unitarios y de integración (67 pasados, 2 omitidos sin datos de CUAD locales; 69 pasando con `make download-data`) y las evaluaciones basales corren en CI de forma 100% offline y determinista con el proveedor `stub`, eliminando costos de red y flakiness en integración continua. |
 | **5. Autenticación ADC sin Secretos en Git** | En entornos cloud reales, la conexión a Gemini en Google Cloud Vertex AI opera mediante Application Default Credentials (ADC), sin almacenar API keys en el repositorio ni en variables de entorno fijas. |
 
 ---
@@ -170,7 +170,7 @@ Los resultados se serializan en `evals/reports/cuad_benchmark_latest.json` y se 
 ### 3. Bake-Off de Extracción en Google Cloud Vertex AI
 Comparativa reproducible evaluada sobre contratos sintéticos con redacción y estilos no estándar (`style="diverse"`) tras el retiro formal de la serie Gemini 2.5 en Vertex AI el 20 de octubre de 2026.
 
-* **Comando de Reproducción:** `make eval-bakeoff` o `uv run python -m evals.run --bakeoff`
+* **Comando de Reproducción:** `uv run python evals/bakeoff.py --sample-size 5 --output evals/reports/` (ejecutado con credenciales ADC en Vertex AI sobre muestra $n=5$ diversa; objetivo de validación pre-staging: $n \ge 30$)
 * **Reporte Oficial:** [`evals/reports/bakeoff_latest.json`](evals/reports/bakeoff_latest.json)
 
 | Modelo / Candidato | Proveedor | Latencia Media | Costo / 1k docs | Error% | Payment Terms | Rate Sheet | Exactitud Global Conjunta |
@@ -209,21 +209,23 @@ El guardia de abstención fue sometido a calibración empírica tanto en el domi
 
 ### Comparativa Multi-Dominio (Sintético vs CUAD Real)
 
-| Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\tau$) | F1-Score en Validación | Hallazgo Empírico de Transferencia |
+| Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\tau$) | Macro F1 Validación | Desempeño Empírico en Transferencia |
 |---|---|:---:|:---:|---|
 | **Plantillas Sintéticas** | Datagen M1 (300 paquetes) | **0.50** | **0.9818** | Alta separabilidad sintética entre cláusulas estándar y recargos anómalos. |
-| **Contratos SEC Reales (Transfer)** | CUAD v1 (25 contratos) | **0.50** (fijado) | **0.2899** | **Colapso de transferencia:** el umbral 0.50 sobre-retiene y produce abstención errónea. |
-| **Contratos SEC Reales (Recalibrado)** | CUAD v1 Train/Val (60/40) | **0.60** (recalibrado) | **0.4557** | Requiere elevar el umbral a 0.60 para discriminar prosa legal dispersa. |
+| **Contratos SEC Reales (Transfer)** | CUAD v1 Train/Val (60/40) | **0.50** (fijado) | **0.5042** | **Sub-abstención:** ante ausencias solo abstiene 41.8%, dejando pasar el 58.2% como alucinaciones. |
+| **Contratos SEC Reales (Recalibrado)** | CUAD v1 Train/Val (60/40) | **0.70** (recalibrado) | **0.5133** | Eleva abstención en ausencias a 61.8%, pero incrementa falsas abstenciones al 53.3%. |
 
-> **Hallazgo Empírico Fundamental:**
-> En datos sintéticos controlados, un umbral de relevancia $\tau = 0.50$ logra un F1 de **0.9818**. Sin embargo, al aplicar ese mismo umbral sobre contratos reales de la SEC (CUAD), el desempeño colapsa a un F1 de **0.2899** (con solo 51.5% de abstención correcta en ausencias y 14.5% de abstención errónea en positivos). La recalibración estratificada 60/40 sobre contratos reales demuestra que la prosa legal no estructurada requiere elevar el umbral a **$\tau = 0.60$** para recuperar un F1 de **0.4557**.
+> **Diagnóstico Empírico Fundamental: El Límite de la Similitud Vectorial**
+> En datos sintéticos controlados, un umbral de relevancia $\tau = 0.50$ logra un F1 de **0.9818**. Sin embargo, al transferir directamente ese umbral a contratos reales de la SEC (CUAD), Bartleby **falla por sub-abstención (alucinación)**: deja pasar la mayoría de cláusulas ausentes porque fragmentos irrelevantes superan la similitud de 0.50.
+> 
+> Al barrer el umbral en una partición reproducible 60/40 (Train: 15, Val: 10, semilla 42) de $\tau = 0.20$ a $\tau = 0.90$, elevar el umbral a $\mathbf{\tau = 0.70}$ incrementa la abstención correcta, pero genera un colapso simétrico disparando las falsas abstenciones en cláusulas presentes.
+> 
+> **Conclusión Arquitectónica:** Con recuperación basada únicamente en vectores densos y BM25, ningún umbral estático ofrece un guardia fiable en contratos comerciales reales (~30-35% de abstención correcta en train sin falsas alarmas inaceptables). Este resultado justifica y motiva directamente la **Condición #3 de Bartleby: Verificación Semántica por LLM (`verify_relevance_with_llm`)**, donde un modelo de lenguaje inspecciona el fragmento recuperado para certificar si responde materialmente a la cláusula antes de otorgar evidencia contractual.
 
-
-1. **Split Train / Validation:** Partición estratificada 60/40 para evitar sobreajuste.
-2. **Denominador Real contra Sobre-Abstención:** Para evitar divisiones indeterminadas ($0/0$), el calibrador contrasta paquetes con anomalía contractual real (donde Bartleby debe abstenerse) contra paquetes válidos con cláusulas de transporte estándar (donde abstenerse constituye un error de falso positivo).
-3. **Selección en el Centro de la Meseta:** En lugar de adoptar umbrales extremos (ej. $0.80$), el sistema selecciona la **mediana de la meseta de máxima puntuación F1**:
-   $$\text{min\_relevance\_score} = 0.50 \qquad \text{min\_evidence\_spans} = 1$$
-4. **Condición #3 (Inspección Semántica de Restricciones):** Bartleby no solo evalúa el puntaje de similitud, sino que detecta prohibiciones expresas (*"under no circumstances"*, *"unless authorized by written amendment"*), asegurando que cláusulas distractoras no se interpreten espuriamente como autorizaciones de pago.
+1. **Split Train / Validation:** Partición reproducible 60/40 (semilla 42) para evaluar transferencia sin sobreajuste.
+2. **Intervalos de Confianza (Wilson 95%):** Cada candidato de umbral registra sus cotas estadísticas tanto para abstención en ausencias como para abstención errónea en presencias legítimas.
+3. **Métrica Macro F1 Balanceada:** Previene el colapso a un clasificador trivial (donde abstenerse al 100% produciría un F1 artificialmente inflado debido al desbalance de clases).
+4. **Condición #3 (Verificación Semántica por LLM):** El guardia combina el filtro de relevancia numérica con una verificación semántica estricta que descarta falsos positivos causados por vocabulario coincidente pero legalmente inconexo.
 
 ---
 
