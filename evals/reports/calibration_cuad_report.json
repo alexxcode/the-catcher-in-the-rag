@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-10-24T07:16:08.447587+00:00",
-  "git_commit_sha": "d1bb4633d910afaf66baea55cd6fda483a64e348",
+  "timestamp": "2026-10-24T07:31:44.104468+00:00",
+  "git_commit_sha": "721fcb14bf8a60212122829f006a491e84bfc1c6",
   "git_dirty": true,
   "command": "calibrate_cuad.py",
   "total_contracts": 50,

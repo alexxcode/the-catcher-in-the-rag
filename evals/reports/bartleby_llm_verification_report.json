@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-10-24T07:24:35.231346+00:00",
-  "git_commit_sha": "d1bb4633d910afaf66baea55cd6fda483a64e348",
+  "timestamp": "2026-10-24T07:36:51.873452+00:00",
+  "git_commit_sha": "721fcb14bf8a60212122829f006a491e84bfc1c6",
   "git_dirty": true,
   "command": "eval_bartleby_llm.py --llm-provider vertex_ai --sample-size 15",
   "total_contracts_evaluated": 15,
@@ -23,7 +23,7 @@
       "f1_abstain": 0.4356,
       "f1_presence": 0.4771,
       "macro_f1": 0.4564,
-      "mean_latency_ms": 14.32,
+      "mean_latency_ms": 14.48,
       "estimated_cost_usd_per_1k": 0.0,
       "prompt_tokens": 0,
       "candidate_tokens": 0
@@ -45,7 +45,7 @@
       "f1_abstain": 0.5424,
       "f1_presence": 0.413,
       "macro_f1": 0.4777,
-      "mean_latency_ms": 14.47,
+      "mean_latency_ms": 14.07,
       "estimated_cost_usd_per_1k": 0.0,
       "prompt_tokens": 0,
       "candidate_tokens": 0
@@ -57,21 +57,21 @@
       "use_llm_verification": true,
       "total_queries": 105,
       "total_absences": 79,
-      "correct_abstentions": 67,
-      "correct_abstention_rate": 0.8481,
+      "correct_abstentions": 68,
+      "correct_abstention_rate": 0.8608,
       "total_presences": 26,
       "false_abstentions": 20,
       "false_abstention_rate": 0.7692,
-      "precision_abstain": 0.7701,
-      "recall_abstain": 0.8481,
-      "f1_abstain": 0.8072,
-      "f1_presence": 0.2727,
-      "macro_f1": 0.54,
-      "mean_latency_ms": 2353.01,
-      "estimated_cost_usd_per_1k": 0.0376,
+      "precision_abstain": 0.7727,
+      "recall_abstain": 0.8608,
+      "f1_abstain": 0.8144,
+      "f1_presence": 0.2791,
+      "macro_f1": 0.5467,
+      "mean_latency_ms": 2772.99,
+      "estimated_cost_usd_per_1k": 0.0377,
       "prompt_tokens": 38226,
-      "candidate_tokens": 3602
+      "candidate_tokens": 3632
     }
   ],
-  "findings_summary": "Evaluated 3 guard architectures on 15 authentic CUAD contracts (105 cases) using live Vertex AI (vertex_ai, model=gemini-3.5-flash). Pure vector retrieval at tau=0.50 achieves 27.9% correct abstention (false abs: 0.0%, Macro F1: 0.4564). Raising threshold to tau=0.70 yields 40.5% correct abstention at cost of 26.9% false abstentions (Macro F1: 0.4777). Condition 3 LLM verification achieves 84.8% correct abstention with 76.9% false abstentions (Macro F1: 0.5400), with measured latency 2353.0ms and measured cost $0.04/1k queries."
+  "findings_summary": "Evaluated 3 guard architectures on 15 authentic CUAD contracts (105 cases) using live Vertex AI (vertex_ai, model=gemini-3.5-flash). Pure vector retrieval at tau=0.50 achieves 27.9% correct abstention (false abs: 0.0%, Macro F1: 0.4564). Raising threshold to tau=0.70 yields 40.5% correct abstention at cost of 26.9% false abstentions (Macro F1: 0.4777). Condition 3 LLM verification achieves 86.1% correct abstention with 76.9% false abstentions (Macro F1: 0.5467), with measured latency 2773.0ms and measured cost $0.04/1k queries."
 }
