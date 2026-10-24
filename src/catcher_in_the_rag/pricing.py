@@ -49,9 +49,15 @@ def get_model_rates(model_id: str) -> tuple[float, float]:
     config = load_pricing_config()
     models = config.get("models", {})
 
-    # Direct match or substring match (e.g. 'gemini-3.5-flash' in 'vertex_ai/gemini-3.5-flash')
-    for key, data in models.items():
-        if key == model_id or key in model_id:
+    # 1. Exact match
+    if model_id in models:
+        data = models[model_id]
+        return float(data["prompt_cost_per_1m"]), float(data["candidate_cost_per_1m"])
+
+    # 2. Substring match (e.g. 'gemini-3.5-flash' in 'vertex_ai/gemini-3.5-flash'), longer keys first
+    for key in sorted(models.keys(), key=len, reverse=True):
+        if key in model_id:
+            data = models[key]
             return float(data["prompt_cost_per_1m"]), float(data["candidate_cost_per_1m"])
 
     # Fallback to standard 3.5 Flash rate

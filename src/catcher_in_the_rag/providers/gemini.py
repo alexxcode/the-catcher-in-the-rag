@@ -16,6 +16,13 @@ from catcher_in_the_rag.providers.tracing import get_tracer
 T = TypeVar("T", bound=BaseModel)
 
 
+def _safe_int(val: Any) -> int:
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return 0
+
+
 class GeminiProvider(LLMProvider):
     """Real GCP generative AI provider using Vertex AI (ADC credentials, no API keys).
 
@@ -183,29 +190,30 @@ class GeminiProvider(LLMProvider):
         # Extract usage metadata if available (including thoughts tokens billed as output)
         usage: dict[str, int] = {}
         if hasattr(response, "usage_metadata") and response.usage_metadata:
-            p_tok = getattr(response.usage_metadata, "prompt_token_count", 0)
-            c_tok = getattr(response.usage_metadata, "candidates_token_count", 0)
-            tot_tok = getattr(response.usage_metadata, "total_token_count", 0)
-            th_tok = getattr(response.usage_metadata, "thoughts_token_count", 0) or getattr(
-                response.usage_metadata, "thinking_token_count", 0
-            )
+            p_tok = _safe_int(getattr(response.usage_metadata, "prompt_token_count", 0))
+            c_tok = _safe_int(getattr(response.usage_metadata, "candidates_token_count", 0))
+            tot_tok = _safe_int(getattr(response.usage_metadata, "total_token_count", 0))
+            raw_th = getattr(response.usage_metadata, "thoughts_token_count", None)
+            if raw_th is None:
+                raw_th = getattr(response.usage_metadata, "thinking_token_count", None)
+            th_tok = _safe_int(raw_th) if raw_th is not None else 0
             if not th_tok and tot_tok > (p_tok + c_tok):
                 th_tok = tot_tok - (p_tok + c_tok)
 
             # In Vertex AI pricing, reasoning/thinking tokens are billed at the candidate token rate
-            billable_output = c_tok if (c_tok >= (tot_tok - p_tok)) else (c_tok + (th_tok or 0))
+            billable_output = c_tok if (c_tok >= (tot_tok - p_tok)) else (c_tok + th_tok)
 
             usage = {
                 "input": p_tok,
                 "output": billable_output,
-                "thoughts": th_tok or 0,
+                "thoughts": th_tok,
                 "total": tot_tok,
             }
             self.total_prompt_tokens = getattr(self, "total_prompt_tokens", 0) + p_tok
             self.total_candidate_tokens = (
                 getattr(self, "total_candidate_tokens", 0) + billable_output
             )
-            self.total_thoughts_tokens = getattr(self, "total_thoughts_tokens", 0) + (th_tok or 0)
+            self.total_thoughts_tokens = getattr(self, "total_thoughts_tokens", 0) + th_tok
 
         tracer = get_tracer()
         tracer.trace_generation(
@@ -269,16 +277,17 @@ class GeminiProvider(LLMProvider):
 
         usage: dict[str, int] = {}
         if hasattr(response, "usage_metadata") and response.usage_metadata:
-            p_tok = getattr(response.usage_metadata, "prompt_token_count", 0)
-            c_tok = getattr(response.usage_metadata, "candidates_token_count", 0)
-            tot_tok = getattr(response.usage_metadata, "total_token_count", 0)
-            th_tok = getattr(response.usage_metadata, "thoughts_token_count", 0) or getattr(
-                response.usage_metadata, "thinking_token_count", 0
-            )
+            p_tok = _safe_int(getattr(response.usage_metadata, "prompt_token_count", 0))
+            c_tok = _safe_int(getattr(response.usage_metadata, "candidates_token_count", 0))
+            tot_tok = _safe_int(getattr(response.usage_metadata, "total_token_count", 0))
+            raw_th = getattr(response.usage_metadata, "thoughts_token_count", None)
+            if raw_th is None:
+                raw_th = getattr(response.usage_metadata, "thinking_token_count", None)
+            th_tok = _safe_int(raw_th) if raw_th is not None else 0
             if not th_tok and tot_tok > (p_tok + c_tok):
                 th_tok = tot_tok - (p_tok + c_tok)
 
-            billable_output = c_tok if (c_tok >= (tot_tok - p_tok)) else (c_tok + (th_tok or 0))
+            billable_output = c_tok if (c_tok >= (tot_tok - p_tok)) else (c_tok + th_tok)
 
             usage = {
                 "input": p_tok,

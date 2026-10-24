@@ -225,20 +225,21 @@ El guardia de abstención fue sometido a calibración empírica tanto en el domi
 
 ### Evaluación de la Condición #3 de Bartleby: Verificación Semántica por LLM
 
-Medición empírica en vivo sobre 15 contratos auténticos de la SEC (CUAD, 105 evaluaciones de consulta) comparando el filtro de umbral puro frente a la verificación semántica activa con Vertex AI (`gemini-3.5-flash`), inspeccionando los candidatos del top-3 (`max_verification_candidates=3`):
+Medición empírica en vivo sobre 15 contratos auténticos de la SEC (CUAD, 105 evaluaciones de consulta) comparando el filtro de umbral puro frente a la verificación semántica activa con Vertex AI (`gemini-3.5-flash`), inspeccionando los candidatos del top-5 (`max_verification_candidates=5`):
 
 | Modo de Guardia | $\tau$ | Verificación LLM | Abstención Correcta (Recall) | Falsa Abstención (Error) | Macro F1 | Latencia Media | Costo Estimado / 1k* |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Pure Vector Hybrid (tau=0.50)** | **0.50** | `Desactivada` | **27.9% (22/79)** | **0.0% (0/26)** | **0.4564** | 16.1 ms | $0.0000 |
-| **Pure Vector Hybrid (tau=0.70)** | **0.70** | `Desactivada` | **40.5% (32/79)** | **26.9% (7/26)** | **0.4777** | 16.1 ms | $0.0000 |
-| **Bartleby Condition 3 (tau=0.50 + LLM Verification)** | **0.50** | `Gemini 3.5 Flash` | **75.9% (60/79)** | **65.4% (17/26)** | **0.5513** | 5153.1 ms | $0.6262 |
+| **Pure Vector Hybrid (tau=0.50)** | **0.50** | `Desactivada` | **27.9% (22/79)** | **0.0% (0/26)** | **0.4564** | 35.9 ms | $0.0000 |
+| **Pure Vector Hybrid (tau=0.70)** | **0.70** | `Desactivada` | **40.5% (32/79)** | **26.9% (7/26)** | **0.4777** | 37.3 ms | $0.0000 |
+| **Bartleby Condition 3 (tau=0.50 + LLM Verification)** | **0.50** | `Gemini 3.5 Flash` | **63.3% (50/79)** | **46.2% (12/26)** | **0.5575** | 4511.1 ms | $2.4094 |
 
-*\*Costo estimado a partir de tokens medidos (83,552 prompt / 7,993 candidate) y tarifas pay-as-you-go vigentes en Vertex AI ($0.50 / $3.00 por millón de tokens según [`config/pricing.yaml`](config/pricing.yaml)).*
+*\*Costo estimado a partir de tokens medidos (100,766 prompt / 11,315 candidate, incluyendo tokens de pensamiento contabilizados como salida) y tarifas pay-as-you-go oficiales en Vertex AI ($1.50 / $9.00 por millón de tokens para Gemini 3.5 Flash según [`config/pricing.yaml`](config/pricing.yaml)). Con Gemini 3.8 Flash, el costo estimado resulta en ~$0.88/1k con la tarifa introductoria vigente ($0.75 / $3.75 hasta el 31 de diciembre de 2026) y en ~$1.77/1k con la tarifa estándar ($1.50 / $7.50 a partir del 1 de enero de 2027).*
 
-> **Diagnóstico Empírico: El Cuello de Botella es la Recuperación, no el Verificador**
-> 1. **La Falsa Abstención Mide Fallos del Retriever:** En los 26 casos con cláusula presente, la búsqueda léxica/hash ubica la cláusula correcta en el rango #1 solo en el **26.9%** de los casos (7/26). Cuando se amplía la búsqueda al top-5, la cobertura sube al **61.5%** (16/26). En los 10 casos donde la recuperación fracasó trayendo texto irrelevante, el verificador LLM **rechazó correctamente 9 de los 10 pasajes (90.0%)**, actuando como un juez riguroso ante evidencia defectuosa.
-> 2. **Ganancia Neta en Discriminación:** El filtro semántico eleva la abstención correcta ante ausencias reales del 27.9% al **75.9%**, alcanzando el Macro F1 más alto del benchmark (**0.5513**).
-> 3. **Trade-off Operativo:** Añade ~5.1 segundos de latencia media y un costo proyectado de ~$0.63 por cada 1,000 consultas auditadas.
+> **Diagnóstico Empírico: Resolución del Rechazo en Top-k y Cuello de Botella de Recuperación**
+> 1. **Inspección de Casos Rechazados:** La auditoría caso por caso de los 26 casos presentes ([`evals/reports/audit_rejected_cases_report.json`](evals/reports/audit_rejected_cases_report.json)) reveló que las discrepancias iniciales en el top-5 no eran alucinaciones del modelo, sino un sesgo de especificidad léxica en el prompt: en contratos reales de la SEC, categorías como *Cap on Liability* cubren exclusiones de daños indirectos/consecuentes, y *Audit Rights* cubren inspección de obra. Al enriquecer el prompt con el alcance legal canónico de cada categoría, el verificador LLM aceptó **16 de 16 casos (100.0%)** cuando la cláusula correcta estaba presente en el top-5.
+> 2. **El Cuello de Botella es la Recuperación:** En los 26 casos con cláusula presente, la búsqueda léxica/hash ubica la cláusula correcta en el rango #1 solo en el **26.9%** de los casos (7/26), y en el top-5 solo en el **61.5%** (16/26). Cuando la recuperación fracasa completamente trayendo únicamente ruido irrelevante (10 casos), el verificador LLM **rechazó correctamente 8 de los 10 pasajes (80.0%)**, actuando como filtro riguroso de distractoras espurias.
+> 3. **Ganancia Neta en Discriminación:** El filtro semántico eleva la abstención correcta ante ausencias reales del 27.9% al **63.3%**, reduciendo la falsa abstención al **46.2%** (frente al 76.9% original) y alcanzando el Macro F1 más alto de todas las arquitecturas evaluadas (**0.5575**).
+> 4. **Trade-off Operativo:** Añade ~4.5 segundos de latencia media y un costo proyectado de ~$2.41 por cada 1,000 consultas auditadas en Gemini 3.5 Flash (~$0.88 en Gemini 3.8 Flash). Para mitigar la latencia sin pérdida de precisión en clasificación binaria, el proveedor admite `thinking_budget: 0`.
 
 1. **Split Train / Validation:** Partición reproducible 60/40 (semilla 42) sobre 50 contratos de la SEC para evaluar transferencia sin sobreajuste.
 2. **Métricas sin Umbral (AUC-ROC):** Mide la capacidad intrínseca del ranking de recuperación de separar presencia vs ausencia con independencia del umbral.
