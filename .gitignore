@@ -72,6 +72,7 @@ evals/reports/*
 !evals/reports/bakeoff_latest.json
 !evals/reports/cuad_benchmark_latest.json
 !evals/reports/calibration_cuad_report.json
+!evals/reports/bartleby_llm_verification_report.json
 !evals/reports/bakeoff_report_20261023T*.json
 !evals/reports/cuad_benchmark_20261023T*.json
 

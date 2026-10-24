@@ -209,23 +209,24 @@ El guardia de abstención fue sometido a calibración empírica tanto en el domi
 
 ### Comparativa Multi-Dominio (Sintético vs CUAD Real)
 
-| Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\tau$) | Macro F1 Validación | Desempeño Empírico en Transferencia |
-|---|---|:---:|:---:|---|
-| **Plantillas Sintéticas** | Datagen M1 (300 paquetes) | **0.50** | **0.9818** | Alta separabilidad sintética entre cláusulas estándar y recargos anómalos. |
-| **Contratos SEC Reales (Transfer)** | CUAD v1 Train/Val (60/40) | **0.50** (fijado) | **0.5042** | **Sub-abstención:** ante ausencias solo abstiene 41.8%, dejando pasar el 58.2% como alucinaciones. |
-| **Contratos SEC Reales (Recalibrado)** | CUAD v1 Train/Val (60/40) | **0.70** (recalibrado) | **0.5133** | Eleva abstención en ausencias a 61.8%, pero incrementa falsas abstenciones al 53.3%. |
+| Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\tau$) | Macro F1 Validación | AUC-ROC Separabilidad | Desempeño Empírico en Transferencia |
+|---|---|:---:|:---:|:---:|---|
+| **Plantillas Sintéticas** | Datagen M1 (300 paquetes) | **0.50** | **0.9818** | **0.9940** | Alta separabilidad sintética entre cláusulas estándar y recargos anómalos. |
+| **Contratos SEC Reales (Transfer)** | CUAD v1 Train/Val (60/40) | **0.50** (fijado) | **0.4418** | **0.5552** | **Sub-abstención:** ante ausencias solo abstiene 26.9%, dejando pasar el 73.1% como alucinaciones. |
+| **Contratos SEC Reales (Recalibrado)** | CUAD v1 Train/Val (60/40) | **0.80** (recalibrado) | **0.4982** | **0.5552** | Eleva abstención en ausencias a 80.8%, pero incrementa falsas abstenciones al 80.6% (vs clasificador ciego: 0.4262). |
 
-> **Diagnóstico Empírico Fundamental: El Límite de la Similitud Vectorial**
-> En datos sintéticos controlados, un umbral de relevancia $\tau = 0.50$ logra un F1 de **0.9818**. Sin embargo, al transferir directamente ese umbral a contratos reales de la SEC (CUAD), Bartleby **falla por sub-abstención (alucinación)**: deja pasar la mayoría de cláusulas ausentes porque fragmentos irrelevantes superan la similitud de 0.50.
-> 
-> Al barrer el umbral en una partición reproducible 60/40 (Train: 15, Val: 10, semilla 42) de $\tau = 0.20$ a $\tau = 0.90$, elevar el umbral a $\mathbf{\tau = 0.70}$ incrementa la abstención correcta, pero genera un colapso simétrico disparando las falsas abstenciones en cláusulas presentes.
-> 
-> **Conclusión Arquitectónica:** Con recuperación basada únicamente en vectores densos y BM25, ningún umbral estático ofrece un guardia fiable en contratos comerciales reales (~30-35% de abstención correcta en train sin falsas alarmas inaceptables). Este resultado justifica y motiva directamente la **Condición #3 de Bartleby: Verificación Semántica por LLM (`verify_relevance_with_llm`)**, donde un modelo de lenguaje inspecciona el fragmento recuperado para certificar si responde materialmente a la cláusula antes de otorgar evidencia contractual.
+> **Diagnóstico Empírico Fundamental: El Límite de la Similitud Vectorial y Separabilidad AUC-ROC**
+> En datos sintéticos controlados, un umbral de relevancia $\tau = 0.50$ logra un F1 de **0.9818** con un AUC-ROC casi perfecto (**0.9940**). Sin embargo, al transferir directamente ese umbral a contratos reales de la SEC (CUAD, evaluado sobre 50 contratos; Train: 30, Val: 20, semilla 42):
+>
+> 1. **Colapso de Separabilidad:** El AUC-ROC no paramétrico (Wilcoxon-Mann-Whitney) desciende a **0.5552** en validación (0.4940 en entrenamiento). Esto demuestra matemáticamente que la distribución de puntajes híbridos (BM25 + embeddings) entre cláusulas presentes y cláusulas ausentes es **casi indistinguible del azar**.
+> 2. **Falso Óptimo y Clasificador Trivial:** A $\tau = 0.50$, Bartleby sufre de **sub-abstención** (deja pasar el 73.1% de ausencias). Al barrer la rejilla de 0.20 a 0.90, elevar el umbral a $\tau = 0.80$ mejora el Macro F1 a 0.4982, pero a costa de rechazar erróneamente el 80.6% de las cláusulas presentes. Además, este desempeño apenas supera en un marginal 0.07 al clasificador trivial ciego ("Siempre Abstenerse", Macro F1 = 0.4262).
+>
+> **Conclusión Arquitectónica:** Ningún umbral estático sobre recuperación densa/BM25 es suficiente para gobernar contratos comerciales reales. Este resultado justifica y motiva la **Condición #3 de Bartleby: Verificación Semántica por LLM (`verify_relevance_with_llm`)**, evaluada en [`evals/reports/bartleby_llm_verification_report.json`](evals/reports/bartleby_llm_verification_report.json), donde el modelo evalúa materialmente la pertinencia semántica del pasaje antes de validar la evidencia contractual.
 
-1. **Split Train / Validation:** Partición reproducible 60/40 (semilla 42) para evaluar transferencia sin sobreajuste.
-2. **Intervalos de Confianza (Wilson 95%):** Cada candidato de umbral registra sus cotas estadísticas tanto para abstención en ausencias como para abstención errónea en presencias legítimas.
-3. **Métrica Macro F1 Balanceada:** Previene el colapso a un clasificador trivial (donde abstenerse al 100% produciría un F1 artificialmente inflado debido al desbalance de clases).
-4. **Condición #3 (Verificación Semántica por LLM):** El guardia combina el filtro de relevancia numérica con una verificación semántica estricta que descarta falsos positivos causados por vocabulario coincidente pero legalmente inconexo.
+1. **Split Train / Validation:** Partición reproducible 60/40 (semilla 42) sobre 50 contratos de la SEC para evaluar transferencia sin sobreajuste.
+2. **Métricas sin Umbral (AUC-ROC):** Mide la capacidad intrínseca del ranking de recuperación de separar presencia vs ausencia con independencia del umbral.
+3. **Contraste contra Baselines Triviales:** Evaluación estricta frente a clasificadores ciegos (*Always Abstain* y *Never Abstain*).
+4. **Condición #3 (Verificación Semántica por LLM):** El guardia combina el filtro de similitud con una verificación semántica que inspecciona si el fragmento efectivamente otorga o niega la cláusula consultada.
 
 ---
 

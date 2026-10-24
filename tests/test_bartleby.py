@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from catcher_in_the_rag.bartleby.guard import BartlebyGuard
 from catcher_in_the_rag.retrieve.retriever import ScoredClause
 from catcher_in_the_rag.schemas import AnomalyType, Citation, Finding
@@ -78,3 +80,87 @@ def test_bartleby_evaluates_verbatim_finding() -> None:
         citation=fake_cit,
     )
     assert not guard.evaluate_finding(f_fake, raw_text)
+
+
+class MockLLMVerificationProvider:
+    def __init__(self, is_relevant: bool, should_fail: bool = False) -> None:
+        self.provider_type = "mock_vertex_ai"
+        self._is_relevant = is_relevant
+        self._should_fail = should_fail
+        self.call_count = 0
+
+    def generate_structured(self, prompt: str, response_schema: type) -> Any:
+        self.call_count += 1
+        if self._should_fail:
+            raise RuntimeError("API quota exceeded")
+        return response_schema(
+            is_relevant=self._is_relevant,
+            reason="Mock verified by test suite",
+        )
+
+
+def test_bartleby_llm_verification_confirms_valid_clause() -> None:
+    guard = BartlebyGuard(thresholds={"min_relevance_score": 0.5, "min_evidence_spans": 1})
+    clause = ScoredClause(
+        clause_id="C-10",
+        clause_type="audit_rights",
+        title="Audit Rights",
+        text="Buyer may inspect and audit Supplier books annually.",
+        start_char=0,
+        end_char=55,
+        score=0.75,
+    )
+
+    mock_llm = MockLLMVerificationProvider(is_relevant=True)
+    is_rel = guard.verify_relevance_with_llm(clause, query_topic="audit rights", llm_provider=mock_llm)
+    assert is_rel is True
+    assert mock_llm.call_count == 1
+
+    assessment = guard.evaluate_retrieval([clause], query_topic="audit rights", llm_provider=mock_llm)
+    assert not assessment.abstained
+    assert len(assessment.surviving_clauses) == 1
+
+
+def test_bartleby_llm_verification_abstains_on_false_positive_clause() -> None:
+    guard = BartlebyGuard(thresholds={"min_relevance_score": 0.5, "min_evidence_spans": 1})
+    # Clause has high hybrid score due to keyword overlap, but doesn't actually regulate audit rights
+    distractor_clause = ScoredClause(
+        clause_id="C-11",
+        clause_type="general",
+        title="Accounting Records",
+        text="Supplier will maintain ordinary books in accordance with GAAP.",
+        start_char=0,
+        end_char=64,
+        score=0.72,  # Passes vector threshold!
+    )
+
+    mock_llm = MockLLMVerificationProvider(is_relevant=False)
+    is_rel = guard.verify_relevance_with_llm(distractor_clause, query_topic="audit rights", llm_provider=mock_llm)
+    assert is_rel is False
+
+    assessment = guard.evaluate_retrieval(
+        [distractor_clause], query_topic="audit rights", llm_provider=mock_llm
+    )
+    assert assessment.abstained
+    assert "NO_EVIDENCE" in assessment.reason
+    assert "LLM verification determined" in assessment.reason
+    assert len(assessment.surviving_clauses) == 0
+
+
+def test_bartleby_llm_verification_graceful_fallback_on_error() -> None:
+    guard = BartlebyGuard(thresholds={"min_relevance_score": 0.5, "min_evidence_spans": 1})
+    clause = ScoredClause(
+        clause_id="C-12",
+        clause_type="warranties",
+        title="Warranties",
+        text="Goods will be free from defects.",
+        start_char=0,
+        end_char=33,
+        score=0.65,
+    )
+
+    failing_llm = MockLLMVerificationProvider(is_relevant=True, should_fail=True)
+    # When LLM raises error, should fallback to passing through rather than hard crash
+    is_rel = guard.verify_relevance_with_llm(clause, query_topic="warranties", llm_provider=failing_llm)
+    assert is_rel is True
+

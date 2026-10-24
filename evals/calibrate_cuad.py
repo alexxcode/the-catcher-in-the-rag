@@ -5,19 +5,22 @@ authentic commercial SEC contracts:
 - Shuffled, reproducible 60/40 Train/Val split on CUAD contracts (seed=42)
 - Sweeps relevance thresholds [0.20, 0.30, 0.40, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90]
 - Computes 95% Wilson score confidence intervals for correct and false abstentions
-- Evaluates F1 score balancing correct abstention on absent clauses vs false abstention on present clauses
+- Measures threshold-free AUC-ROC of retrieval score separating presence from absence
+- Evaluates Macro F1 against both trivial baselines (Always Abstain vs Never Abstain)
 - Documents the domain discrepancy: vector similarity alone under-abstains at low thresholds
   and over-abstains at high thresholds, justifying Condition 3 LLM verification.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 import random
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from catcher_in_the_rag.ingest.cuad_loader import CUADLoader
 from catcher_in_the_rag.providers.factory import get_embedding_provider
@@ -36,6 +39,69 @@ def _wilson_interval(successes: int, total: int, z: float = 1.96) -> list[float]
         (p_hat * (1.0 - p_hat) / total) + (z * z) / (4.0 * total * total)
     )
     return [round(max(0.0, center - margin), 4), round(min(1.0, center + margin), 4)]
+
+
+def _calculate_auc_roc(presence_scores: list[float], absence_scores: list[float]) -> float:
+    """Compute non-parametric AUC-ROC via Wilcoxon-Mann-Whitney rank statistic.
+
+    Measures probability that a randomly chosen presence case has a higher
+    retrieval score than a randomly chosen absence case.
+    AUC = 0.50 means purely random / uninformative score distribution.
+    AUC = 1.00 means perfect separability.
+    """
+    if not presence_scores or not absence_scores:
+        return 0.5
+    wins = 0.0
+    for p in presence_scores:
+        for a in absence_scores:
+            if p > a:
+                wins += 1.0
+            elif p == a:
+                wins += 0.5
+    total_pairs = len(presence_scores) * len(absence_scores)
+    return round(wins / total_pairs, 4)
+
+
+def _eval_trivial_baselines(scores_abs: list[float], scores_pres: list[float]) -> dict[str, Any]:
+    n_abs = len(scores_abs)
+    n_pres = len(scores_pres)
+
+    # 1. Always Abstain (Blind Reject: tau -> inf)
+    prec_abs_always = n_abs / (n_abs + n_pres) if (n_abs + n_pres) > 0 else 0.0
+    rec_abs_always = 1.0
+    f1_abs_always = (
+        (2 * prec_abs_always * rec_abs_always) / (prec_abs_always + rec_abs_always)
+        if (prec_abs_always + rec_abs_always) > 0
+        else 0.0
+    )
+    f1_pres_always = 0.0
+    macro_always = round((f1_abs_always + f1_pres_always) / 2.0, 4)
+
+    # 2. Never Abstain (Blind Accept: tau -> 0)
+    f1_abs_never = 0.0
+    prec_pres_never = n_pres / (n_pres + n_abs) if (n_pres + n_abs) > 0 else 0.0
+    rec_pres_never = 1.0
+    f1_pres_never = (
+        (2 * prec_pres_never * rec_pres_never) / (prec_pres_never + rec_pres_never)
+        if (prec_pres_never + rec_pres_never) > 0
+        else 0.0
+    )
+    macro_never = round((f1_abs_never + f1_pres_never) / 2.0, 4)
+
+    return {
+        "always_abstain": {
+            "description": "Blind Reject (always declines, tau -> inf)",
+            "correct_abstention_rate": 1.0,
+            "false_abstention_rate": 1.0,
+            "macro_f1": macro_always,
+        },
+        "never_abstain": {
+            "description": "Blind Accept (never declines, tau -> 0)",
+            "correct_abstention_rate": 0.0,
+            "false_abstention_rate": 0.0,
+            "macro_f1": macro_never,
+        },
+    }
 
 
 @dataclass
@@ -65,6 +131,8 @@ class CUADCalibrationReport:
     total_contracts: int
     train_contracts_count: int
     val_contracts_count: int
+    auc_roc_train: float
+    auc_roc_val: float
     synthetic_optimal_threshold: float
     cuad_optimal_threshold: float
     optimal_f1_train: float
@@ -75,12 +143,14 @@ class CUADCalibrationReport:
     val_false_abstention_at_synthetic: float
     val_correct_abstention_at_optimal: float
     val_false_abstention_at_optimal: float
+    baseline_always_abstain: dict[str, Any]
+    baseline_never_abstain: dict[str, Any]
     domain_gap_analysis: str
     candidates: list[ThresholdCandidate]
 
 
 def run_cuad_calibration(
-    sample_size: int = 25,
+    sample_size: int = 50,
     train_ratio: float = 0.60,
     output_path: str = "evals/reports/calibration_cuad_report.json",
     seed: int = 42,
@@ -90,7 +160,7 @@ def run_cuad_calibration(
     if not contracts:
         raise RuntimeError("No CUAD contracts loaded. Run `make download-data` first.")
 
-    # Shuffled, deterministic 60/40 Train/Val split
+    # Shuffled, deterministic Train/Val split
     shuffled_contracts = list(contracts)
     rng = random.Random(seed)
     rng.shuffle(shuffled_contracts)
@@ -132,6 +202,8 @@ def run_cuad_calibration(
                 train_presence_scores.append(top_score)
             else:
                 train_absence_scores.append(top_score)
+
+    auc_train = _calculate_auc_roc(train_presence_scores, train_absence_scores)
 
     # Expanded sweep grid up to 0.90 to avoid artificial edge optima
     thresholds = [0.20, 0.30, 0.40, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90]
@@ -195,7 +267,7 @@ def run_cuad_calibration(
     if best_candidate:
         best_candidate.is_optimal = True
 
-    optimal_thresh = best_candidate.min_relevance_score if best_candidate else 0.60
+    optimal_thresh = best_candidate.min_relevance_score if best_candidate else 0.70
 
     # Evaluate on held-out validation set
     val_presence_scores: list[float] = []
@@ -212,6 +284,9 @@ def run_cuad_calibration(
                 val_presence_scores.append(top_score)
             else:
                 val_absence_scores.append(top_score)
+
+    auc_val = _calculate_auc_roc(val_presence_scores, val_absence_scores)
+    baselines_val = _eval_trivial_baselines(val_absence_scores, val_presence_scores)
 
     def calc_f1_and_rates(
         scores_abs: list[float], scores_pres: list[float], t: float
@@ -247,9 +322,10 @@ def run_cuad_calibration(
         f"it correctly abstains on only {val_c_synth*100:.1f}% of absences in validation, leaving through "
         f"{(1-val_c_synth)*100:.1f}% of missing clauses (hallucination vulnerability). "
         f"Raising threshold to tau={optimal_thresh:.2f} increases validation correct abstention to {val_c_opt*100:.1f}%, "
-        f"but incurs {val_f_opt*100:.1f}% false abstentions on present clauses. Vector similarity alone caps "
-        f"reliability around ~30-35% correct abstention on real SEC contracts, demonstrating the necessity of "
-        f"Condition 3 semantic LLM verification."
+        f"but incurs {val_f_opt*100:.1f}% false abstentions on present clauses. "
+        f"AUC-ROC is {auc_val:.4f} (near-uninformative separability), and optimal Macro F1 ({val_f1_optimal:.4f}) "
+        f"exceeds the trivial Always-Abstain baseline ({baselines_val['always_abstain']['macro_f1']:.4f}) by only marginal gap. "
+        f"Vector similarity alone cannot reliably guard real contracts, proving the necessity of Condition 3 LLM verification."
     )
 
     provenance = get_provenance_metadata({"domain": "CUAD Real SEC Contracts (Calibrated)"})
@@ -262,6 +338,8 @@ def run_cuad_calibration(
         total_contracts=len(shuffled_contracts),
         train_contracts_count=len(train_contracts),
         val_contracts_count=len(val_contracts),
+        auc_roc_train=auc_train,
+        auc_roc_val=auc_val,
         synthetic_optimal_threshold=0.50,
         cuad_optimal_threshold=optimal_thresh,
         optimal_f1_train=round(best_f1, 4),
@@ -272,6 +350,8 @@ def run_cuad_calibration(
         val_false_abstention_at_synthetic=val_f_synth,
         val_correct_abstention_at_optimal=val_c_opt,
         val_false_abstention_at_optimal=val_f_opt,
+        baseline_always_abstain=baselines_val["always_abstain"],
+        baseline_never_abstain=baselines_val["never_abstain"],
         domain_gap_analysis=domain_gap_analysis,
         candidates=candidates,
     )
@@ -284,13 +364,20 @@ def run_cuad_calibration(
     print("=" * 80)
     print(" BARTLEBY CUAD REAL-WORLD CALIBRATION REPORT (GRID 0.20 -> 0.90)")
     print(f" Train Contracts: {len(train_contracts)} | Val Contracts: {len(val_contracts)}")
+    print(f" AUC-ROC Separability: Train={auc_train:.4f} | Val={auc_val:.4f}")
     print(
-        f" Synthetic Threshold (tau=0.50): Val F1={val_f1_synthetic:.4f} "
+        f" Synthetic Threshold (tau=0.50): Val Macro F1={val_f1_synthetic:.4f} "
         f"(Correct Abs: {val_c_synth*100:.1f}%, False Abs: {val_f_synth*100:.1f}%)"
     )
     print(
-        f" Optimal Threshold (tau={optimal_thresh:.2f}): Val F1={val_f1_optimal:.4f} "
+        f" Optimal Threshold (tau={optimal_thresh:.2f}): Val Macro F1={val_f1_optimal:.4f} "
         f"(Correct Abs: {val_c_opt*100:.1f}%, False Abs: {val_f_opt*100:.1f}%)"
+    )
+    print(
+        f" Trivial Baseline 1 (Always Abstain): Val Macro F1={baselines_val['always_abstain']['macro_f1']:.4f}"
+    )
+    print(
+        f" Trivial Baseline 2 (Never Abstain):  Val Macro F1={baselines_val['never_abstain']['macro_f1']:.4f}"
     )
     print("=" * 80)
     for c in candidates:
@@ -306,4 +393,8 @@ def run_cuad_calibration(
 
 
 if __name__ == "__main__":
-    run_cuad_calibration()
+    parser = argparse.ArgumentParser(description="Calibrate Bartleby on CUAD")
+    parser.add_argument("--sample-size", type=int, default=50, help="Number of contracts")
+    parser.add_argument("--output", type=str, default="evals/reports/calibration_cuad_report.json")
+    args = parser.parse_args()
+    run_cuad_calibration(sample_size=args.sample_size, output_path=args.output)
