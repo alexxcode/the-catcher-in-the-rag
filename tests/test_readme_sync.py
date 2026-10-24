@@ -17,6 +17,7 @@ from evals.generate_readme_tables import (
     generate_bakeoff_table,
     generate_cuad_table,
     generate_domain_calibration_table,
+    generate_llm_verification_table,
 )
 
 
@@ -72,6 +73,17 @@ def test_readme_bakeoff_table_in_sync() -> None:
 
     assert generated_table in readme_content, (
         "README.md Bake-Off table is out of sync with evals/reports/bakeoff_latest.json."
+    )
+
+
+def test_readme_llm_verification_table_in_sync() -> None:
+    """Verify that README.md LLM verification table matches generate_llm_verification_table() exactly."""
+    readme_path = Path("README.md")
+    readme_content = readme_path.read_text(encoding="utf-8")
+    generated_table = generate_llm_verification_table().strip()
+
+    assert generated_table in readme_content, (
+        "README.md LLM verification table is out of sync with evals/reports/bartleby_llm_verification_report.json."
     )
 
 

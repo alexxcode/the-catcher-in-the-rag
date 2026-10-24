@@ -1,0 +1,30 @@
+# ── Pricing Configuration ─────────────────────────────────────────────────────
+# Official Vertex AI pay-as-you-go pricing per 1 Million tokens.
+# Source: https://cloud.google.com/vertex-ai/pricing
+# Last verified: 2026-10-24
+#
+# Rates apply to standard prompt tiers (<= 128k context window).
+
+last_verified: "2026-10-24"
+source: "https://cloud.google.com/vertex-ai/pricing"
+
+models:
+  gemini-3.5-flash:
+    prompt_cost_per_1m: 0.50
+    candidate_cost_per_1m: 3.00
+    description: "Vertex AI standard pay-as-you-go rate for Gemini 3.5 Flash"
+
+  gemini-3.8-flash:
+    prompt_cost_per_1m: 0.50
+    candidate_cost_per_1m: 3.00
+    description: "Vertex AI standard pay-as-you-go rate for Gemini 3.8 Flash"
+
+  gemini-1.5-flash-legacy:
+    prompt_cost_per_1m: 0.075
+    candidate_cost_per_1m: 0.30
+    description: "Legacy Gemini 1.5 Flash promotional pricing (pre-retirement)"
+
+  gemini-1.5-pro-legacy:
+    prompt_cost_per_1m: 1.25
+    candidate_cost_per_1m: 5.00
+    description: "Legacy Gemini 1.5 Pro promotional pricing (pre-retirement)"

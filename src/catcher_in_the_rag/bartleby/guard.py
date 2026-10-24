@@ -39,10 +39,17 @@ class BartlebyAssessment(BaseModel):
 class BartlebyGuard:
     """Abstention guard ensuring the agent declines to guess when contract evidence is absent."""
 
-    def __init__(self, thresholds: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        thresholds: dict[str, Any] | None = None,
+        enable_template_heuristics: bool = True,
+        max_verification_candidates: int = 5,
+    ) -> None:
         cfg = thresholds or load_bartleby_thresholds()
         self.min_relevance_score = float(cfg.get("min_relevance_score", 0.5))
         self.min_evidence_spans = int(cfg.get("min_evidence_spans", 1))
+        self.enable_template_heuristics = enable_template_heuristics
+        self.max_verification_candidates = max_verification_candidates
 
     def verify_relevance_with_llm(
         self,
@@ -111,8 +118,10 @@ class BartlebyGuard:
                 surviving_clauses=[],
             )
 
-        # Condition 3a: Span does not actually grant authorization for requested surcharge/fee
-        if query_topic:
+        # Condition 3a: Explicit Denial / Restrictive Clause Semantic Filter (Template Heuristic)
+        # Note: This regex-based denial heuristic targets closed-domain synthetic templates
+        # ("under no circumstances reimburse"). It is labeled as a template-specific heuristic.
+        if self.enable_template_heuristics and query_topic:
             is_surcharge_query = any(
                 term in query_topic.lower()
                 for term in (
@@ -152,19 +161,30 @@ class BartlebyGuard:
                         surviving_clauses=[],
                     )
 
-        # Condition 3b: LLM Semantic Verification Guard
+        # Condition 3b: LLM Semantic Verification Guard (Multi-candidate inspection)
         if llm_provider and query_topic and passing:
-            top_clause = passing[0]
-            is_confirmed = self.verify_relevance_with_llm(top_clause, query_topic, llm_provider)
-            if not is_confirmed:
+            candidates_to_inspect = passing[: self.max_verification_candidates]
+            confirmed_clause = None
+            for candidate in candidates_to_inspect:
+                if self.verify_relevance_with_llm(candidate, query_topic, llm_provider):
+                    confirmed_clause = candidate
+                    break
+
+            if not confirmed_clause:
                 return BartlebyAssessment(
                     abstained=True,
                     reason=(
-                        f"NO_EVIDENCE: LLM verification determined candidate clause does not "
-                        f"materially govern '{query_topic}'. I would prefer not to guess."
+                        f"NO_EVIDENCE: LLM verification inspected top {len(candidates_to_inspect)} candidate "
+                        f"clause(s) and determined none materially govern '{query_topic}'. "
+                        "I would prefer not to guess."
                     ),
                     surviving_clauses=[],
                 )
+            return BartlebyAssessment(
+                abstained=False,
+                reason=None,
+                surviving_clauses=[confirmed_clause],
+            )
 
         return BartlebyAssessment(
             abstained=False,

@@ -99,6 +99,8 @@ def generate_domain_calibration_table() -> str:
     synth_t = synth_data["optimal_threshold"]
     synth_f1 = synth_data["validation_macro_f1"]
     synth_auc = synth_data["auc_roc_val"]
+    pure_f1 = synth_data.get("pure_retrieval_val_macro_f1", 0.4737)
+    pure_abs = synth_data.get("pure_retrieval_val_a09_abstention_rate", 0.0) * 100
 
     cuad_t = cuad_data["cuad_optimal_threshold"]
     val_synth = cuad_data["validation_f1_at_synthetic_threshold"]
@@ -111,10 +113,37 @@ def generate_domain_calibration_table() -> str:
 
     table = f"""| Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\\tau$) | Macro F1 Validación | AUC-ROC Separabilidad | Desempeño Empírico en Transferencia |
 |---|---|:---:|:---:|:---:|---|
-| **Plantillas Sintéticas** | Datagen M1 (300 paquetes) | **{synth_t:.2f}** | **{synth_f1:.4f}** | **{synth_auc:.4f}** | Alta separabilidad sintética entre cláusulas estándar y recargos anómalos. |
+| **Plantillas Sintéticas (+ Heurística 3a*)** | Datagen M1 (300 paquetes) | **{synth_t:.2f}** | **{synth_f1:.4f}** | **{synth_auc:.4f}** | F1 1.0000 debido a regex de denegación 3a ("under no circumstances"). Score puro sin 3a da F1 {pure_f1:.4f} (abstención {pure_abs:.1f}%). |
 | **Contratos SEC Reales (Transfer)** | CUAD v1 Train/Val (60/40) | **{synth_t:.2f}** (fijado) | **{val_synth:.4f}** | **{auc_val:.4f}** | **Sub-abstención:** ante ausencias solo abstiene {val_c_synth:.1f}%, dejando pasar el {100 - val_c_synth:.1f}% como alucinaciones. |
 | **Contratos SEC Reales (Recalibrado)** | CUAD v1 Train/Val (60/40) | **{cuad_t:.2f}** (recalibrado) | **{val_cuad:.4f}** | **{auc_val:.4f}** | Eleva abstención en ausencias a {val_c_opt:.1f}%, pero incrementa falsas abstenciones al {val_f_opt:.1f}% (vs clasificador ciego: {always_f1:.4f}). |"""
     return table
+
+
+def generate_llm_verification_table() -> str:
+    path = Path("evals/reports/bartleby_llm_verification_report.json")
+    if not path.exists():
+        raise FileNotFoundError(f"Required report {path} not found.")
+
+    with path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    rows = []
+    for m in data["modes"]:
+        name = m["mode_name"]
+        tau = f"{m['relevance_threshold']:.2f}"
+        llm = "Gemini 3.5 Flash" if m["use_llm_verification"] else "Desactivada"
+        c_abs = f"{m['correct_abstention_rate'] * 100:.1f}% ({m['correct_abstentions']}/{m['total_absences']})"
+        f_abs = f"{m['false_abstention_rate'] * 100:.1f}% ({m['false_abstentions']}/{m['total_presences']})"
+        f1 = f"{m['macro_f1']:.4f}"
+        lat = f"{m['mean_latency_ms']:.1f} ms"
+        cost = f"${m['estimated_cost_usd_per_1k']:.4f}" if m["estimated_cost_usd_per_1k"] > 0 else "$0.0000"
+        rows.append(
+            f"| **{name}** | **{tau}** | `{llm}` | **{c_abs}** | **{f_abs}** | **{f1}** | {lat} | {cost} |"
+        )
+
+    header = """| Modo de Guardia | $\\tau$ | Verificación LLM | Abstención Correcta (Recall) | Falsa Abstención (Error) | Macro F1 | Latencia Media | Costo Estimado / 1k* |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|"""
+    return header + "\n" + "\n".join(rows)
 
 
 if __name__ == "__main__":
@@ -124,3 +153,5 @@ if __name__ == "__main__":
     print(generate_bakeoff_table())
     print("\n=== DOMAIN CALIBRATION TABLE ===")
     print(generate_domain_calibration_table())
+    print("\n=== LLM VERIFICATION TABLE ===")
+    print(generate_llm_verification_table())

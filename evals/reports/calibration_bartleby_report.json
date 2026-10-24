@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-24T07:31:36.472652+00:00",
+  "timestamp": "2026-10-24T08:30:09.950862+00:00",
   "total_packages": 300,
   "calibration_packages": 180,
   "validation_packages": 120,
@@ -8,6 +8,13 @@
   "auc_roc_train": 0.3889,
   "auc_roc_val": 0.1204,
   "validation_macro_f1": 1.0,
+  "pure_retrieval_val_macro_f1": 0.4737,
+  "pure_retrieval_val_a09_abstention_rate": 0.0,
+  "pure_retrieval_val_over_abstention_rate": 0.0,
+  "heuristic_3a_val_macro_f1": 1.0,
+  "heuristic_3a_val_a09_abstention_rate": 1.0,
+  "heuristic_3a_val_over_abstention_rate": 0.0,
+  "heuristic_3a_label": "Template-specific denial regex ('under no circumstances reimburse'); not general Bartleby capability.",
   "candidates": [
     {
       "min_relevance_score": 0.2,

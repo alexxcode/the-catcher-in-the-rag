@@ -211,7 +211,7 @@ El guardia de abstención fue sometido a calibración empírica tanto en el domi
 
 | Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\tau$) | Macro F1 Validación | AUC-ROC Separabilidad | Desempeño Empírico en Transferencia |
 |---|---|:---:|:---:|:---:|---|
-| **Plantillas Sintéticas** | Datagen M1 (300 paquetes) | **0.50** | **1.0000** | **0.1204** | Alta separabilidad sintética entre cláusulas estándar y recargos anómalos. |
+| **Plantillas Sintéticas (+ Heurística 3a*)** | Datagen M1 (300 paquetes) | **0.50** | **1.0000** | **0.1204** | F1 1.0000 debido a regex de denegación 3a ("under no circumstances"). Score puro sin 3a da F1 0.4737 (abstención 0.0%). |
 | **Contratos SEC Reales (Transfer)** | CUAD v1 Train/Val (60/40) | **0.50** (fijado) | **0.4418** | **0.5552** | **Sub-abstención:** ante ausencias solo abstiene 26.9%, dejando pasar el 73.1% como alucinaciones. |
 | **Contratos SEC Reales (Recalibrado)** | CUAD v1 Train/Val (60/40) | **0.80** (recalibrado) | **0.4982** | **0.5552** | Eleva abstención en ausencias a 80.8%, pero incrementa falsas abstenciones al 80.6% (vs clasificador ciego: 0.4262). |
 
@@ -222,6 +222,23 @@ El guardia de abstención fue sometido a calibración empírica tanto en el domi
 > 2. **Falso Óptimo y Clasificador Trivial:** A $\tau = 0.50$, Bartleby sufre de **sub-abstención** (deja pasar el 73.1% de ausencias). Al barrer la rejilla de 0.20 a 0.90, elevar el umbral a $\tau = 0.80$ mejora el Macro F1 a 0.4982, pero a costa de rechazar erróneamente el 80.6% de las cláusulas presentes. Además, este desempeño apenas supera en un marginal 0.07 al clasificador trivial ciego ("Siempre Abstenerse", Macro F1 = 0.4262).
 >
 > **Conclusión Arquitectónica:** Ningún umbral estático sobre recuperación basada en BM25 / embeddings de hash es suficiente para gobernar contratos comerciales reales. Este resultado justifica y motiva la **Condición #3 de Bartleby: Verificación Semántica por LLM (`verify_relevance_with_llm`)**, evaluada en [`evals/reports/bartleby_llm_verification_report.json`](evals/reports/bartleby_llm_verification_report.json), donde el modelo evalúa materialmente la pertinencia semántica del pasaje antes de validar la evidencia contractual.
+
+### Evaluación de la Condición #3 de Bartleby: Verificación Semántica por LLM
+
+Medición empírica en vivo sobre 15 contratos auténticos de la SEC (CUAD, 105 evaluaciones de consulta) comparando el filtro de umbral puro frente a la verificación semántica activa con Vertex AI (`gemini-3.5-flash`), inspeccionando los candidatos del top-3 (`max_verification_candidates=3`):
+
+| Modo de Guardia | $\tau$ | Verificación LLM | Abstención Correcta (Recall) | Falsa Abstención (Error) | Macro F1 | Latencia Media | Costo Estimado / 1k* |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Pure Vector Hybrid (tau=0.50)** | **0.50** | `Desactivada` | **27.9% (22/79)** | **0.0% (0/26)** | **0.4564** | 16.1 ms | $0.0000 |
+| **Pure Vector Hybrid (tau=0.70)** | **0.70** | `Desactivada` | **40.5% (32/79)** | **26.9% (7/26)** | **0.4777** | 16.1 ms | $0.0000 |
+| **Bartleby Condition 3 (tau=0.50 + LLM Verification)** | **0.50** | `Gemini 3.5 Flash` | **75.9% (60/79)** | **65.4% (17/26)** | **0.5513** | 5153.1 ms | $0.6262 |
+
+*\*Costo estimado a partir de tokens medidos (83,552 prompt / 7,993 candidate) y tarifas pay-as-you-go vigentes en Vertex AI ($0.50 / $3.00 por millón de tokens según [`config/pricing.yaml`](config/pricing.yaml)).*
+
+> **Diagnóstico Empírico: El Cuello de Botella es la Recuperación, no el Verificador**
+> 1. **La Falsa Abstención Mide Fallos del Retriever:** En los 26 casos con cláusula presente, la búsqueda léxica/hash ubica la cláusula correcta en el rango #1 solo en el **26.9%** de los casos (7/26). Cuando se amplía la búsqueda al top-5, la cobertura sube al **61.5%** (16/26). En los 10 casos donde la recuperación fracasó trayendo texto irrelevante, el verificador LLM **rechazó correctamente 9 de los 10 pasajes (90.0%)**, actuando como un juez riguroso ante evidencia defectuosa.
+> 2. **Ganancia Neta en Discriminación:** El filtro semántico eleva la abstención correcta ante ausencias reales del 27.9% al **75.9%**, alcanzando el Macro F1 más alto del benchmark (**0.5513**).
+> 3. **Trade-off Operativo:** Añade ~5.1 segundos de latencia media y un costo proyectado de ~$0.63 por cada 1,000 consultas auditadas.
 
 1. **Split Train / Validation:** Partición reproducible 60/40 (semilla 42) sobre 50 contratos de la SEC para evaluar transferencia sin sobreajuste.
 2. **Métricas sin Umbral (AUC-ROC):** Mide la capacidad intrínseca del ranking de recuperación de separar presencia vs ausencia con independencia del umbral.

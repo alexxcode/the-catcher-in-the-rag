@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-10-24T07:36:51.873452+00:00",
-  "git_commit_sha": "721fcb14bf8a60212122829f006a491e84bfc1c6",
+  "timestamp": "2026-10-24T08:16:26.823877+00:00",
+  "git_commit_sha": "d52118a60a971da8e9d6e555c5bd8415634fbe3c",
   "git_dirty": true,
   "command": "eval_bartleby_llm.py --llm-provider vertex_ai --sample-size 15",
   "total_contracts_evaluated": 15,
@@ -23,10 +23,15 @@
       "f1_abstain": 0.4356,
       "f1_presence": 0.4771,
       "macro_f1": 0.4564,
-      "mean_latency_ms": 14.48,
+      "mean_latency_ms": 16.13,
       "estimated_cost_usd_per_1k": 0.0,
       "prompt_tokens": 0,
-      "candidate_tokens": 0
+      "candidate_tokens": 0,
+      "retrieval_hit_at_1_rate": 0.2692,
+      "retrieval_hit_at_5_rate": 0.6154,
+      "llm_accepted_on_hit": 16,
+      "llm_rejected_on_miss": 0,
+      "pricing_model_id": "gemini-3.5-flash"
     },
     {
       "mode_name": "Pure Vector Hybrid (tau=0.70)",
@@ -45,10 +50,15 @@
       "f1_abstain": 0.5424,
       "f1_presence": 0.413,
       "macro_f1": 0.4777,
-      "mean_latency_ms": 14.07,
+      "mean_latency_ms": 16.14,
       "estimated_cost_usd_per_1k": 0.0,
       "prompt_tokens": 0,
-      "candidate_tokens": 0
+      "candidate_tokens": 0,
+      "retrieval_hit_at_1_rate": 0.2692,
+      "retrieval_hit_at_5_rate": 0.6154,
+      "llm_accepted_on_hit": 10,
+      "llm_rejected_on_miss": 1,
+      "pricing_model_id": "gemini-3.5-flash"
     },
     {
       "mode_name": "Bartleby Condition 3 (tau=0.50 + LLM Verification)",
@@ -57,21 +67,26 @@
       "use_llm_verification": true,
       "total_queries": 105,
       "total_absences": 79,
-      "correct_abstentions": 68,
-      "correct_abstention_rate": 0.8608,
+      "correct_abstentions": 60,
+      "correct_abstention_rate": 0.7595,
       "total_presences": 26,
-      "false_abstentions": 20,
-      "false_abstention_rate": 0.7692,
-      "precision_abstain": 0.7727,
-      "recall_abstain": 0.8608,
-      "f1_abstain": 0.8144,
-      "f1_presence": 0.2791,
-      "macro_f1": 0.5467,
-      "mean_latency_ms": 2772.99,
-      "estimated_cost_usd_per_1k": 0.0377,
-      "prompt_tokens": 38226,
-      "candidate_tokens": 3632
+      "false_abstentions": 17,
+      "false_abstention_rate": 0.6538,
+      "precision_abstain": 0.7792,
+      "recall_abstain": 0.7595,
+      "f1_abstain": 0.7692,
+      "f1_presence": 0.3333,
+      "macro_f1": 0.5513,
+      "mean_latency_ms": 5153.07,
+      "estimated_cost_usd_per_1k": 0.6262,
+      "prompt_tokens": 83552,
+      "candidate_tokens": 7993,
+      "retrieval_hit_at_1_rate": 0.2692,
+      "retrieval_hit_at_5_rate": 0.6154,
+      "llm_accepted_on_hit": 8,
+      "llm_rejected_on_miss": 9,
+      "pricing_model_id": "gemini-3.5-flash"
     }
   ],
-  "findings_summary": "Evaluated 3 guard architectures on 15 authentic CUAD contracts (105 cases) using live Vertex AI (vertex_ai, model=gemini-3.5-flash). Pure vector retrieval at tau=0.50 achieves 27.9% correct abstention (false abs: 0.0%, Macro F1: 0.4564). Raising threshold to tau=0.70 yields 40.5% correct abstention at cost of 26.9% false abstentions (Macro F1: 0.4777). Condition 3 LLM verification achieves 86.1% correct abstention with 76.9% false abstentions (Macro F1: 0.5467), with measured latency 2773.0ms and measured cost $0.04/1k queries."
+  "findings_summary": "Evaluated 3 guard architectures on 15 authentic CUAD contracts (105 cases) using live Vertex AI (vertex_ai, model=gemini-3.5-flash). Pure vector retrieval at tau=0.50 achieves 27.9% correct abstention (false abs: 0.0%, Macro F1: 0.4564). Raising threshold to tau=0.70 yields 40.5% correct abstention at cost of 26.9% false abstentions (Macro F1: 0.4777). Condition 3 LLM verification (inspecting top-5 passing candidates) achieves 75.9% correct abstention with 65.4% false abstentions (Macro F1: 0.5513), mean latency 5153.1ms, and estimated cost $0.6262/1k queries (measured tokens: 83552 prompt / 7993 candidate; rates: $0.50/$3.00 per 1M tokens from config/pricing.yaml). Conditioned analysis confirms retrieval is the primary bottleneck: among present clauses, retrieval Hit@1 is only 26.9% (Hit@5: 61.5%). When the retriever successfully brings the true clause into top-5, the LLM verifier confirms 8 cases, and when retrieval misses, the LLM correctly rejects 9 irrelevant passages as false evidence."
 }

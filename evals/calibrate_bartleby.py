@@ -48,6 +48,15 @@ class CalibrationReport:
     validation_macro_f1: float
     candidates: list[SweepCandidate]
     validation_candidate: SweepCandidate | None = None
+    pure_retrieval_val_macro_f1: float = 0.0
+    pure_retrieval_val_a09_abstention_rate: float = 0.0
+    pure_retrieval_val_over_abstention_rate: float = 0.0
+    heuristic_3a_val_macro_f1: float = 1.0
+    heuristic_3a_val_a09_abstention_rate: float = 1.0
+    heuristic_3a_val_over_abstention_rate: float = 0.0
+    heuristic_3a_label: str = (
+        "Template-specific denial regex ('under no circumstances reimburse'); not general Bartleby capability."
+    )
 
 
 class BartlebyCalibrator:
@@ -268,18 +277,53 @@ class BartlebyCalibrator:
             best_cand.is_optimal = True
 
         # 3. Evaluate optimal candidate on held-out Validation Split
-        val_guard = BartlebyGuard(
+        def _calc_macro(c: SweepCandidate) -> float:
+            tp_a = c.a09_abstained
+            fp_a = c.non_a09_over_abstained
+            fn_a = c.a09_total - c.a09_abstained
+            p_a = tp_a / (tp_a + fp_a) if (tp_a + fp_a) > 0 else 0.0
+            r_a = tp_a / (tp_a + fn_a) if (tp_a + fn_a) > 0 else 0.0
+            f1_a = (2 * p_a * r_a) / (p_a + r_a) if (p_a + r_a) > 0 else 0.0
+
+            tp_p = c.non_a09_total - c.non_a09_over_abstained
+            fp_p = fn_a
+            fn_p = fp_a
+            p_p = tp_p / (tp_p + fp_p) if (tp_p + fp_p) > 0 else 0.0
+            r_p = tp_p / (tp_p + fn_p) if (tp_p + fn_p) > 0 else 0.0
+            f1_p = (2 * p_p * r_p) / (p_p + r_p) if (p_p + r_p) > 0 else 0.0
+            return round((f1_a + f1_p) / 2.0, 4)
+
+        # 3a. Validation WITH template heuristic 3a ("under no circumstances")
+        val_guard_3a = BartlebyGuard(
             thresholds={
                 "min_relevance_score": best_cand.min_relevance_score,
                 "min_evidence_spans": best_cand.min_evidence_spans,
-            }
+            },
+            enable_template_heuristics=True,
         )
-        val_cand = self._evaluate_candidate(
-            guard=val_guard,
+        val_cand_3a = self._evaluate_candidate(
+            guard=val_guard_3a,
             retrievals=val_retrievals,
             score_th=best_cand.min_relevance_score,
             spans_th=best_cand.min_evidence_spans,
         )
+        macro_3a = _calc_macro(val_cand_3a)
+
+        # 3b. Validation WITHOUT template heuristic 3a (pure retrieval score)
+        val_guard_pure = BartlebyGuard(
+            thresholds={
+                "min_relevance_score": best_cand.min_relevance_score,
+                "min_evidence_spans": best_cand.min_evidence_spans,
+            },
+            enable_template_heuristics=False,
+        )
+        val_cand_pure = self._evaluate_candidate(
+            guard=val_guard_pure,
+            retrievals=val_retrievals,
+            score_th=best_cand.min_relevance_score,
+            spans_th=best_cand.min_evidence_spans,
+        )
+        macro_pure = _calc_macro(val_cand_pure)
 
         def _get_auc(retrieval_set: list[Any]) -> float:
             pres = [r[2][0].score if r[2] else 0.0 for r in retrieval_set if not r[4]]
@@ -292,22 +336,6 @@ class BartlebyCalibrator:
         auc_train = _get_auc(train_retrievals)
         auc_val = _get_auc(val_retrievals)
 
-        # Macro F1 across Absence and Presence classes on Validation set
-        tp_a = val_cand.a09_abstained
-        fp_a = val_cand.non_a09_over_abstained
-        fn_a = val_cand.a09_total - val_cand.a09_abstained
-        p_a = tp_a / (tp_a + fp_a) if (tp_a + fp_a) > 0 else 0.0
-        r_a = tp_a / (tp_a + fn_a) if (tp_a + fn_a) > 0 else 0.0
-        f1_a = (2 * p_a * r_a) / (p_a + r_a) if (p_a + r_a) > 0 else 0.0
-
-        tp_p = val_cand.non_a09_total - val_cand.non_a09_over_abstained
-        fp_p = fn_a
-        fn_p = fp_a
-        p_p = tp_p / (tp_p + fp_p) if (tp_p + fp_p) > 0 else 0.0
-        r_p = tp_p / (tp_p + fn_p) if (tp_p + fn_p) > 0 else 0.0
-        f1_p = (2 * p_p * r_p) / (p_p + r_p) if (p_p + r_p) > 0 else 0.0
-        val_macro_f1 = round((f1_a + f1_p) / 2.0, 4)
-
         return CalibrationReport(
             timestamp=datetime.now(UTC).isoformat(),
             total_packages=len(self.dataset),
@@ -317,9 +345,15 @@ class BartlebyCalibrator:
             optimal_spans=best_cand.min_evidence_spans,
             auc_roc_train=auc_train,
             auc_roc_val=auc_val,
-            validation_macro_f1=val_macro_f1,
+            validation_macro_f1=macro_3a,
             candidates=candidates,
-            validation_candidate=val_cand,
+            validation_candidate=val_cand_3a,
+            pure_retrieval_val_macro_f1=macro_pure,
+            pure_retrieval_val_a09_abstention_rate=val_cand_pure.a09_abstention_rate,
+            pure_retrieval_val_over_abstention_rate=val_cand_pure.non_a09_over_abstention_rate,
+            heuristic_3a_val_macro_f1=macro_3a,
+            heuristic_3a_val_a09_abstention_rate=val_cand_3a.a09_abstention_rate,
+            heuristic_3a_val_over_abstention_rate=val_cand_3a.non_a09_over_abstention_rate,
         )
 
 
@@ -378,6 +412,13 @@ def save_calibration_report(
         "auc_roc_train": report.auc_roc_train,
         "auc_roc_val": report.auc_roc_val,
         "validation_macro_f1": report.validation_macro_f1,
+        "pure_retrieval_val_macro_f1": report.pure_retrieval_val_macro_f1,
+        "pure_retrieval_val_a09_abstention_rate": report.pure_retrieval_val_a09_abstention_rate,
+        "pure_retrieval_val_over_abstention_rate": report.pure_retrieval_val_over_abstention_rate,
+        "heuristic_3a_val_macro_f1": report.heuristic_3a_val_macro_f1,
+        "heuristic_3a_val_a09_abstention_rate": report.heuristic_3a_val_a09_abstention_rate,
+        "heuristic_3a_val_over_abstention_rate": report.heuristic_3a_val_over_abstention_rate,
+        "heuristic_3a_label": report.heuristic_3a_label,
         "candidates": [asdict(c) for c in report.candidates],
         "validation_candidate": asdict(report.validation_candidate)
         if report.validation_candidate

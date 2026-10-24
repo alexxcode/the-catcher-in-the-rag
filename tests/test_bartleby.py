@@ -149,7 +149,7 @@ def test_bartleby_llm_verification_abstains_on_false_positive_clause() -> None:
     )
     assert assessment.abstained
     assert "NO_EVIDENCE" in assessment.reason
-    assert "LLM verification determined" in assessment.reason
+    assert "LLM verification" in assessment.reason and "determined" in assessment.reason
     assert len(assessment.surviving_clauses) == 0
 
 
@@ -171,3 +171,71 @@ def test_bartleby_llm_verification_graceful_fallback_on_error() -> None:
         clause, query_topic="warranties", llm_provider=failing_llm
     )
     assert is_rel is True
+
+
+def test_bartleby_llm_multi_candidate_inspection_finds_second_clause() -> None:
+    guard = BartlebyGuard(
+        thresholds={"min_relevance_score": 0.5, "min_evidence_spans": 1},
+        max_verification_candidates=5,
+    )
+    distractor = ScoredClause(
+        clause_id="C-20",
+        clause_type="general",
+        title="Preamble",
+        text="General definitions and boilerplate terms.",
+        start_char=0,
+        end_char=43,
+        score=0.88,
+    )
+    good_clause = ScoredClause(
+        clause_id="C-21",
+        clause_type="audit_rights",
+        title="Audit Rights",
+        text="Buyer may inspect and audit Supplier books annually.",
+        start_char=50,
+        end_char=102,
+        score=0.82,
+    )
+
+    class SelectiveMockLLM:
+        def extract_structured(self, text: str, schema: Any, **kwargs: Any) -> Any:
+            is_good = "inspect and audit" in text
+            return schema(is_relevant=is_good, reason="Test matching")
+
+    assessment = guard.evaluate_retrieval(
+        [distractor, good_clause],
+        query_topic="audit rights",
+        llm_provider=SelectiveMockLLM(),
+    )
+    assert not assessment.abstained
+    assert len(assessment.surviving_clauses) == 1
+    assert assessment.surviving_clauses[0].clause_id == "C-21"
+
+
+def test_bartleby_template_heuristic_toggle() -> None:
+    clause = ScoredClause(
+        clause_id="C-30",
+        clause_type="freight",
+        title="Freight",
+        text="Buyer shall under no circumstances reimburse expedited courier fees.",
+        start_char=0,
+        end_char=70,
+        score=0.75,
+    )
+
+    # With heuristics enabled, Rule 3a forces abstention
+    guard_with_heuristics = BartlebyGuard(
+        thresholds={"min_relevance_score": 0.5, "min_evidence_spans": 1},
+        enable_template_heuristics=True,
+    )
+    res_heuristic = guard_with_heuristics.evaluate_retrieval([clause], query_topic="expedited courier fee")
+    assert res_heuristic.abstained is True
+    assert "explicitly denies authorization" in res_heuristic.reason
+
+    # With heuristics disabled, pure retrieval threshold does not force denial abstention
+    guard_pure = BartlebyGuard(
+        thresholds={"min_relevance_score": 0.5, "min_evidence_spans": 1},
+        enable_template_heuristics=False,
+    )
+    res_pure = guard_pure.evaluate_retrieval([clause], query_topic="expedited courier fee")
+    assert res_pure.abstained is False
