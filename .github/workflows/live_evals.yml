@@ -1,0 +1,58 @@
+name: Live Evaluation & Report Provenance
+
+on:
+  workflow_dispatch:
+    inputs:
+      evaluation_target:
+        description: "Evaluation command to run"
+        required: true
+        default: "eval-cuad"
+        type: choice
+        options:
+          - eval-cuad
+          - eval-bakeoff
+          - eval-bartleby-llm
+          - eval-out-of-sample
+
+jobs:
+  run-live-evaluation:
+    name: Run Live Evaluation with Attestation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python 3.13
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      # Authenticate to GCP using Workload Identity Federation
+      # - name: Authenticate to Google Cloud
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+      #     service_account: ${{ secrets.GCP_SA_EMAIL }}
+
+      - name: Run Specified Live Evaluation
+        run: |
+          make ${{ github.event.inputs.evaluation_target }}
+          make repro-check
+          make sync-readme-tables
+
+      - name: Commit Verified Report & Cases (Bot)
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(evals): automated evaluation report & raw cases [skip ci]"
+          file_pattern: "evals/reports/* README.md"

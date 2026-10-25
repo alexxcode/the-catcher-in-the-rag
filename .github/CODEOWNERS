@@ -1,0 +1,4 @@
+# CODEOWNERS — Access control for high-trust repository artifacts
+# Only repository maintainers and designated bots may commit changes to empirical evaluation reports.
+
+/evals/reports/ @alexxcode

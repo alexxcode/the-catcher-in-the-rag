@@ -1,8 +1,8 @@
 """Claim Audit Tool - Enforces Law L1 & Law L4: Zero ungrounded numbers or non-existent models.
 
 1. Law L1 (Zero ungrounded numbers):
-   Extracts all numbers (percentages, decimals, 'N de M', milliseconds, dollars)
-   from README.md and docs/, and requires that each is within a block
+   Extracts all numbers (percentages, decimals, 'N de M', milliseconds, dollars, multipliers, fractions)
+   from all Markdown files in the repo, and requires that each is within a block
    <!-- GEN:<nombre> -->...<!-- /GEN --> produced by evals/generate_readme_tables.py
    from a verified JSON report, or in tools/claim_allowlist.yaml.
 
@@ -11,7 +11,7 @@
    and requires that each model is explicitly declared in config/models.yaml
    or is an approved offline baseline.
 
-Any orphan number or unknown model fails with exit code 1.
+Any orphan number, fraction, multiplier, or unknown model fails with exit code 1.
 """
 
 from __future__ import annotations
@@ -24,7 +24,9 @@ from typing import Any
 import yaml
 
 
-def load_allowlist(allowlist_path: Path) -> tuple[set[str], list[re.Pattern]]:
+def load_allowlist(
+    allowlist_path: Path, include_file_specific: bool = False
+) -> tuple[set[str], list[re.Pattern]] | tuple[set[str], list[re.Pattern], dict[str, set[str]]]:
     if not allowlist_path.exists():
         raise FileNotFoundError(f"Allowlist file not found: {allowlist_path}")
 
@@ -33,7 +35,14 @@ def load_allowlist(allowlist_path: Path) -> tuple[set[str], list[re.Pattern]]:
 
     allowed_numbers = {str(n).strip() for n in data.get("allowed_numbers", [])}
     allowed_regexes = [re.compile(pattern) for pattern in data.get("allowed_regexes", [])]
+    if include_file_specific:
+        file_specific = {
+            fname: {str(n).strip() for n in nums}
+            for fname, nums in data.get("file_specific_allowlists", {}).items()
+        }
+        return allowed_numbers, allowed_regexes, file_specific
     return allowed_numbers, allowed_regexes
+
 
 
 def get_allowed_models(models_yaml_path: Path) -> set[str]:
@@ -58,12 +67,14 @@ def get_allowed_models(models_yaml_path: Path) -> set[str]:
                 if mid:
                     allowed.add(mid.strip().lower())
 
-    pricing_yaml_path = models_yaml_path.parent / "pricing.yaml"
+    # Include official pricing models
+    pricing_yaml_path = Path("config/pricing.yaml")
     if pricing_yaml_path.exists():
         with pricing_yaml_path.open("r", encoding="utf-8") as f:
             pcfg = yaml.safe_load(f) or {}
-        for mid in pcfg.get("models", {}):
-            allowed.add(mid.strip().lower())
+        for m in pcfg.get("models", {}):
+            allowed.add(m.strip().lower())
+
     return allowed
 
 
@@ -72,25 +83,29 @@ def is_allowed(token: str, allowed_numbers: set[str], allowed_regexes: list[re.P
     if clean_token in allowed_numbers:
         return True
 
-    # Strip %, $, ms, s, etc. for root number check
-    stripped = re.sub(r"[^\d.]", "", clean_token)
-    if stripped in allowed_numbers:
-        return True
+    return any(pattern.match(clean_token) for pattern in allowed_regexes)
 
-    for reg in allowed_regexes:
-        if reg.match(clean_token) or (stripped and reg.match(stripped)):
-            return True
-
-    return False
 
 
 def audit_markdown_file(
-    file_path: Path, allowed_numbers: set[str], allowed_regexes: list[re.Pattern]
+    file_path: Path,
+    allowed_numbers: set[str],
+    allowed_regexes: list[re.Pattern],
+    file_specific_allowlists: dict[str, set[str]] | None = None,
 ) -> list[dict[str, Any]]:
+    if not file_path.exists():
+        return []
+
     content = file_path.read_text(encoding="utf-8")
     violations: list[dict[str, Any]] = []
 
-    # 1. Strip out fenced code blocks ``` ... ```
+    # Combine global allowed numbers with per-file allowed numbers
+    effective_allowed = set(allowed_numbers)
+    if file_specific_allowlists:
+        effective_allowed |= file_specific_allowlists.get(file_path.name, set())
+        effective_allowed |= file_specific_allowlists.get(str(file_path), set())
+
+    # 1. Strip out code blocks ``` ... ```
     content_no_code = re.sub(r"```[\s\S]*?```", "", content)
 
     # 2. Strip out inline code ` ... `
@@ -102,25 +117,34 @@ def audit_markdown_file(
     # 4. Remove all generated blocks <!-- GEN:<name> --> ... <!-- /GEN -->
     content_outside_gen = re.sub(r"<!--\s*GEN:\w+\s*-->[\s\S]*?<!--\s*/GEN\s*-->", "", content_no_code)
 
-    # 5. Find numbers outside GEN blocks
+    # 5. Find numbers, multipliers outside GEN blocks
     combined_pattern = re.compile(
         r"(?P<currency>\$\s*\d{1,3}(?:,\d{3})*(?:\.\d+)?|\$\s*\d+(?:\.\d+)?)"
         r"|(?P<percentage>\b\d+(?:\.\d+)?\s*%)"
         r"|(?P<latency>\b\d{1,3}(?:,\d{3})*(?:\.\d+)?\s*(?:ms|segundos|second|s\b)|\b\d+(?:\.\d+)?\s*(?:ms|segundos|second|s\b))"
         r"|(?P<ratio>\b\d+\s*(?:de|\/)\s*\d+\b)"
+        r"|(?P<multiplier>\bx\s*\d+\b|\b\d+\s*x\b)"
+        r"|(?P<semver>\b\d+\.\d+\.\d+\b)"
         r"|(?P<decimal>\b\d+\.\d+\b)"
         r"|(?P<integer>\b\d{1,3}(?:,\d{3})+\b|\b\d+\b)"
     )
 
-    # Catch numbers written in words in Spanish and English (e.g. "noventa y ocho por ciento", "tres de cada cuatro")
+    # Catch numbers, fractions and multipliers written in words in Spanish and English
     words_pattern = re.compile(
         r"(?i)\b(?:"
         r"(?:noventa|ochenta|setenta|sesenta|cincuenta|cuarenta|treinta|veinte|veinti[a-záéíóú]+)\s+y\s+(?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)"
         r"|(?:cero|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|veinti[a-záéíóú]+|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|quinientos|mil|mill[oó]n|millones)(?:\s+y\s+[a-záéíóú]+)?\s+(?:por\s+ciento|percent)"
         r"|(?:por\s+ciento|percent)"
         r"|(?:de\s+cada|out\s+of)\s+(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|cien|\d+)"
+        r"|(?:(?:un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)\s+)?(?:cuarto|cuartos|tercio|tercios|quinto|quintos|sexto|sextos|s[eé]ptimo|s[eé]ptimos|octavo|octavos|noveno|novenos|d[eé]cimo|d[eé]cimos)"
+        r"|(?:la|una)?\s*mitad"
+        r"|(?:half|quarter|quarters|thirds?)(?!-party)"
+        r"|(?:el|la|un|una)?\s*(?:doble|triple|cu[aá]druple|qu[ií]ntuple)"
+        r"|(?:double|triple|quadruple)"
+        r"|(?:x\s*\d+|\d+\s*x)"
         r")\b"
     )
+
 
     lines = content_outside_gen.splitlines()
     for line_num, line in enumerate(lines, 1):
@@ -131,7 +155,7 @@ def audit_markdown_file(
         for match in combined_pattern.finditer(line):
             token = match.group(0).strip()
             pat_type = match.lastgroup or "unknown"
-            if not is_allowed(token, allowed_numbers, allowed_regexes):
+            if not is_allowed(token, effective_allowed, allowed_regexes):
                 violations.append(
                     {
                         "file": str(file_path),
@@ -144,15 +168,16 @@ def audit_markdown_file(
 
         for match in words_pattern.finditer(line):
             token = match.group(0).strip()
-            violations.append(
-                {
-                    "file": str(file_path),
-                    "line": line_num,
-                    "token": token,
-                    "type": "number_in_words",
-                    "context": line.strip()[:100],
-                }
-            )
+            if not is_allowed(token, effective_allowed, allowed_regexes):
+                violations.append(
+                    {
+                        "file": str(file_path),
+                        "line": line_num,
+                        "token": token,
+                        "type": "number_in_words",
+                        "context": line.strip()[:100],
+                    }
+                )
 
     return violations
 
@@ -166,10 +191,9 @@ def audit_markdown_models(file_path: Path, allowed_models: set[str]) -> list[dic
         re.IGNORECASE,
     )
 
-    lines = content.splitlines()
-    for line_num, line in enumerate(lines, 1):
-        for m in model_pattern.finditer(line):
-            model_name = m.group(0).lower()
+    for line_num, line in enumerate(content.splitlines(), 1):
+        for match in model_pattern.finditer(line):
+            model_name = match.group(0).lower()
             if model_name not in allowed_models:
                 violations.append(
                     {
@@ -213,7 +237,7 @@ def discover_markdown_files(repo_root: Path, exempt_files: set[str]) -> list[Pat
 def main() -> int:
     allowlist_path = Path("tools/claim_allowlist.yaml")
     models_yaml_path = Path("config/models.yaml")
-    allowed_numbers, allowed_regexes = load_allowlist(allowlist_path)
+    allowed_numbers, allowed_regexes, file_allowlists = load_allowlist(allowlist_path, include_file_specific=True)
     allowed_models = get_allowed_models(models_yaml_path)
     exempt_files = get_exempt_files(allowlist_path)
 
@@ -225,39 +249,29 @@ def main() -> int:
 
     for md_file in files_to_check:
         if md_file.exists():
-            v = audit_markdown_file(md_file, allowed_numbers, allowed_regexes)
+            v = audit_markdown_file(md_file, allowed_numbers, allowed_regexes, file_allowlists)
             all_violations.extend(v)
             mv = audit_markdown_models(md_file, allowed_models)
             model_violations.extend(mv)
 
-    has_error = False
-
-    if all_violations:
-        has_error = True
+    if all_violations or model_violations:
         print("\n" + "=" * 70, file=sys.stderr)
-        print(f" CLAIM AUDIT FAILED (Law L1): {len(all_violations)} ungrounded orphan numbers found!", file=sys.stderr)
-        print(" Every number must be inside a <!-- GEN:<name> --> block from a report,", file=sys.stderr)
-        print(" or registered in tools/claim_allowlist.yaml.", file=sys.stderr)
+        print(" CLAIM AUDIT FAILED: Ungrounded numbers or unauthorized models detected!", file=sys.stderr)
+        print(" Every number must be within a <!-- GEN:<name> --> block or in tools/claim_allowlist.yaml", file=sys.stderr)
         print("=" * 70, file=sys.stderr)
-        for viol in all_violations:
+
+        for v in all_violations:
             print(
-                f"  [{viol['file']}:{viol['line']}] ({viol['type']}) '{viol['token']}' in: \"{viol['context']}\"",
+                f"  ❌ [{v['file']}:{v['line']}] Ungrounded token '{v['token']}' ({v['type']}): \"{v['context']}\"",
                 file=sys.stderr,
             )
 
-    if model_violations:
-        has_error = True
-        print("\n" + "=" * 70, file=sys.stderr)
-        print(f" CLAIM AUDIT FAILED (Law L4): {len(model_violations)} unconfigured models mentioned!", file=sys.stderr)
-        print(" All models mentioned in documentation must exist in config/models.yaml or codebase.", file=sys.stderr)
-        print("=" * 70, file=sys.stderr)
-        for viol in model_violations:
+        for mv in model_violations:
             print(
-                f"  [{viol['file']}:{viol['line']}] Model '{viol['model']}' not configured! In: \"{viol['context']}\"",
+                f"  ❌ [{mv['file']}:{mv['line']}] Unauthorized model '{mv['model']}': \"{mv['context']}\"",
                 file=sys.stderr,
             )
 
-    if has_error:
         return 1
 
     print(f" Claim Audit Passed: All numbers and models in {[str(f) for f in files_to_check]} are grounded.")

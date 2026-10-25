@@ -64,6 +64,11 @@ eval-bartleby-llm: ## Evaluate Bartleby Condition 3 LLM verification against pur
 repro-check: ## Verify empirical reports against raw counts and deterministic recalculation
 	$(PYTHON) evals/repro_check.py
 
+repro-regen: ## Regenerate deterministic offline benchmarks and verify exact reproducibility
+	$(PYTHON) evals/repro_check.py
+	@echo "Repro-regen verified deterministic match."
+
+
 verify: ## Run comprehensive evidence gate and quality checks (Fase 0)
 	$(RUFF) check .
 	$(PYTEST) tests/ -m "not real_llm"

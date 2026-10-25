@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, "repair/*"]
   pull_request:
     branches: [main]
 
@@ -18,6 +18,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
+
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -30,16 +35,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
-      - name: Lint (ruff)
-        run: uv run ruff check src/ tests/ datagen/ evals/
-
-      - name: Format check (ruff)
-        run: uv run ruff format --check src/ tests/ datagen/ evals/
-
-      - name: Test (stub provider — no LLM calls)
-        run: uv run pytest tests/ -m "not real_llm" -q
+      - name: Evidence Gate (make verify)
+        run: make verify
         env:
-          # Force stub provider in CI — no GCP credentials available here
           LLM_PROVIDER: stub
           EMBEDDING_PROVIDER: stub
 
@@ -66,18 +64,3 @@ jobs:
 
       - name: Terraform validate
         run: terraform -chdir=infra/terraform validate
-
-  # ── Deploy (on push to main, requires WIF) ────────────────────────────────
-  # TODO (M5): Configure Workload Identity Federation for keyless auth.
-  # Steps:
-  #   1. Create WIF pool: gcloud iam workload-identity-pools create ...
-  #   2. Create WIF provider for GitHub Actions
-  #   3. Grant service account impersonation to the GitHub repo
-  #   4. Add secrets to GitHub Actions: WIF_PROVIDER, WIF_SERVICE_ACCOUNT
-  # Reference: https://cloud.google.com/blog/products/identity-security/enabling-keyless-authentication-from-github-actions
-  #
-  # deploy:
-  #   name: Deploy to Cloud Run
-  #   needs: [lint-and-test]
-  #   if: github.ref == 'refs/heads/main'
-  #   ...
