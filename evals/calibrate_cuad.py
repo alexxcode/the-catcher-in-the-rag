@@ -20,8 +20,12 @@ import os
 import random
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+import sys
 from pathlib import Path
-from typing import Any
+
+repo_root = Path(__file__).resolve().parent.parent
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
 
 from catcher_in_the_rag.ingest.cuad_loader import CUADLoader
 from catcher_in_the_rag.providers.factory import get_embedding_provider
