@@ -1,0 +1,78 @@
+{
+  "timestamp": "2026-10-24T23:17:49.407923+00:00",
+  "git_commit_sha": "28e71cb0cbdf0ea46bce41dc1e2d3b2e5f1a579b",
+  "git_dirty": false,
+  "command": "python -m evals.run --bakeoff --sample-size 30 --output evals/reports/",
+  "provenance": {
+    "git_commit_sha": "28e71cb0cbdf0ea46bce41dc1e2d3b2e5f1a579b",
+    "git_branch": "main",
+    "git_dirty": false,
+    "command": "python -m evals.run --bakeoff --sample-size 30 --output evals/reports/",
+    "python_version": "3.13.16",
+    "models_evaluated": [
+      "deterministic-rules",
+      "gemini-3.5-flash",
+      "gemini-3.8-flash"
+    ]
+  },
+  "sample_size": 30,
+  "candidates": [
+    {
+      "candidate_name": "Rule-Based Baseline (Regex/Parsing)",
+      "model_id": "deterministic-rules",
+      "provider_type": "rule_based",
+      "sample_size": 30,
+      "mean_latency_ms": 1.97,
+      "estimated_cost_per_1k_usd": 0.0,
+      "error_count": 0,
+      "error_rate": 0.0,
+      "field_accuracies": {
+        "payment_terms_days": 1.0,
+        "expiration_date": 1.0,
+        "late_delivery_penalty_pct_per_day": 1.0,
+        "auto_renew": 1.0,
+        "rate_sheet": 0.0
+      },
+      "overall_perfect_accuracy": 0.0,
+      "is_simulated": false
+    },
+    {
+      "candidate_name": "Gemini 3.5 Flash (GA Active)",
+      "model_id": "gemini-3.5-flash",
+      "provider_type": "vertex_ai",
+      "sample_size": 30,
+      "mean_latency_ms": 2299.59,
+      "estimated_cost_per_1k_usd": 4.67,
+      "error_count": 0,
+      "error_rate": 0.0,
+      "field_accuracies": {
+        "payment_terms_days": 1.0,
+        "expiration_date": 1.0,
+        "late_delivery_penalty_pct_per_day": 1.0,
+        "auto_renew": 1.0,
+        "rate_sheet": 1.0
+      },
+      "overall_perfect_accuracy": 1.0,
+      "is_simulated": false
+    },
+    {
+      "candidate_name": "Gemini 3.8 Flash (GA Active)",
+      "model_id": "gemini-3.8-flash",
+      "provider_type": "vertex_ai",
+      "sample_size": 30,
+      "mean_latency_ms": 48095.86,
+      "estimated_cost_per_1k_usd": 2.15,
+      "error_count": 0,
+      "error_rate": 0.0,
+      "field_accuracies": {
+        "payment_terms_days": 1.0,
+        "expiration_date": 1.0,
+        "late_delivery_penalty_pct_per_day": 1.0,
+        "auto_renew": 1.0,
+        "rate_sheet": 1.0
+      },
+      "overall_perfect_accuracy": 1.0,
+      "is_simulated": false
+    }
+  ]
+}
