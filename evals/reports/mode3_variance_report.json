@@ -1,0 +1,81 @@
+{
+  "runs": [
+    {
+      "run_index": 1,
+      "correct_abs_count": 50,
+      "correct_abs_rate": 0.6329,
+      "false_abs_count": 12,
+      "false_abs_rate": 0.4615,
+      "macro_f1": 0.5575,
+      "llm_accepted_on_hit": 12,
+      "llm_rejected_on_miss": 8,
+      "mean_latency_ms": 3246.5,
+      "prompt_tokens": 100766,
+      "candidate_tokens": 11338
+    },
+    {
+      "run_index": 2,
+      "correct_abs_count": 50,
+      "correct_abs_rate": 0.6329,
+      "false_abs_count": 12,
+      "false_abs_rate": 0.4615,
+      "macro_f1": 0.5575,
+      "llm_accepted_on_hit": 12,
+      "llm_rejected_on_miss": 8,
+      "mean_latency_ms": 2845.0,
+      "prompt_tokens": 100766,
+      "candidate_tokens": 11274
+    },
+    {
+      "run_index": 3,
+      "correct_abs_count": 50,
+      "correct_abs_rate": 0.6329,
+      "false_abs_count": 12,
+      "false_abs_rate": 0.4615,
+      "macro_f1": 0.5575,
+      "llm_accepted_on_hit": 12,
+      "llm_rejected_on_miss": 8,
+      "mean_latency_ms": 3060.5,
+      "prompt_tokens": 99775,
+      "candidate_tokens": 11056
+    }
+  ],
+  "metrics_summary": {
+    "macro_f1": {
+      "mean": 0.5575,
+      "stdev": 0.0,
+      "values": [
+        0.5575,
+        0.5575,
+        0.5575
+      ]
+    },
+    "correct_abstention_rate": {
+      "mean": 0.6329,
+      "stdev": 0.0,
+      "values": [
+        0.6329,
+        0.6329,
+        0.6329
+      ]
+    },
+    "false_abstention_rate": {
+      "mean": 0.4615,
+      "stdev": 0.0,
+      "values": [
+        0.4615,
+        0.4615,
+        0.4615
+      ]
+    },
+    "mean_latency_ms": {
+      "mean": 3050.7,
+      "stdev": 200.9,
+      "values": [
+        3246.5,
+        2845.0,
+        3060.5
+      ]
+    }
+  }
+}

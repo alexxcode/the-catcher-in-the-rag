@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-10-23T05:26:09.143676+00:00",
-  "git_commit_sha": "32194767da7e7f95781c7aaaf437cf47076cda2a",
+  "timestamp": "2026-10-24T23:17:49.407923+00:00",
+  "git_commit_sha": "28e71cb0cbdf0ea46bce41dc1e2d3b2e5f1a579b",
   "git_dirty": false,
-  "command": "python -m evals.run --bakeoff --sample-size 5",
+  "command": "python -m evals.run --bakeoff --sample-size 30 --output evals/reports/",
   "provenance": {
-    "git_commit_sha": "32194767da7e7f95781c7aaaf437cf47076cda2a",
+    "git_commit_sha": "28e71cb0cbdf0ea46bce41dc1e2d3b2e5f1a579b",
     "git_branch": "main",
     "git_dirty": false,
-    "command": "python -m evals.run --bakeoff --sample-size 5",
+    "command": "python -m evals.run --bakeoff --sample-size 30 --output evals/reports/",
     "python_version": "3.13.16",
     "models_evaluated": [
       "deterministic-rules",
@@ -15,14 +15,14 @@
       "gemini-3.8-flash"
     ]
   },
-  "sample_size": 5,
+  "sample_size": 30,
   "candidates": [
     {
       "candidate_name": "Rule-Based Baseline (Regex/Parsing)",
       "model_id": "deterministic-rules",
       "provider_type": "rule_based",
-      "sample_size": 5,
-      "mean_latency_ms": 0.75,
+      "sample_size": 30,
+      "mean_latency_ms": 1.97,
       "estimated_cost_per_1k_usd": 0.0,
       "error_count": 0,
       "error_rate": 0.0,
@@ -40,9 +40,9 @@
       "candidate_name": "Gemini 3.5 Flash (GA Active)",
       "model_id": "gemini-3.5-flash",
       "provider_type": "vertex_ai",
-      "sample_size": 5,
-      "mean_latency_ms": 7836.49,
-      "estimated_cost_per_1k_usd": 0.2,
+      "sample_size": 30,
+      "mean_latency_ms": 2299.59,
+      "estimated_cost_per_1k_usd": 4.67,
       "error_count": 0,
       "error_rate": 0.0,
       "field_accuracies": {
@@ -59,9 +59,9 @@
       "candidate_name": "Gemini 3.8 Flash (GA Active)",
       "model_id": "gemini-3.8-flash",
       "provider_type": "vertex_ai",
-      "sample_size": 5,
-      "mean_latency_ms": 22889.63,
-      "estimated_cost_per_1k_usd": 0.26,
+      "sample_size": 30,
+      "mean_latency_ms": 48095.86,
+      "estimated_cost_per_1k_usd": 2.15,
       "error_count": 0,
       "error_rate": 0.0,
       "field_accuracies": {

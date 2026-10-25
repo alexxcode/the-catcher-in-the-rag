@@ -1,0 +1,1542 @@
+{
+  "total_present_cases": 26,
+  "gold_in_topk_count": 16,
+  "gold_in_topk_accepted": 16,
+  "gold_in_topk_rejected": 0,
+  "cases": [
+    {
+      "contract_id": "CUAD-0001",
+      "category": "Governing Law",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "This Agreement is to be construed according to the laws          of the State of Illinois.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0001-SEC-114",
+          "title": "6.9      Governing Law.  This Agreement is to be construed according to the laws",
+          "score": 0.664,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause explicitly states that the Agreement is to be construed according to the laws of the State of Illinois, which directly addresses the Governing Law topic.",
+          "text_snippet": "6.9      Governing Law.  This Agreement is to be construed according to the laws          of the State of Illinois."
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0001-SEC-072",
+          "title": "injunction or specific  performance  both parties  acknowledge                  ",
+          "score": 0.6495,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause discusses equitable remedies, specifically injunctions, specific performance, and post-termination obligations. It does not address governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "injunction or specific  performance  both parties  acknowledge                   that they shall not be required to demonstrate  the absence of                   an adequate remedy at law, and neither party shall be required                   to post  bond  as a  precondition  to  obtaining  a  temp"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0001-SEC-094",
+          "title": "Page -11-",
+          "score": 0.3204,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text contains only a page number marker ('Page -11-') and does not contain any legal terms, obligations, or information regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "Page -11-"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0001-SEC-110",
+          "title": "6.6      Sample Products.  Company will,  during the Term of this Agreement (and",
+          "score": 0.3026,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause solely concerns the provision, cost, and use of sample products by the Distributor and does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "6.6      Sample Products.  Company will,  during the Term of this Agreement (and          any renewal term), provide Distributor,  at Distributor's cost pursuant          to the  terms of this  Agreement,  with  five  (5)  sample  units  (the          \"Sample\" or  \"Samples\")  for use by  Distributor"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0001-SEC-038",
+          "title": "Page -4-",
+          "score": 0.3007,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The text contains only a page number marker and does not address governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "Page -4-"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0002",
+      "category": "Governing Law",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "This Agreement is governed by English law and the parties submit to the exclusive jurisdiction of the English courts in  relation to any dispute (contractual or non-contractual) concerning this Agreement save that either party may apply to any court for an  injunction or other relief to protect its ",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0002-SEC-146",
+          "title": "11.10 Governing Law. This Agreement is governed by English law and the parties s",
+          "score": 0.6821,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause explicitly states that the Agreement is governed by English law and that the parties submit to the exclusive jurisdiction of the English courts, which directly addresses governing law and jurisdiction.",
+          "text_snippet": "11.10 Governing Law. This Agreement is governed by English law and the parties submit to the exclusive jurisdiction of the English courts in  relation to any dispute (contractual or non-contractual) concerning this Agreement save that either party may apply to any court for an  injunction or other r"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0002-SEC-134",
+          "title": "11.1 Publicity. Subject to clause 6 (Confidential Information), neither party ma",
+          "score": 0.6448,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause strictly addresses publicity and public statements regarding the agreement, with no mention of governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "11.1 Publicity. Subject to clause 6 (Confidential Information), neither party may make any public statement regarding the relationship  contemplated by this Agreement without the other's prior written approval."
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0002-SEC-079",
+          "title": "6.2 The recipient of any Confidential Information shall not disclose that Confid",
+          "score": 0.5709,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause governs the non-disclosure and protection of Confidential Information, including permitted disclosures to Group Companies and legal requirements to disclose. It does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "6.2 The recipient of any Confidential Information shall not disclose that Confidential Information, except to Group Companies, employees  and/or professional advisors who need to know it and who have agreed in writing (or in the case of professional advisors are otherwise  bound) to keep it confiden"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0002-SEC-073",
+          "title": "5.5 Additional Termination Rights. Google may terminate this Agreement immediate",
+          "score": 0.5574,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause discusses additional termination rights and suspension of distribution due to legal restrictions, but it does not address governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "5.5 Additional Termination Rights. Google may terminate this Agreement immediately upon written notice to Distributor if: (a) Distributor  breaches Clause 2 (License Grants and Restrictions), Clause 3.6 (EULA), Clause 3.7 (Accurate Reproduction), or Clause 6 (Confidential  Information), (b) if Googl"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0002-SEC-023",
+          "title": "2.3 License Grant Restrictions. Distributor shall not, and shall not allow any t",
+          "score": 0.4932,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause discusses license grant restrictions, such as reverse engineering and unauthorized distribution, and does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "2.3 License Grant Restrictions. Distributor shall not, and shall not allow any third party to (except to the extent that such prohibitions are  not permitted by law): (a) disassemble, de-compile or otherwise reverse engineer the Products or otherwise attempt to learn the source  code or algorithms u"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0002",
+      "category": "Cap On Liability",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "Subject to Clauses 9.1 and 9.2, each party's total liability under or in connection with this Agreement (whether in contract, tort or  otherwise) arising in any Contract Year is limited to the greater of:    (a) [ * ] Euros ([ * ] Euros); and    (b) [ * ]% of the total payment due to the Distributor",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0002-SEC-097",
+          "title": "9. LIMITATION OF LIABILITY",
+          "score": 0.809,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The excerpt contains only the section title '9. LIMITATION OF LIABILITY' and does not include any substantive legal terms, obligations, or rights regarding a cap or limitation on liability.",
+          "text_snippet": "9. LIMITATION OF LIABILITY"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0002-SEC-098",
+          "title": "9.1 Nothing in this Agreement shall exclude or limit either party's liability fo",
+          "score": 0.7833,
+          "is_gold": false,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause directly addresses limitations and exclusions of liability, specifically stating what cannot be excluded or limited under the agreement.",
+          "text_snippet": "9.1 Nothing in this Agreement shall exclude or limit either party's liability for:"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0002-SEC-105",
+          "title": "9.2 Nothing in this Agreement shall exclude or limit either party's liability un",
+          "score": 0.7649,
+          "is_gold": false,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause explicitly addresses limitations of liability by stating that nothing in the Agreement shall exclude or limit either party's liability under specific clauses, which directly governs and carves out exceptions to the cap or limitation on liability.",
+          "text_snippet": "9.2 Nothing in this Agreement shall exclude or limit either party's liability under Clause 10 (Indemnities), or Distributor's liability under Clause  2 (License Grants and Restrictions), Clause 3.5 (Exclusivity), Clause 3.6 (End User License Agreement) and Clause 3.7 (Accurate  Reproduction) or Clau"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0002-SEC-132",
+          "title": "10.6 The foregoing Clauses 10.1 to 10.5 states the parties' entire liability and",
+          "score": 0.7393,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause establishes an exclusive remedy and states the parties' entire liability with respect to intellectual property infringement, which acts as a limitation on liability for those claims.",
+          "text_snippet": "10.6 The foregoing Clauses 10.1 to 10.5 states the parties' entire liability and exclusive remedy with respect to infringement of a third party's  Intellectual Property Rights."
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0002-SEC-123",
+          "title": "10.2 Google will not have any obligations or liability under this Clause 10 in r",
+          "score": 0.6897,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause fragment discusses exclusions of liability specifically related to intellectual property claims (IP Claims) under Clause 10, rather than establishing a general cap on liability, aggregate monetary liability limits, or waivers of consequential damages.",
+          "text_snippet": "10.2 Google will not have any obligations or liability under this Clause 10 in relation to any IP Claim arising from:"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0002",
+      "category": "Audit Rights",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "During the Term, and for a period of [ * ] thereafter, Google may audit Distributor's relevant records to confirm  Distributor's compliance with this Agreement.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0002-SEC-050",
+          "title": "(d) Records and Audit Rights. Distributor will keep and maintain complete and ac",
+          "score": 0.8066,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause explicitly grants Google the right to audit Distributor's relevant books, records, and accounts to confirm compliance with the Agreement.",
+          "text_snippet": "(d) Records and Audit Rights. Distributor will keep and maintain complete and accurate books, records, and accounts relating to  this Agreement. During the Term, and for a period of [ * ] thereafter, Google may audit Distributor's relevant records to confirm  Distributor's compliance with this Agree"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0002-SEC-132",
+          "title": "10.6 The foregoing Clauses 10.1 to 10.5 states the parties' entire liability and",
+          "score": 0.7866,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause solely addresses intellectual property infringement liability and remedies, and does not contain any terms regarding audit or inspection rights.",
+          "text_snippet": "10.6 The foregoing Clauses 10.1 to 10.5 states the parties' entire liability and exclusive remedy with respect to infringement of a third party's  Intellectual Property Rights."
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0002-SEC-134",
+          "title": "11.1 Publicity. Subject to clause 6 (Confidential Information), neither party ma",
+          "score": 0.7756,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause solely governs public statements and publicity regarding the relationship between the parties, and does not contain any terms related to audit or inspection rights.",
+          "text_snippet": "11.1 Publicity. Subject to clause 6 (Confidential Information), neither party may make any public statement regarding the relationship  contemplated by this Agreement without the other's prior written approval."
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0002-SEC-136",
+          "title": "11.3 Assignment. [ * ] may [ * ]any of its rights or obligations under this Agre",
+          "score": 0.7613,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract clause solely addresses the assignment of rights and obligations and the impact of a Change of Control. It does not contain any terms regarding audit or inspection rights of books, records, facilities, or work performance.",
+          "text_snippet": "11.3 Assignment. [ * ] may [ * ]any of its rights or obligations under this Agreement without the prior written consent of [ * ]. For the  avoidance of doubt, a Change of Control shall be deemed an assignment hereunder unless [ * ] does not exercise its [ * ]."
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0002-SEC-081",
+          "title": "7.1 Distributor acknowledges that Google and/or its licensors own all right, tit",
+          "score": 0.7312,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause solely addresses intellectual property ownership, rights to products and trademarks, and Google's right to distribute them. It does not contain any terms regarding audit or inspection rights of books, records, facilities, or work performance.",
+          "text_snippet": "7.1 Distributor acknowledges that Google and/or its licensors own all right, title and interest, including all Intellectual Property Rights in and  to the Products and the Google Trademarks and all modifications to them. Distributor has, and shall acquire, no rights in the foregoing  except those ex"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0003",
+      "category": "Governing Law",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "It will be governed by the law of the People's Republic of China ,otherwise it is governed by United Nations Convention on Contract for the International Sale of Goods.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0003-SEC-016",
+          "title": "21. Law application It will be governed by the law of the People's Republic of C",
+          "score": 0.5491,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause explicitly states that the contract will be governed by the law of the People's Republic of China or the United Nations Convention on Contract for the International Sale of Goods, which directly addresses governing law and choice of law.",
+          "text_snippet": "21. Law application It will be governed by the law of the People's Republic of China ,otherwise it is governed by United Nations Convention on Contract for the International Sale of Goods. 22. <<Incoterms 2000>> The terms in the contract are based on (INCOTERMS 2000) of the International Chamber of "
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0003-SEC-001",
+          "title": "Exhibit 10.16 SUPPLY CONTRACT Contract No: Date: The buyer/End-User: Shenzhen LO",
+          "score": 0.3537,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract passage contains general provisions, framework agreement details, and order placement procedures, but it does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "Exhibit 10.16 SUPPLY CONTRACT Contract No: Date: The buyer/End-User: Shenzhen LOHAS Supply Chain Management Co., Ltd. ADD: Tel No. : Fax No. : The seller: ADD: The Contract is concluded and signed by the Buyer and Seller on , in Hong Kong. 1. General provisions 1.1 This is a framework agreement, the"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0003-SEC-013",
+          "title": "17. FORCE MAJEURE: The Sellers shall not be held responsible for the delay in sh",
+          "score": 0.2887,
+          "is_gold": false,
+          "llm_is_relevant": true,
+          "llm_reason": "The excerpt contains an arbitration clause (Clause 19) that specifies the forum selection and jurisdiction for dispute resolution, stating that arbitration shall take place in Beijing under the Foreign Economic and Trade Arbitration Committee of the China Beijing Council for the Promotion of International Trade.",
+          "text_snippet": "17. FORCE MAJEURE: The Sellers shall not be held responsible for the delay in shipment or non-delivery, of the goods due to Force Majeure, which might occur during the process of manufacturing or in the course of loading or transit. The Sellers shall advise the Buyers immediately of the occurrence m"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0003-SEC-014",
+          "title": "Section 14",
+          "score": 0.2494,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The contract clause text contains only the number '5' and does not address governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "5"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0003-SEC-002",
+          "title": "Section 2",
+          "score": 0.1966,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The contract clause text contains only the number '1' and does not address governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "1"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0004",
+      "category": "Governing Law",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "This Agreement was entered into in the State of Florida, and its validity, construction, interpretation, and legal effect shall be governed by the laws and judicial decisions of the State of Florida applicable to contracts entered into and performed entirely within the State of Florida.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0004-SEC-041",
+          "title": "services, any information that is, in i-on's sole discretion, unlawful, obscene,",
+          "score": 0.7234,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause discusses prohibited content and violations of local, state, national, or international law, but it does not establish governing law, jurisdiction, choice of law, or forum selection for the contract itself.",
+          "text_snippet": "services, any information that is, in i-on's sole discretion, unlawful, obscene, threatening, abusive, libelous, or harmful, or encourages conduct that would constitute a criminal offense, give rise to civil liability, or otherwise violate any local, state, national, or International law."
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0004-SEC-042",
+          "title": "The Customer expressly agrees to use all of i-on's services only for lawful purp",
+          "score": 0.6554,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause discusses compliance with laws and the prohibition of transmitting illegal material, but it does not establish the governing law, jurisdiction, choice of law, or forum selection for the contract itself.",
+          "text_snippet": "The Customer expressly agrees to use all of i-on's services only for lawful purposes. Transmission or storage of any information, data, or material in violation of United States or state regulation or law is prohibited, including but not limited to, material protected by copyright, trademark, trade "
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0004-SEC-002",
+          "title": "I-on. (LOGO) www.i-on.com 561.394.9484 o 561.394-9773 fax 1733 avenida del sol, ",
+          "score": 0.2542,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text contains only contact information, including a website, phone numbers, and a physical address in Florida. It does not contain any legal terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "I-on. (LOGO) www.i-on.com 561.394.9484 o 561.394-9773 fax 1733 avenida del sol, boca raton, florida, 33432"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0004-SEC-055",
+          "title": "Nothing contained herein shall be deemed or construed to create a joint venture ",
+          "score": 0.2481,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause solely addresses the relationship of the parties, specifically stating that no joint venture, partnership, or agency relationship is created. It does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "Nothing contained herein shall be deemed or construed to create a joint venture or partnership between the Customer and i-on. Neither party is, by virtue of this Agreement or otherwise, authorized as an agent or legal representative of the other party. Neither party is granted any such right or auth"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0004-SEC-058",
+          "title": "This Agreement was entered into in the State of Florida, and its validity, const",
+          "score": 0.2481,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause explicitly states that the agreement's validity, construction, interpretation, and legal effect shall be governed by the laws of the State of Florida, which directly addresses the Governing Law topic.",
+          "text_snippet": "This Agreement was entered into in the State of Florida, and its validity, construction, interpretation, and legal effect shall be governed by the laws and judicial decisions of the State of Florida applicable to contracts entered into and performed entirely within the State of Florida."
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0004",
+      "category": "Cap On Liability",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "i-on will not be liable under any circumstances for any lost profits or other consequential damages, even if i-on has been advised as to the possibility of such damages. i-on's liability for damages to the Customer for any cause whatsoever, regardless of the form of action, and whether in contract o",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0004-SEC-047",
+          "title": "LIMITATION OF LIABILITY",
+          "score": 0.6613,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The excerpt contains only the header 'LIMITATION OF LIABILITY' and does not contain any substantive legal terms, obligations, or rights regarding a cap or limitation on liability.",
+          "text_snippet": "LIMITATION OF LIABILITY"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0004-SEC-041",
+          "title": "services, any information that is, in i-on's sole discretion, unlawful, obscene,",
+          "score": 0.652,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text discusses prohibited content and conduct that may violate laws or give rise to civil liability, but it does not contain any terms regarding a cap or limitation on liability, aggregate monetary limits, or waivers of consequential damages.",
+          "text_snippet": "services, any information that is, in i-on's sole discretion, unlawful, obscene, threatening, abusive, libelous, or harmful, or encourages conduct that would constitute a criminal offense, give rise to civil liability, or otherwise violate any local, state, national, or International law."
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0004-SEC-050",
+          "title": "The Customer agrees to indemnify and hold harmless i-on, against any lawsuits, c",
+          "score": 0.5786,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided clause is an indemnification provision requiring the Customer to hold harmless and reimburse i-on for legal expenses. It does not establish a cap on liability, aggregate monetary liability limits, or an exclusion/waiver of consequential, punitive, or indirect damages.",
+          "text_snippet": "The Customer agrees to indemnify and hold harmless i-on, against any lawsuits, claims, damages, or liabilities (or actions or proceedings in respect thereof) to which i-on may become subject related to or arising out of Customer's use of i-on's services, and will reimburse i-on for all legal and oth"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0004-SEC-048",
+          "title": "i-on will not be liable under any circumstances for any lost profits or other co",
+          "score": 0.5325,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause explicitly limits i-on's liability for damages to one month's fees plus the remaining portion of prepaid fees, and excludes liability for lost profits and consequential damages.",
+          "text_snippet": "i-on will not be liable under any circumstances for any lost profits or other consequential damages, even if i-on has been advised as to the possibility of such damages. i-on's liability for damages to the Customer for any cause whatsoever, regardless of the form of action, and whether in contract o"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0004-SEC-007",
+          "title": "The term \"Hosted Site\" shall mean the Web site of the Customer that is hosted by",
+          "score": 0.3681,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text is a definition of the term 'Hosted Site' and does not contain any terms or conditions regarding liability caps, monetary limits, or waivers of damages.",
+          "text_snippet": "The term \"Hosted Site\" shall mean the Web site of the Customer that is hosted by i-on under the terms and conditions of this Agreement."
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0006",
+      "category": "Governing Law",
+      "has_gold_in_topk": false,
+      "topk_accepted": false,
+      "gt_snippet": "This Agreement shall be governed and construed according to the laws of the State of Kansas.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0006-SEC-095",
+          "title": "25. APPLICABLE LAW",
+          "score": 0.7031,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause contains only the title '25. APPLICABLE LAW' and lacks any substantive legal terms, obligations, or rights regarding governing law, jurisdiction, or forum selection.",
+          "text_snippet": "25. APPLICABLE LAW"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0006-SEC-105",
+          "title": "Any provision or part of this Agreement prohibited by applicable law shall be in",
+          "score": 0.6537,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided clause is a standard severability provision addressing the invalidity of prohibited terms under applicable law. It does not specify the governing law, jurisdiction, choice of law, or forum selection for the agreement.",
+          "text_snippet": "Any provision or part of this Agreement prohibited by applicable law shall be ineffective to the extent of such prohibition without invalidating the remaining provisions or parts hereof."
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0006-SEC-052",
+          "title": "A.committed or shall commit any public act that involves moral turpitude, B.comm",
+          "score": 0.3805,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause describes conduct that constitutes a breach or violation (such as moral turpitude, violating laws, or bringing disrepute), but it does not establish the governing law, jurisdiction, choice of law, or forum selection for the contract itself.",
+          "text_snippet": "A.committed or shall commit any public act that involves moral turpitude, B.commits or violates any material foreign, U.S., federal, or other applicable state or local law, C.commits any act which brings him into public disrepute, contempt, scandal or  ridicule, or which insults or offends the commu"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0006-SEC-112",
+          "title": "33.  ARBITRATION",
+          "score": 0.3028,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause contains only the title '33. ARBITRATION' and lacks any substantive text or terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "33.  ARBITRATION"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0006-SEC-006",
+          "title": "FILED WITH THE COMMISSION",
+          "score": 0.2864,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause 'FILED WITH THE COMMISSION' does not contain any legal terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "FILED WITH THE COMMISSION"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0007",
+      "category": "Governing Law",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "This Agreement shall be governed by the laws of the State of Texas, without reference to its conflicts of law principles.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0007-SEC-032",
+          "title": "(a) Withholding. All forms of compensation referred to in this letter agreement ",
+          "score": 0.7373,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause discusses tax withholding and payroll deductions, not governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "(a) Withholding. All forms of compensation referred to in this letter agreement are subject to reduction to reflect applicable withholding and payroll taxes and other deductions required by law."
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0007-SEC-037",
+          "title": "13. Arbitration Agreement. Any controversy or claim arising out of or relating t",
+          "score": 0.7299,
+          "is_gold": false,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause contains explicit choice of law and forum selection terms, specifying that the seat of arbitration shall be Houston, Texas, and that Texas law shall apply.",
+          "text_snippet": "13. Arbitration Agreement. Any controversy or claim arising out of or relating to this agreement or breach thereof, shall be settled by binding arbitration controlled by the rules of the American Arbitration Association. The number of arbitrator(s) shall be one. The seat of arbitration shall be Hous"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0007-SEC-036",
+          "title": "the Company and constitute the complete agreement between you and the Company re",
+          "score": 0.6744,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text addresses the integration clause (complete agreement) and amendment requirements of the contract. It does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "the Company and constitute the complete agreement between you and the Company regarding the subject matter set forth herein. This letter agreement may not be amended or modified, except by an express written agreement signed by both you and a duly authorized officer of the Company."
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0007-SEC-033",
+          "title": "(b) Tax Advice. You are encouraged to obtain your own tax advice regarding your ",
+          "score": 0.659,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided clause solely addresses tax advice and tax liabilities related to compensation. It does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "(b) Tax Advice. You are encouraged to obtain your own tax advice regarding your compensation from the Company. You agree that the Company does not have a duty to design its compensation policies in a manner that minimizes your tax liabilities, and you will not make any claim against the Company or t"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0007-SEC-030",
+          "title": "9. General. This Agreement (together with the Exhibits hereto) is the sole agree",
+          "score": 0.3234,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause explicitly states that the Agreement shall be governed by the laws of the State of Texas, without reference to its conflicts of law principles, which directly addresses the Governing Law topic.",
+          "text_snippet": "9. General. This Agreement (together with the Exhibits hereto) is the sole agreement and understanding between Company and Consultant concerning the subject matter hereof, and it supersedes any and all prior agreements and understandings with respect to such matter, whether written or oral, provided"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0008",
+      "category": "Governing Law",
+      "has_gold_in_topk": false,
+      "topk_accepted": false,
+      "gt_snippet": "This Amendment shall be governed by and construed in accordance with the laws of Japan.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0008-SEC-022",
+          "title": "Article 3.Governing Law",
+          "score": 0.6612,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause contains only the title 'Article 3.Governing Law' and does not contain any substantive legal terms, obligations, or rights regarding governing law, jurisdiction, or forum selection.",
+          "text_snippet": "Article 3.Governing Law"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0008-SEC-029",
+          "title": "By: /s/ Mats Backman Name: Mats Backman Title: Director",
+          "score": 0.262,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text contains only a signature block with a name and title, and does not address governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "By: /s/ Mats Backman Name: Mats Backman Title: Director"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0008-SEC-033",
+          "title": "Nissin Kogyo Co., Ltd.",
+          "score": 0.2592,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The text contains only a company name and does not address governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "Nissin Kogyo Co., Ltd."
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0008-SEC-002",
+          "title": "AMENDMENT AND TERMINATION",
+          "score": 0.2548,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause title and text refer only to 'AMENDMENT AND TERMINATION' and do not contain any terms related to governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "AMENDMENT AND TERMINATION"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0008-SEC-036",
+          "title": "IN WITNESS WHEREOF, each of the following companies hereby acknowledges and agre",
+          "score": 0.2542,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause is a standard execution block preamble and does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "IN WITNESS WHEREOF, each of the following companies hereby acknowledges and agrees to be bound by the terms and conditions set forth in this Amendment:"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0009",
+      "category": "Governing Law",
+      "has_gold_in_topk": false,
+      "topk_accepted": false,
+      "gt_snippet": "This Agreement and any and all matters arising directly or indirectly herefrom shall be governed by and construed and enforced in accordance with the internal laws of the [***] applicable to agreements made and to be performed entirely in such state, including its statutes of limitation but without ",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0009-SEC-296",
+          "title": "4.3 Compliance with Applicable Law.",
+          "score": 0.7938,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause title 'Compliance with Applicable Law' is a placeholder with no text, and even if populated, compliance with laws is distinct from governing law, jurisdiction, or forum selection clauses.",
+          "text_snippet": "4.3 Compliance with Applicable Law."
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0009-SEC-096",
+          "title": "13.5 Governing Law. 45",
+          "score": 0.7437,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause contains only a heading and a page number ('13.5 Governing Law. 45') but does not contain any substantive legal terms, obligations, or rights regarding governing law, jurisdiction, or forum selection.",
+          "text_snippet": "13.5 Governing Law. 45"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0009-SEC-232",
+          "title": "2.2.3 responsibility for all decisions regarding regulatory submissions and, exc",
+          "score": 0.7376,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause discusses responsibility for regulatory submissions and interactions with governmental authorities like the FDA. It does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "2.2.3 responsibility for all decisions regarding regulatory submissions and, except as expressly set forth herein, for interactions with any Governmental Authority, including but not limited to FDA, with respect to the Product;"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0009-SEC-335",
+          "title": "5.1 Dova Responsibility. As between the Parties, except as expressly set out her",
+          "score": 0.697,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause discusses regulatory responsibilities, communications with governmental authorities, and compliance with applicable laws regarding the product, but it does not establish governing law, jurisdiction, choice of law, or forum selection for the contract.",
+          "text_snippet": "5.1 Dova Responsibility. As between the Parties, except as expressly set out herein, all regulatory matters regarding the Product shall be the responsibility of Dova, including responsibility for all communications with Governmental Authorities, including but not limited to FDA, related to the Produ"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0009-SEC-495",
+          "title": "13.13 Cumulative Remedies. No remedy referred to in this Agreement is intended t",
+          "score": 0.689,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause discusses cumulative remedies and does not address governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "13.13 Cumulative Remedies. No remedy referred to in this Agreement is intended to be exclusive, but each shall be cumulative and in addition to any other remedy referred to in this Agreement or otherwise available under law."
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0009",
+      "category": "Liquidated Damages",
+      "has_gold_in_topk": false,
+      "topk_accepted": false,
+      "gt_snippet": "Solely in the event that Dova has terminated this Agreement pursuant to Section 12.3.1 and notwithstanding anything else herein, in consideration of the promotion services performed by Valeant during the Term, with respect to the Tail Period, Dova shall make payments to Valeant in an amount equal to",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0009-SEC-335",
+          "title": "5.1 Dova Responsibility. As between the Parties, except as expressly set out her",
+          "score": 0.8651,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract clause discusses regulatory responsibilities, communications with governmental authorities, product labeling, and compliance with applicable laws. It does not contain any terms regarding liquidated damages, predetermined damage amounts, or penalty fees for default.",
+          "text_snippet": "5.1 Dova Responsibility. As between the Parties, except as expressly set out herein, all regulatory matters regarding the Product shall be the responsibility of Dova, including responsibility for all communications with Governmental Authorities, including but not limited to FDA, related to the Produ"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0009-SEC-340",
+          "title": "5.4 Pharmacovigilance. Subject to the terms of this Agreement, as soon as practi",
+          "score": 0.8551,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause solely discusses pharmacovigilance, safety data exchange, and regulatory reporting obligations for the Product. It does not contain any terms regarding liquidated damages, predetermined damage amounts, or penalty fees for default.",
+          "text_snippet": "5.4 Pharmacovigilance. Subject to the terms of this Agreement, as soon as practicable following the Effective Date (but in no event later than [***]), Dova and Valeant (under the guidance of their respective pharmacovigilance departments, or equivalent thereof) shall identify and finalize the respon"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0009-SEC-170",
+          "title": "1.39 \"Losses\" shall mean any and all amounts paid or payable to Third Parties wi",
+          "score": 0.809,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause defines 'Losses' in the context of third-party claims and indemnification, including general fines and penalties, but does not establish liquidated damages, predetermined damage amounts, or penalty fees for default between the contracting parties.",
+          "text_snippet": "1.39 \"Losses\" shall mean any and all amounts paid or payable to Third Parties with respect to a Claim (including any and all losses, damages, obligations, liabilities, fines, fees, penalties, awards, judgments, interest), together with all documented out-of- pocket costs and expenses, including atto"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0009-SEC-452",
+          "title": "11.4 Limitation of Liability. NOTWITHSTANDING ANY OTHER PROVISION CONTAINED HERE",
+          "score": 0.7857,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause governs limitations of liability, specifically excluding consequential, incidental, indirect, special, punitive, or exemplary damages. It does not establish, govern, or mention liquidated damages, predetermined damage amounts, or penalty fees for default.",
+          "text_snippet": "11.4 Limitation of Liability. NOTWITHSTANDING ANY OTHER PROVISION CONTAINED HEREIN (OTHER THAN AS SET FORTH IN THE SECOND SENTENCE OF THIS SECTION 11.4), IN NO EVENT SHALL DOVA (OR ITS AFFILIATES) OR VALEANT (OR ITS AFFILIATES) BE LIABLE TO THE OTHER OR ANY OF THE OTHER PARTY'S AFFILIATES FOR ANY CO"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0009-SEC-232",
+          "title": "2.2.3 responsibility for all decisions regarding regulatory submissions and, exc",
+          "score": 0.739,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause solely discusses responsibility for regulatory submissions and interactions with governmental authorities such as the FDA. It contains no terms regarding liquidated damages, predetermined damage amounts, or penalty fees for default.",
+          "text_snippet": "2.2.3 responsibility for all decisions regarding regulatory submissions and, except as expressly set forth herein, for interactions with any Governmental Authority, including but not limited to FDA, with respect to the Product;"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0009",
+      "category": "Cap On Liability",
+      "has_gold_in_topk": false,
+      "topk_accepted": true,
+      "gt_snippet": "Notwithstanding the above, the sole remedy of Dova for breach of this Section 4.1.2 shall be (i) the adjustment to the promotion fee as set forth in Section 6.1.2 and (ii) the termination right set out in Section 12.2.2.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0009-SEC-453",
+          "title": "11.5 Insurance. Each Party acknowledges and agrees that during the Term, it shal",
+          "score": 0.8551,
+          "is_gold": false,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause explicitly addresses the limitation of liability by stating that the insurance requirements shall not be construed to create a limit on either Party's liability with respect to its indemnification obligations.",
+          "text_snippet": "11.5 Insurance. Each Party acknowledges and agrees that during the Term, it shall maintain, through purchase or self- insurance, adequate insurance, including products liability coverage and comprehensive general liability insurance, adequate to cover its obligations under this Agreement and which a"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0009-SEC-077",
+          "title": "11.4 Limitation of Liability. 40",
+          "score": 0.7938,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The excerpt contains only a section heading and page number ('11.4 Limitation of Liability. 40') and does not contain any substantive legal terms, limits, or conditions regarding liability.",
+          "text_snippet": "11.4 Limitation of Liability. 40"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0009-SEC-315",
+          "title": "(b) Commencing with the Promotional Materials to be used for Calendar Year 2019 ",
+          "score": 0.7844,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause discusses the review and discussion of promotional materials between Valeant and Dova for Calendar Year 2019. It does not contain any terms regarding caps on liability, monetary liability limits, or waivers of consequential damages.",
+          "text_snippet": "(b) Commencing with the Promotional Materials to be used for Calendar Year 2019 and for the remainder of the Term, Valeant and Dova shall meet to discuss the content of such Promotional Materials in order to ensure that such Promotional Materials appropriately address any messaging that may be desir"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0009-SEC-185",
+          "title": "1.44 \"Person\" shall mean any individual, corporation, partnership, limited liabi",
+          "score": 0.7677,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text is a definition of the term 'Person' and does not contain any terms or provisions related to liability caps, monetary limits, or waivers of damages.",
+          "text_snippet": "1.44 \"Person\" shall mean any individual, corporation, partnership, limited liability company, association, joint-stock company, trust, unincorporated organization or other entity, or government or political subdivision thereof."
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0009-SEC-325",
+          "title": "(c) Valeant shall instruct the Field Force Personnel that are engaged in Detaili",
+          "score": 0.7578,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract clause discusses instructing field force personnel regarding detailing provisions and does not contain any terms related to liability caps, monetary limits, or waivers of damages.",
+          "text_snippet": "(c) Valeant shall instruct the Field Force Personnel that are engaged in Detailing regarding provisions of this Agreement applicable to Details of the Product, including Section 4.2 and this Section 4.5.1."
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0009",
+      "category": "Audit Rights",
+      "has_gold_in_topk": false,
+      "topk_accepted": false,
+      "gt_snippet": "Dova shall have the right, at its own expense, during normal business hours and upon reasonable prior notice, through a certified public accounting firm or other auditor selected by Dova and reasonably acceptable to Valeant and upon execution of a confidentiality agreement reasonably satisfactory to",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0009-SEC-340",
+          "title": "5.4 Pharmacovigilance. Subject to the terms of this Agreement, as soon as practi",
+          "score": 0.8293,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause governs pharmacovigilance responsibilities, safety data exchange, and regulatory reporting obligations for the product. It does not contain any terms regarding audit or inspection rights of books, records, facilities, or work performance.",
+          "text_snippet": "5.4 Pharmacovigilance. Subject to the terms of this Agreement, as soon as practicable following the Effective Date (but in no event later than [***]), Dova and Valeant (under the guidance of their respective pharmacovigilance departments, or equivalent thereof) shall identify and finalize the respon"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0009-SEC-475",
+          "title": "13.2 Assignment. Except as provided in this Section 13.2, this Agreement may not",
+          "score": 0.8167,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract clause solely addresses the assignment and transfer of the agreement, its rights, and obligations. It does not contain any terms or provisions regarding audit or inspection rights of books, records, facilities, or work performance.",
+          "text_snippet": "13.2 Assignment. Except as provided in this Section 13.2, this Agreement may not be assigned or otherwise transferred, nor may any rights or obligations hereunder be assigned or transferred, by either Party, without the written consent of the other Party (such consent not to be unreasonably withheld"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0009-SEC-418",
+          "title": "10.1.9 it has the exclusive right to promote the Product in the Territory to the",
+          "score": 0.7995,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause concerns exclusive promotion rights and the absence of conflicts with third-party rights; it does not contain any terms regarding audit or inspection rights of books, records, facilities, or work performance.",
+          "text_snippet": "10.1.9 it has the exclusive right to promote the Product in the Territory to the Target Professionals in the Specialty and the rights granted by it to Valeant hereunder do not conflict with any rights granted by Dova to any Third Party;"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0009-SEC-389",
+          "title": "8.4 Disclosure of Know-How. For clarity, the Parties hereby agree and acknowledg",
+          "score": 0.7991,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause solely addresses the ownership of disclosed Know-How and intellectual property, and does not contain any terms regarding audit or inspection rights of books, records, facilities, or work performance.",
+          "text_snippet": "8.4 Disclosure of Know-How. For clarity, the Parties hereby agree and acknowledge that to the extent that either Party hereto has disclosed, or in the future discloses, to the other Party any Know-How or other intellectual property of such Party or its Affiliates pursuant to this Agreement, the othe"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0009-SEC-335",
+          "title": "5.1 Dova Responsibility. As between the Parties, except as expressly set out her",
+          "score": 0.7954,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause outlines Dova's regulatory responsibilities, communications with governmental authorities, and maintenance of regulatory approvals. It does not contain any terms regarding audit or inspection rights of books, records, facilities, or work performance.",
+          "text_snippet": "5.1 Dova Responsibility. As between the Parties, except as expressly set out herein, all regulatory matters regarding the Product shall be the responsibility of Dova, including responsibility for all communications with Governmental Authorities, including but not limited to FDA, related to the Produ"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0010",
+      "category": "Governing Law",
+      "has_gold_in_topk": false,
+      "topk_accepted": true,
+      "gt_snippet": "This Agreement and the relationship between the Parties shall be governed by, and interpreted in accordance with New  York law without regard to provisions related to conflicts of laws, and, except as provided in Section 21.2 above, the Parties agree to submit  any dispute to the exclusive jurisdict",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0010-SEC-261",
+          "title": "(c) the entry of a decree or order for relief by a court having jurisdiction in ",
+          "score": 0.7126,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause describes an event of default related to bankruptcy and insolvency proceedings. While it mentions 'a court having jurisdiction', it does not establish the governing law, choice of law, or forum selection for the contract itself.",
+          "text_snippet": "(c) the entry of a decree or order for relief by a court having jurisdiction in the premises in respect of the other Party in an  involuntary case under the United States Bankruptcy Code, as now constituted or hereafter amended, or any other  applicable foreign, federal or state insolvency or other "
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0010-SEC-499",
+          "title": "8. Governing Law. This Note shall be governed by and construed in accordance wit",
+          "score": 0.6969,
+          "is_gold": false,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause explicitly states that the Note shall be governed by and construed in accordance with the laws of the State of New York, which directly addresses the Governing Law topic.",
+          "text_snippet": "8. Governing Law. This Note shall be governed by and construed in accordance with the laws of the State of New York, excluding any  conflict-of-laws rule or principle that may refer the governance, construction or interpretation of this Note to the laws of another State."
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0010-SEC-203",
+          "title": "(e) Debarment. It is not currently debarred, suspended or otherwise excluded by ",
+          "score": 0.6764,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause concerns debarment, suspension, and compliance with federal and international laws regarding excluded persons. It does not address governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "(e) Debarment. It is not currently debarred, suspended or otherwise excluded by the United States, under any Federal law,  including, without limitation, the Generic Drug Enforcement Act of 1992, or by any other country in the Territory under any  analogous law, rule or regulation, and does not and "
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0010-SEC-262",
+          "title": "(d) the filing by the other Party of a petition for relief under the United Stat",
+          "score": 0.6733,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided clause addresses bankruptcy and insolvency filings by a party, not governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "(d) the filing by the other Party of a petition for relief under the United States Bankruptcy Code, as now constituted or  hereafter amended, or any other applicable foreign, federal or state insolvency law or other similar law; or"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0010-SEC-396",
+          "title": "1.4.8 The decision of the expert shall be final and binding upon both Parties ex",
+          "score": 0.67,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause discusses the finality of an expert's decision and the exclusion of rights to appeal to a court. It does not specify the governing law, jurisdiction, choice of law, or forum selection for resolving general contract disputes.",
+          "text_snippet": "1.4.8 The decision of the expert shall be final and binding upon both Parties except in the case of manifest error. The Parties hereby  exclude any rights of application or appeal to any court, to the extent that they may validly so agree, and in particular in  connection with any question of law ar"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0010",
+      "category": "Cap On Liability",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "however that such limitation shall not apply to the extent that EKR or any EKR Indemnified Party is required to pay in excess of such  amount to a third party in respect of a final judgment or order obtained by the third party or as a result of PPI's breach of Section 7.2.12 of  the Supply Agreement",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0010-SEC-237",
+          "title": "(b) the indemnifying Party will not, except with the consent of the indemnified ",
+          "score": 0.7303,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause governs the conditions under which an indemnifying party can consent to a judgment or enter into a settlement. It does not establish a cap on liability, aggregate monetary limits, or waivers of consequential, punitive, or indirect damages.",
+          "text_snippet": "(b) the indemnifying Party will not, except with the consent of the indemnified Party (such consent not be unreasonably  withheld or delayed), consent to the entry of any judgment or enter into any settlement (other than for the payment of  damages by the indemnifying Party, which includes as an unc"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0010-SEC-104",
+          "title": "3. Undertakings of PPI   3.1 Manufacturing Activities. Subject to Section 17.5, ",
+          "score": 0.7274,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract passage discusses manufacturing activities and the transfer of a New Drug Application (NDA). It does not contain any terms regarding caps or limitations on liability, or waivers of damages.",
+          "text_snippet": "3. Undertakings of PPI   3.1 Manufacturing Activities. Subject to Section 17.5, PPI shall manufacture and supply, or procure the manufacture and supply of, the Product  in accordance with the terms and conditions of the Supply Agreement.   3.2 Transfer of Transferred NDA. Effective as of the Agreeme"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0010-SEC-087",
+          "title": "\"Royalty Cap\"   Shall have the meaning set forth in Section 6.4;",
+          "score": 0.7192,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause is a definition placeholder for a 'Royalty Cap' pointing to Section 6.4, which relates to royalty payment limits rather than a general cap or limitation on legal liability or damages.",
+          "text_snippet": "\"Royalty Cap\"   Shall have the meaning set forth in Section 6.4;"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0010-SEC-239",
+          "title": "10.5 Settlement of Claims. The indemnified Party shall not admit liability in re",
+          "score": 0.71,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The excerpt contains Section 10.8 (PPI Liability Limitation), which explicitly sets a monetary cap on PPI's liability to EKR arising from the agreement to a specified amount of US Dollars.",
+          "text_snippet": "10.5 Settlement of Claims. The indemnified Party shall not admit liability in respect of, or compromise or settle any such action without the prior  written consent of the indemnifying Party, such consent not to be unreasonably withheld or delayed.   10.6 Insurance. Each Party shall maintain, at its"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0010-SEC-223",
+          "title": "10. Liability, Insurance and Indemnities   10.1 Indemnification of EKR. PPI shal",
+          "score": 0.706,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided clause is an indemnification provision requiring PPI to defend and hold harmless EKR. It does not contain any terms regarding a cap on liability, aggregate monetary liability limits, or the exclusion/waiver of consequential, punitive, or indirect damages.",
+          "text_snippet": "10. Liability, Insurance and Indemnities   10.1 Indemnification of EKR. PPI shall be liable for and shall defend, indemnify and hold harmless EKR and its Affiliates and their officers, directors, agents, representatives, consultants and employees (individually an \"EKR Indemnified Party\"  and collect"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0010",
+      "category": "Audit Rights",
+      "has_gold_in_topk": false,
+      "topk_accepted": false,
+      "gt_snippet": "Upon completion of such inspection, PPI shall not be entitled to inspect nor shall EKR be required to make available the records and  books for any Calendar Year for which such inspection was previously undertaken.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0010-SEC-275",
+          "title": "(a) the licenses and rights granted and appointments made under Sections 2.1, 2.",
+          "score": 0.8393,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract clause discusses the termination of licenses, rights, and appointments, and the cessation of licensed activities. It does not contain any terms or provisions regarding audit or inspection rights of books, records, facilities, or work performance.",
+          "text_snippet": "(a) the licenses and rights granted and appointments made under Sections 2.1, 2.2 and 2.3 shall terminate and EKR shall (and  shall procure that its Affiliates, sub-distributors and sub-licensees shall) cease all activities licensed or appointed  hereunder, subject to Sections 17.2 and 17.3;"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0010-SEC-320",
+          "title": "21.10 Cumulative Rights. The rights and remedies of each of the Parties under or",
+          "score": 0.7988,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract passage contains clauses regarding Cumulative Rights, Counterparts, Governing Law, Successors and Assigns, and Systems implementation. It does not contain any terms or provisions related to audit or inspection rights of books, records, facilities, or work performance.",
+          "text_snippet": "21.10 Cumulative Rights. The rights and remedies of each of the Parties under or pursuant to this Agreement are cumulative, may be exercised as often as such Party considers appropriate and are in addition to its rights and remedies under general law.   21.11 Counterparts. This Agreement may be exec"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0010-SEC-360",
+          "title": "EKR Therapeutics Achieves Key Growth Milestone with the   Acquisition of Rights ",
+          "score": 0.7945,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text is a press release headline regarding the acquisition of rights to a drug and does not contain any legal terms or provisions concerning audit or inspection rights.",
+          "text_snippet": "EKR Therapeutics Achieves Key Growth Milestone with the   Acquisition of Rights to DepoDur\u00ae, a Novel Extended-Release Opioid   Analgesic for Post Operative Pain"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0010-SEC-101",
+          "title": "2. Grant of Rights   2.1 Retention of EKR. Subject to the terms of this Agreemen",
+          "score": 0.7911,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract passage concerns the grant of distribution, licensing, and trademark rights. It does not contain any terms or provisions regarding audit or inspection rights of books, records, facilities, or work performance.",
+          "text_snippet": "2. Grant of Rights   2.1 Retention of EKR. Subject to the terms of this Agreement, PPI hereby appoints EKR and EKR agrees to be retained as the exclusive  distributor, and Authorized Distributor of Record, of the Products in the Field in the Territory during the Term to market, distribute,  warehous"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0010-SEC-207",
+          "title": "(b) Third Party Interests. There are no Third Party interests or rights in the P",
+          "score": 0.7882,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause discusses third-party interests and rights in intellectual property and trademarks, and does not contain any terms regarding audit or inspection rights of books, records, facilities, or work performance.",
+          "text_snippet": "(b) Third Party Interests. There are no Third Party interests or rights in the PPI IP or Trademarks that may prevent, encumber or  restrict the exercise by EKR of the Distribution Rights or other rights granted under this Agreement."
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0011",
+      "category": "Governing Law",
+      "has_gold_in_topk": false,
+      "topk_accepted": false,
+      "gt_snippet": "THIS REMARKETING AGREEMENT AND THE PRICING AGREEMENT SHALL BE GOVERNED BY AND CONSTRUED IN ACCORDANCE WITH THE LAWS OF THE STATE OF NEW YORK, WITHOUT REGARD TO PRINCIPLES OF CONFLICTS OF LAW TO THE EXTENT THAT SUCH PRINCIPLES WOULD REQUIRE OR PERMIT THE APPLICATION OF LAWS OF ANOTHER JURISDICTION.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0011-SEC-210",
+          "title": "requirements (including but not limited to government approval requirements unde",
+          "score": 0.7423,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause discusses government approval requirements under the Foreign Exchange Transaction Law in connection with a purchase. It does not establish governing law, jurisdiction, choice of law, or forum selection for the contract.",
+          "text_snippet": "requirements (including but not limited to government approval requirements under the Foreign Exchange Transaction Law and its subordinate decrees and regulations) in connection with their purchase.   V-4"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0011-SEC-016",
+          "title": "As used herein, \"Business Day\" means any day other than a Saturday, Sunday or ot",
+          "score": 0.734,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause defines the term 'Business Day' and mentions banking institutions in New York, but it does not establish governing law, jurisdiction, choice of law, or forum selection for the contract.",
+          "text_snippet": "As used herein, \"Business Day\" means any day other than a Saturday, Sunday or other day on which banking institutions in New York, New York are authorized or required by law or executive order to remain closed."
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0011-SEC-085",
+          "title": "(i) The Company agrees that, unless it obtains the prior consent of the Remarket",
+          "score": 0.6579,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided clause discusses restrictions and agreements regarding Issuer Free Writing Prospectus offers and communications. It does not contain any terms related to governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "(i) The Company agrees that, unless it obtains the prior consent of the Remarketing Agents, and each Remarketing Agent represents and agrees that, unless it obtains the prior consent of the Company, it has not made and will not make any offer relating to the Remarketed Securities that would constitu"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0011-SEC-131",
+          "title": "21. Waiver of Jury Trial. The Company and each of the Remarketing Agents hereby ",
+          "score": 0.657,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause solely addresses the waiver of the right to a jury trial in legal proceedings. It does not specify the governing law, jurisdiction, choice of law, or forum selection for those proceedings.",
+          "text_snippet": "21. Waiver of Jury Trial. The Company and each of the Remarketing Agents hereby irrevocably waives, to the fullest extent permitted by applicable law, any and all right to trial by jury in any legal proceeding arising out of or relating to this Remarketing Agreement or the transactions contemplated "
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0011-SEC-071",
+          "title": "(bb) The Company and its consolidated subsidiaries employ disclosure controls an",
+          "score": 0.6404,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract clause discusses disclosure controls and procedures under the Exchange Act. It does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "(bb) The Company and its consolidated subsidiaries employ disclosure controls and procedures (as such term is defined in Rule 13a- 15(e) under the Exchange Act) that are designed to ensure that information required to be disclosed by the Company in the reports that it files or submits under the Exch"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0011",
+      "category": "Cap On Liability",
+      "has_gold_in_topk": false,
+      "topk_accepted": false,
+      "gt_snippet": "Notwithstanding the provisions of this subsection (d), no Remarketing Agent shall be required to contribute any amount in excess of the amount by which the total price at which the applicable Securities remarketed by it and distributed to the public were offered to the public exceeds the amount of a",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0011-SEC-071",
+          "title": "(bb) The Company and its consolidated subsidiaries employ disclosure controls an",
+          "score": 0.7634,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided clause discusses disclosure controls and procedures under the Exchange Act and does not contain any terms regarding caps or limitations on liability, or waivers of damages.",
+          "text_snippet": "(bb) The Company and its consolidated subsidiaries employ disclosure controls and procedures (as such term is defined in Rule 13a- 15(e) under the Exchange Act) that are designed to ensure that information required to be disclosed by the Company in the reports that it files or submits under the Exch"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0011-SEC-202",
+          "title": "The Series E Debentures may not be offered or sold by means of any document othe",
+          "score": 0.7549,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text concerns restrictions on the offering and sale of Series E Debentures in Hong Kong and compliance with the Companies Ordinance and Securities and Futures Ordinance. It does not contain any terms regarding caps or limitations on liability, or waivers of damages.",
+          "text_snippet": "The Series E Debentures may not be offered or sold by means of any document other than (i) in circumstances which do not constitute an offer to the public within the meaning of the Companies Ordinance (Cap.32, Laws of Hong Kong), or (ii) to \"professional investors\" within the meaning of the Securiti"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0011-SEC-012",
+          "title": "The Units were initially issued in a private placement to AM Holdings LLC (f/k/a",
+          "score": 0.7081,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text describes the initial issuance of units in a private placement to a selling securityholder as part of an acquisition. It does not contain any terms regarding caps or limitations on liability, nor does it mention waivers of consequential, punitive, or indirect damages.",
+          "text_snippet": "The Units were initially issued in a private placement to AM Holdings LLC (f/k/a ALICO Holdings LLC), a Delaware limited liability company (the \"Selling Securityholder\"), as part of the consideration paid by the Company to the Selling Securityholder in connection with the Company's acquisition of Am"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0011-SEC-085",
+          "title": "(i) The Company agrees that, unless it obtains the prior consent of the Remarket",
+          "score": 0.6859,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract clause governs the use of Issuer Free Writing Prospectuses and offers relating to Remarketed Securities. It does not contain any terms regarding caps on liability, aggregate monetary liability limits, or the exclusion/waiver of consequential, punitive, or indirect damages.",
+          "text_snippet": "(i) The Company agrees that, unless it obtains the prior consent of the Remarketing Agents, and each Remarketing Agent represents and agrees that, unless it obtains the prior consent of the Company, it has not made and will not make any offer relating to the Remarketed Securities that would constitu"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0011-SEC-112",
+          "title": "(e) The obligations of the Company under this Section 6 shall be in addition to ",
+          "score": 0.6827,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided clause discusses the addition of obligations and liabilities to controlling persons, officers, and directors under Section 6. It does not establish any cap, limitation, or aggregate monetary limit on liability, nor does it address the exclusion or waiver of consequential, punitive, or indirect damages.",
+          "text_snippet": "(e) The obligations of the Company under this Section 6 shall be in addition to any liability which the Company may otherwise have and shall extend, upon the same terms and conditions, to each person, if any, who controls any Remarketing Agent within the meaning of the Act. The obligations of the Re"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0012",
+      "category": "Governing Law",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "The construction, interpretation, and performance of this Agreement and all transactions under it shall be governed by the laws of the State of Texas, irrespective of its conflict of law principles.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0012-SEC-015",
+          "title": "D.  These warranties extend to the future performance of the materials and shall",
+          "score": 0.5441,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract passage addresses warranties, future performance of materials, and safety/protection of persons and property. It does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "D.  These warranties extend to the future performance of the materials and shall continue for the longer of (a) the warranty period applicable to EDGE' sales to Customer of the material or of products which incorporate the material, (b) one year after the material is accepted by EDGE or (c) such gre"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0012-SEC-021",
+          "title": "25. CHOICE OF LAW/FORUM   The construction, interpretation, and performance of t",
+          "score": 0.4272,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The contract passage explicitly addresses governing law, jurisdiction, and forum selection, stating that the agreement shall be governed by the laws of the State of Texas and that exclusive venue shall be in Collin County, Texas.",
+          "text_snippet": "25. CHOICE OF LAW/FORUM   The construction, interpretation, and performance of this Agreement and all transactions under it shall be governed by the laws of the State of Texas, irrespective of its conflict of law principles. Subcontractor and EDGE shall not be obligated to resolve by arbitration any"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0012-SEC-017",
+          "title": "1) Confine operations at the site to areas permitted by law, ordinances, permits",
+          "score": 0.4137,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text discusses site operations, safety safeguards, hazardous materials, indemnification, clean-up procedures, and notice of material defects. It does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "1) Confine operations at the site to areas permitted by law, ordinances, permits, this Agreement and the Purchase Orders;   2) erect and maintain, as required by existing conditions and performance of the Work, safeguards for safety and protection, including posting danger signs and other warnings a"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0012-SEC-013",
+          "title": "B. These obligations to defend and indemnify shall not limit, or be limited by, ",
+          "score": 0.342,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text contains clauses regarding indemnification, due organization, taxes, compliance with laws, and warranties, but it does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "B. These obligations to defend and indemnify shall not limit, or be limited by, the defense and/or additional insured obligations of the Subcontractor's insurance carrier(s).   C. The obligations of this Section 13 shall survive termination of this Agreement.   14. DUE ORGANIZATION   Subcontractor c"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0012-SEC-027",
+          "title": "35. DOCUMENT OWNERSHIP AND CONFIDENTIALITY AND USE OF INFORMATION   Each party m",
+          "score": 0.3419,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided clause solely addresses document ownership, confidentiality, and the use of information. It does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "35. DOCUMENT OWNERSHIP AND CONFIDENTIALITY AND USE OF INFORMATION   Each party may make available (\"Disclosing Party\") to the other (\"Receiving Party\") access to certain information whether of a technical, business or other nature, including without limitation trade secrets, know-how and information"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0012",
+      "category": "Liquidated Damages",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "In the event Subcontractor directly employs or contracts with an employee of EDGE without the consent of EDGE, Subcontractor shall pay as liquidated damages two times the then monthly salary of the employee for a three-month period of time.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0012-SEC-025",
+          "title": "32. AMENDMENT   This Agreement may be amended or modified only by a written inst",
+          "score": 0.7237,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The passage explicitly contains a liquidated damages provision under Section 34 (Non-Solicitation), stating that if the Subcontractor employs an employee of EDGE without consent, they must pay as liquidated damages two times the monthly salary of the employee for a three-month period.",
+          "text_snippet": "32. AMENDMENT   This Agreement may be amended or modified only by a written instrument executed by both EDGE and Subcontractor.   33. RIGHT OF REPLACEMENT   EDGE may, upon reasonable request, require Subcontractor to replace any personnel, including a project manager, deployed by Subcontractor under"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0012-SEC-011",
+          "title": "1) Subcontractor fails to supply a sufficient number of skilled workers or suita",
+          "score": 0.7012,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract passage outlines events of default, remedies for default (such as deducting completion costs from the unpaid balance), suspension of work, and indemnification. It does not contain any provisions regarding liquidated damages, predetermined damage amounts, or penalty fees for default.",
+          "text_snippet": "1) Subcontractor fails to supply a sufficient number of skilled workers or suitable materials or equipment for performance of the Work;   2) Subcontractor fails to make payments to its Lower-tier Subcontractors or employees or laborers for labor, material or equipment;   3) Subcontractor disregards "
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0012-SEC-015",
+          "title": "D.  These warranties extend to the future performance of the materials and shall",
+          "score": 0.6966,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract passage discusses warranties, future performance of materials, and safety regulations/obligations of the Subcontractor. It does not contain any terms regarding liquidated damages, predetermined damage amounts, or penalty fees for default.",
+          "text_snippet": "D.  These warranties extend to the future performance of the materials and shall continue for the longer of (a) the warranty period applicable to EDGE' sales to Customer of the material or of products which incorporate the material, (b) one year after the material is accepted by EDGE or (c) such gre"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0012-SEC-013",
+          "title": "B. These obligations to defend and indemnify shall not limit, or be limited by, ",
+          "score": 0.4406,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text covers indemnification, due organization, taxes, compliance with laws, and warranties. While Section 17.B mentions paying an appropriate amount for damages and compensation for nonconforming work as mutually agreed upon, it does not establish liquidated damages, predetermined damage amounts, or penalty fees for default.",
+          "text_snippet": "B. These obligations to defend and indemnify shall not limit, or be limited by, the defense and/or additional insured obligations of the Subcontractor's insurance carrier(s).   C. The obligations of this Section 13 shall survive termination of this Agreement.   14. DUE ORGANIZATION   Subcontractor c"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0012-SEC-017",
+          "title": "1) Confine operations at the site to areas permitted by law, ordinances, permits",
+          "score": 0.3593,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract passage covers site operations, safety safeguards, hazardous materials, indemnification, clean-up duties, and notice of material defects. It does not contain any terms regarding liquidated damages, predetermined damage amounts, or penalty fees for default.",
+          "text_snippet": "1) Confine operations at the site to areas permitted by law, ordinances, permits, this Agreement and the Purchase Orders;   2) erect and maintain, as required by existing conditions and performance of the Work, safeguards for safety and protection, including posting danger signs and other warnings a"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0012",
+      "category": "Audit Rights",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "As set forth in the Exhibit, EDGE shall have the opportunity to review and inspect all elements of the Work in a reasonable manner.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0012-SEC-015",
+          "title": "D.  These warranties extend to the future performance of the materials and shall",
+          "score": 0.7017,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract passage discusses warranties, future performance of materials, subcontractor safety representations, and compliance with occupational safety and health laws. It does not contain any terms regarding audit or inspection rights of books, records, facilities, or work performance.",
+          "text_snippet": "D.  These warranties extend to the future performance of the materials and shall continue for the longer of (a) the warranty period applicable to EDGE' sales to Customer of the material or of products which incorporate the material, (b) one year after the material is accepted by EDGE or (c) such gre"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0012-SEC-021",
+          "title": "25. CHOICE OF LAW/FORUM   The construction, interpretation, and performance of t",
+          "score": 0.5063,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract clauses cover Choice of Law/Forum, Texas Alternative Dispute Resolution, Legal Jurisdiction/Venue, Attorney's Fees, and Number and Gender. There is no mention of audit or inspection rights regarding books, records, facilities, or work performance.",
+          "text_snippet": "25. CHOICE OF LAW/FORUM   The construction, interpretation, and performance of this Agreement and all transactions under it shall be governed by the laws of the State of Texas, irrespective of its conflict of law principles. Subcontractor and EDGE shall not be obligated to resolve by arbitration any"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0012-SEC-003",
+          "title": "2. SCOPE OF WORK   A.  Subcontractor shall perform work for EDGE referred to as ",
+          "score": 0.4594,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract passage outlines the scope of work, disbursement of purchase orders, and compensation and payments. It does not contain any terms or provisions regarding audit or inspection rights of books, records, facilities, or work performance.",
+          "text_snippet": "2. SCOPE OF WORK   A.  Subcontractor shall perform work for EDGE referred to as \"Route Feasibility & Site Acquisition,\" \"Materials Management,\" \"OSP Construction,\" and \"Other Work\" as outlined in the attached Exhibits A, B, C and D and as described and set forth in Purchase Orders.   B. Descriptions"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0012-SEC-007",
+          "title": "B. If the Work of any Lower-tier Subcontractor is unsatisfactory or unnecessaril",
+          "score": 0.4514,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause titled '8. INSPECTION OF WORK' explicitly addresses inspection rights, stating that EDGE shall have the opportunity to review and inspect all elements of the Work in a reasonable manner.",
+          "text_snippet": "B. If the Work of any Lower-tier Subcontractor is unsatisfactory or unnecessarily delayed, or the Lower-tier Subcontractor violates any of the provisions of this Agreement, EDGE may request Subcontractor to terminate such Lower-tier Subcontractor and Subcontractor shall immediately terminate the agr"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0012-SEC-019",
+          "title": "21. WAIVER   The waiver by either party of any breach of this Agreement by the o",
+          "score": 0.4404,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided contract passage contains clauses regarding Waiver, Notices, Assignment, and Binding Effect. It does not contain any terms or provisions related to audit or inspection rights of books, records, facilities, or work performance.",
+          "text_snippet": "21. WAIVER   The waiver by either party of any breach of this Agreement by the other party in a particular instance shall not operate as a waiver of subsequent breaches of the same or different kind. The failure of either party to exercise any rights under this Agreement in a particular instance sha"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0013",
+      "category": "Governing Law",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "This Agreement shall be construed and enforced and interpreted in accordance with and governed by the laws of the Commonwealth of Massachusetts without reference to principles of conflicts of law.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0013-SEC-009",
+          "title": "reports and assistance regarding each series' compliance with securities and tax",
+          "score": 0.6168,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text outlines administrative duties, reporting, compliance assistance, and liability limitations of the Sponsor. It does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "reports and assistance regarding each series' compliance with securities and tax laws and each series' investment objectives; (i) arranging for dissemination of yield and other performance information to newspapers and tracking services; (j) arranging for and preparing annual renewals for fidelity b"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0013-SEC-008",
+          "title": "1. Duties of the Sponsor. Subject to the direction and control of the Board of T",
+          "score": 0.5383,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text outlines the administrative, oversight, and management duties of the Sponsor. It does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "1. Duties of the Sponsor. Subject to the direction and control of the Board of Trustees of the Trust, the Sponsor shall perform such oversight, administrative and management services as may from time to time be reasonably requested by the Trust, which shall include without limitation: (a) maintainin"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0013-SEC-013",
+          "title": "4. Limitation of Liability of the Sponsor. The Sponsor shall not be liable for a",
+          "score": 0.4254,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause solely addresses the limitation of liability of the Sponsor and does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "4. Limitation of Liability of the Sponsor. The Sponsor shall not be liable for any error of judgment or mistake of law or for any act or omission in the oversight, administration or management of the Trust or the performance of its duties hereunder, except for willful misfeasance, bad faith or gross"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0013-SEC-021",
+          "title": "10. Miscellaneous. Each party agrees to perform such further actions and execute",
+          "score": 0.4078,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause explicitly states that the Agreement shall be construed, enforced, and interpreted in accordance with and governed by the laws of the Commonwealth of Massachusetts, which directly addresses governing law and choice of law.",
+          "text_snippet": "10. Miscellaneous. Each party agrees to perform such further actions and execute such further documents as are necessary to effectuate the purposes hereof. This Agreement shall be construed and enforced and interpreted in accordance with and governed by the laws of the Commonwealth of Massachusetts "
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0013-SEC-004",
+          "title": "WHEREAS, the Trust is engaged in business as an open-end investment company regi",
+          "score": 0.28,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause is a recital describing the nature of the Trust's business and its registration under the Investment Company Act of 1940. It does not contain any terms regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "WHEREAS, the Trust is engaged in business as an open-end investment company registered under the Investment Company Act of 1940, as amended, and consists of one or more series; and"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0013",
+      "category": "Cap On Liability",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "Limitation of Liability of the Sponsor.",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0013-SEC-013",
+          "title": "4. Limitation of Liability of the Sponsor. The Sponsor shall not be liable for a",
+          "score": 0.7562,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause explicitly addresses the limitation of liability of the Sponsor, stating that the Sponsor shall not be liable for errors of judgment, mistakes of law, or acts/omissions except in cases of willful misfeasance, bad faith, gross negligence, or reckless disregard.",
+          "text_snippet": "4. Limitation of Liability of the Sponsor. The Sponsor shall not be liable for any error of judgment or mistake of law or for any act or omission in the oversight, administration or management of the Trust or the performance of its duties hereunder, except for willful misfeasance, bad faith or gross"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0013-SEC-002",
+          "title": "SPONSORSHIP AGREEMENT, dated as of February 4, 2005, by and between Domini Advis",
+          "score": 0.6576,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided text is the introductory clause of a Sponsorship Agreement, identifying the parties and the date of the agreement. It does not contain any terms regarding liability caps, limitations, or waivers of damages.",
+          "text_snippet": "SPONSORSHIP AGREEMENT, dated as of February 4, 2005, by and between Domini Advisor Trust, a Massachusetts business trust (the \"Trust\"), and Domini Social Investments LLC, a Massachusetts limited liability company (\"Domini\" or the \"Sponsor\")."
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0013-SEC-009",
+          "title": "reports and assistance regarding each series' compliance with securities and tax",
+          "score": 0.6501,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided clause outlines the administrative duties, reports, and assistance provided by the Sponsor, as well as a disclaimer of specific management and advisory duties. It does not contain any terms regarding a cap on liability, monetary liability limits, or the waiver of consequential, punitive, or indirect damages.",
+          "text_snippet": "reports and assistance regarding each series' compliance with securities and tax laws and each series' investment objectives; (i) arranging for dissemination of yield and other performance information to newspapers and tracking services; (j) arranging for and preparing annual renewals for fidelity b"
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0013-SEC-008",
+          "title": "1. Duties of the Sponsor. Subject to the direction and control of the Board of T",
+          "score": 0.417,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided clause outlines the administrative, oversight, and management duties of the Sponsor. It does not contain any terms regarding caps on liability, monetary liability limits, or waivers of consequential, punitive, or indirect damages.",
+          "text_snippet": "1. Duties of the Sponsor. Subject to the direction and control of the Board of Trustees of the Trust, the Sponsor shall perform such oversight, administrative and management services as may from time to time be reasonably requested by the Trust, which shall include without limitation: (a) maintainin"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0013-SEC-010",
+          "title": "2. Allocation of Charges and Expenses. Domini shall pay the entire salaries and ",
+          "score": 0.3141,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The provided clause discusses the allocation of charges and expenses between Domini and the Trust, including salaries, operating expenses, and professional fees. It does not contain any terms regarding caps on liability, aggregate monetary liability limits, or the exclusion/waiver of consequential, punitive, or indirect damages.",
+          "text_snippet": "2. Allocation of Charges and Expenses. Domini shall pay the entire salaries and wages of all of the Trust's Trustees, officers and agents who devote part or all of their time to the affairs of Domini or its affiliates, and the wages and salaries of such persons shall not be deemed to be expenses inc"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0015",
+      "category": "Governing Law",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "Any disputes relating to, arising out of or resulting from this Agreement, including to its execution, performance, or enforcement, shall be governed by, and construed in accordance with, the Laws of the State of Delaware, regardless of the Laws that might otherwise govern under applicable principle",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0015-SEC-175",
+          "title": "Section 11.03. Governing Law; Jurisdiction. Any disputes relating to, arising ou",
+          "score": 0.7078,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause explicitly specifies the governing law (State of Delaware) and the exclusive jurisdiction/forum (Delaware Court of Chancery or other Delaware courts) for any disputes arising out of the agreement.",
+          "text_snippet": "Section 11.03. Governing Law; Jurisdiction. Any disputes relating to, arising out of or resulting from this Agreement, including to its execution, performance, or enforcement, shall be governed by, and construed in accordance with, the Laws of the State of Delaware, regardless of the Laws that might"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0015-SEC-031",
+          "title": "Section 11.01. Counterparts; Entire Agreement; Corporate Power 14 Section 11.02.",
+          "score": 0.7042,
+          "is_gold": false,
+          "llm_is_relevant": true,
+          "llm_reason": "The text contains a table of contents or section listing that explicitly includes 'Section 11.03. Governing Law; Jurisdiction', which directly addresses the requested topic of governing law and jurisdiction.",
+          "text_snippet": "Section 11.01. Counterparts; Entire Agreement; Corporate Power 14 Section 11.02. Dispute Resolution 14 Section 11.03. Governing Law; Jurisdiction 15 Section 11.04. Waiver of Jury Trial 15 Section 11.05. Court-Ordered Interim Relief 15 Section 11.06. Specific Performance 16 Section 11.07. Third-Party"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0015-SEC-191",
+          "title": "Either Party may, by notice to the other Party, change the address and identity ",
+          "score": 0.6516,
+          "is_gold": false,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause addresses service of process, which is a key procedural aspect of jurisdiction and legal proceedings, specifically mentioning the right to serve process in manners permitted by Law and the Hague Convention.",
+          "text_snippet": "Either Party may, by notice to the other Party, change the address and identity of the Person to which such notices and copies of such notices are to be given. Each Party agrees that nothing in this Agreement shall affect the other Party's right to serve process in any other manner permitted by Law "
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0015-SEC-180",
+          "title": "Section 11.06. Specific Performance. Subject to Section 11.02 and Section 11.05,",
+          "score": 0.6239,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause addresses specific performance, injunctive relief, and equitable remedies in the event of a breach. It does not contain provisions regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "Section 11.06. Specific Performance. Subject to Section 11.02 and Section 11.05, in the event of any actual or threatened default in, or breach of, any of the terms, conditions and provisions of this Agreement, the affected Party shall have the right to specific performance and injunctive or other e"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0015-SEC-176",
+          "title": "Section 11.04. Waiver of Jury Trial. EACH PARTY HEREBY WAIVES ITS RIGHTS TO A JU",
+          "score": 0.4214,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The clause specifically addresses the waiver of jury trials and does not contain provisions regarding governing law, jurisdiction, choice of law, or forum selection.",
+          "text_snippet": "Section 11.04. Waiver of Jury Trial. EACH PARTY HEREBY WAIVES ITS RIGHTS TO A JURY TRIAL OF ANY CLAIM OR CAUSE OF ACTION RELATING TO, ARISING OUT OF OR RESULTING FROM THIS AGREEMENT OR THE TRANSACTIONS CONTEMPLATED HEREBY, INCLUDING THEIR EXECUTION, PERFORMANCE OR ENFORCEMENT, WHETHER IN CONTRACT, T"
+        }
+      ]
+    },
+    {
+      "contract_id": "CUAD-0015",
+      "category": "Cap On Liability",
+      "has_gold_in_topk": true,
+      "topk_accepted": true,
+      "gt_snippet": "Without limiting the terms set forth in Section 6.09 of the Separation Agreement, none of Nuance, SpinCo or any other member of either Group shall in any event have any Liability to the other or to any other member of the other's Group under this Agreement for any indirect, special, punitive or cons",
+      "candidates": [
+        {
+          "rank": 1,
+          "clause_id": "CUAD-0015-SEC-023",
+          "title": "Section 7.01. Limitation on Liability 11 Section 7.02. Disclaimer of Representat",
+          "score": 0.778,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The text contains only section headings from a table of contents or index and does not contain any substantive legal terms or actual contractual obligations regarding a cap or limitation on liability.",
+          "text_snippet": "Section 7.01. Limitation on Liability 11 Section 7.02. Disclaimer of Representations and Warranties 11"
+        },
+        {
+          "rank": 2,
+          "clause_id": "CUAD-0015-SEC-145",
+          "title": "ARTICLE VII LIMITATION OF LIABILITY AND WARRANTY DISCLAIMER",
+          "score": 0.7081,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The text contains only the section title 'ARTICLE VII LIMITATION OF LIABILITY AND WARRANTY DISCLAIMER' and does not contain any substantive legal terms, obligations, or rights regarding a cap or limitation on liability.",
+          "text_snippet": "ARTICLE VII LIMITATION OF LIABILITY AND WARRANTY DISCLAIMER"
+        },
+        {
+          "rank": 3,
+          "clause_id": "CUAD-0015-SEC-146",
+          "title": "Section 7.01. Limitation on Liability. Without limiting the terms set forth in S",
+          "score": 0.6826,
+          "is_gold": true,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause explicitly limits liability by excluding indirect, special, punitive, or consequential damages between the parties.",
+          "text_snippet": "Section 7.01. Limitation on Liability. Without limiting the terms set forth in Section 6.09 of the Separation Agreement, none of Nuance, SpinCo or any other member of either Group shall in any event have any Liability to the other or to any other member of the other's Group under this Agreement for "
+        },
+        {
+          "rank": 4,
+          "clause_id": "CUAD-0015-SEC-021",
+          "title": "ARTICLE VII LIMITATION OF LIABILITY AND WARRANTY DISCLAIMER i",
+          "score": 0.6347,
+          "is_gold": false,
+          "llm_is_relevant": false,
+          "llm_reason": "The excerpt contains only the section title 'ARTICLE VII LIMITATION OF LIABILITY AND WARRANTY DISCLAIMER i' and does not contain any substantive legal terms, obligations, or rights regarding a cap or limitation on liability.",
+          "text_snippet": "ARTICLE VII LIMITATION OF LIABILITY AND WARRANTY DISCLAIMER i"
+        },
+        {
+          "rank": 5,
+          "clause_id": "CUAD-0015-SEC-158",
+          "title": "Section 9.03. Effect of Termination; Survival. In the event of any termination o",
+          "score": 0.5844,
+          "is_gold": false,
+          "llm_is_relevant": true,
+          "llm_reason": "The clause states that in the event of termination prior to the Distribution, neither Party shall have any Liability or further obligation to the other Party, which constitutes a complete waiver/exclusion of liability under those circumstances.",
+          "text_snippet": "Section 9.03. Effect of Termination; Survival. In the event of any termination of this Agreement prior to the Distribution, neither Party (nor any member of their Group or any of their respective directors or officers) shall have any Liability or further obligation to the other Party or any member o"
+        }
+      ]
+    }
+  ]
+}

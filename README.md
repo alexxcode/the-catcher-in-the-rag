@@ -22,16 +22,16 @@ El núcleo del proyecto es un **harness de evaluación científica reproducible*
 1. [Diferenciadores Clave y Filosofía](#-diferenciadores-clave-y-filosofía)
 2. [Arquitectura del Pipeline LangGraph](#-arquitectura-del-pipeline-langgraph)
 3. [Resultados Empíricos de Benchmarks](#-resultados-empíricos-de-benchmarks)
-   - [Benchmark Sintético (300 Paquetes & Ablaciones)](#1-benchmark-sintético-300-paquetes-y-ablaciones)
-   - [Procedimiento y Benchmark en Contratos Reales de la SEC (CUAD v1 & OCDS)](#2-procedimiento-y-benchmark-en-contratos-reales-de-la-sec-cuad-v1--ocds)
-   - [Bake-off de Extracción en Vertex AI (Flash vs. Pro vs. Reglas)](#3-bake-off-de-extracción-en-google-cloud-vertex-ai)
-4. [Metodología de Calibración de Bartleby](#-metodología-de-calibración-de-bartleby)
-5. [Observabilidad en Tiempo Real con Langfuse](#-observabilidad-en-tiempo-real-con-langfuse)
-6. [Interfaz de Usuario Streamlit](#-interfaz-de-usuario-streamlit)
-7. [Taxonomía de Anomalías (A01–A10)](#-taxonomía-de-anomalías-a01a10)
-8. [Inicio Rápido y Comandos Operativos](#-inicio-rápido-y-comandos-operativos)
-9. [Estructura del Repositorio](#-estructura-del-repositorio)
-10. [Procedencia de Datos y Licencias](#-procedencia-de-datos-y-licencias)
+   - [Benchmark en Contratos Reales de la SEC (CUAD v1 & OCDS)](#1-benchmark-empírico-en-contratos-reales-de-la-sec-cuad-v1--ocds)
+   - [Bake-off de Extracción en Vertex AI (Muestra Diversa n=30)](#2-bake-off-de-extracción-en-google-cloud-vertex-ai)
+   - [Benchmark Sintético Adversarial (300 Paquetes & Ablaciones)](#3-benchmark-sintético-adversarial-300-paquetes-y-ablaciones)
+   - [Seguridad de la API y Control Estricto de Gasto](#4-seguridad-de-la-api-y-control-estricto-de-gasto)
+4. [Observabilidad en Tiempo Real con Langfuse](#-observabilidad-en-tiempo-real-con-langfuse)
+5. [Interfaz de Usuario Streamlit](#-interfaz-de-usuario-streamlit)
+6. [Taxonomía de Anomalías (A01–A10)](#-taxonomía-de-anomalías-a01a10)
+7. [Inicio Rápido y Comandos Operativos](#-inicio-rápido-y-comandos-operativos)
+8. [Estructura del Repositorio](#-estructura-del-repositorio)
+9. [Procedencia de Datos y Licencias](#-procedencia-de-datos-y-licencias)
 
 ---
 
@@ -93,25 +93,9 @@ El flujo de auditoría se modela como una máquina de estados dirigida mediante 
 
 ## 📊 Resultados Empíricos de Benchmarks
 
-### 1. Benchmark Sintético (300 Paquetes y Ablaciones)
-Evaluado de forma automatizada sobre 300 paquetes generados proceduralmente con inyección controlada de errores ([`evals/reports/canonical_baseline_report.json`](evals/reports/canonical_baseline_report.json)):
+### 1. Benchmark Empírico en Contratos Reales de la SEC (CUAD v1 & OCDS)
 
-| Métrica de Evaluación | Con Términos Contractuales (Baseline) | Sin Términos (Solo Cotejo 3-Way) | Impacto / Delta |
-|---|:---:|:---:|:---:|
-| **Exactitud Global de Decisión** | **100.0%** (300/300) | **60.0%** (180/300) | **+40.0% Valor de Términos Contractuales** |
-| **Validez de Citas Verbatim** | **100.0%** (120/120) | N/A | Cero alucinaciones de citas |
-| **Abstención Correcta de Bartleby** | **100.0%** (30/30 en A09*) | 0.0% (0/30 en A09) | Detección de silencios (vía heurística 3a*) |
-| **Tasa de Falsos Positivos (A10)** | **0.0%** (0/30) | 0.0% (0/30) | Paquetes limpios aprobados sin fricción |
-| **Recall@5 de Recuperación** | **100.0%** | N/A | Recuperación en plantillas sintéticas |
-| **Latencia Media por Paquete** | **9.9 ms** | 1.1 ms | Ejecución determinista local |
-
-> **Nota Metodológica:** Esta ablación evalúa el impacto de aplicar las reglas contractuales (penalizaciones por retraso, plazos de pago netos y topes de precios) frente a un cotejo tripartito puramente aritmético. Prescindir de los términos contractuales estructurados degrada la decisión financiera en un **40%**, dejando escapar cargos indebidos (A04, A05, A06). (*La abstención del 100% en A09 en datos sintéticos depende de la heurística de plantilla 3a descrita abajo; el score de recuperación pura en contratos abiertos se evalúa en CUAD).*
-
----
-
-### 2. Procedimiento y Benchmark en Contratos Reales de la SEC (CUAD v1 & OCDS)
-
-Para contrastar el comportamiento del sistema fuera del laboratorio sintético, se integró el estándar de oro de comprensión de contratos corporativos: **CUAD v1** (*Contract Understanding Atticus Dataset*, 510 contratos presentados ante la **SEC EDGAR**, con hasta 175.000 caracteres por documento) junto con releases estándar de compras públicas **OCDS 1.1** (*Open Contracting Data Standard*).
+Para evaluar el comportamiento del sistema en entornos no sintéticos y con redacción abierta, se integró el estándar de oro de comprensión de contratos corporativos: **CUAD v1** (*Contract Understanding Atticus Dataset*, 510 contratos presentados ante la **SEC EDGAR**, con hasta 175.000 caracteres por documento) junto con releases estándar de compras públicas **OCDS 1.1** (*Open Contracting Data Standard*).
 
 #### A. Flujo de Adquisición y Descarga (`datagen/download.py`)
 El pipeline incluye un script desacoplado con control de integridad, hashes y licenciamiento:
@@ -142,7 +126,6 @@ El harness de evaluación somete al RAG híbrido (BM25 + Dense Vectors) a dos ti
 Los resultados se serializan automáticamente con procedencia criptográfica (SHA de commit de Git, timestamp ISO con microsegundos y comando exacto) en [`evals/reports/cuad_benchmark_latest.json`](evals/reports/cuad_benchmark_latest.json):
 
 * **Comando de Reproducción Offline (Stub / CI):** `make eval-cuad` o `uv run python -m evals.run --eval-cuad`
-* **Comando de Reproducción Offline (Stub / CI):** `make eval-cuad` o `uv run python -m evals.run --eval-cuad`
 * **Comando de Recalibración:** `make calibrate-cuad` o `uv run python -m evals.calibrate_cuad`
 * **Commit de Referencia:** Verificado en Git SHA registrado en metadata de reporte.
 
@@ -156,58 +139,8 @@ Los resultados se serializan automáticamente con procedencia criptográfica (SH
 | **Abstención Errónea (Positivos)** | **14.5%** | *Pendiente de cuota Vertex AI* | `[8.3%, 24.1%]` | Tasa de sobre-abstención en presencia de cláusulas legítimas válidas. |
 | **Falsa Afirmación Espuria** | **48.5%** | *Pendiente de cuota Vertex AI* | — | Riesgo residual de afirmar falsamente una penalización inexistente. |
 
-#### E. Reproducción del Benchmark en Local
-Cualquier usuario puede verificar y regenerar estos reportes ejecutando:
-```bash
-make download-data   # Descarga los contratos de la SEC y releases OCDS
-make eval-cuad       # Ejecuta la suite de evaluación CUAD con procedencia (Git SHA + microsegundos)
-make calibrate-cuad  # Ejecuta el barrido de calibración empírica sobre CUAD (Train/Val 60/40)
-```
-Los resultados se serializan en `evals/reports/cuad_benchmark_latest.json` y se grafican de forma interactiva en las pantallas **"CUAD Real SEC Contracts"** y **"Evaluation Dashboard"** de la interfaz Streamlit.
-
----
-
-### 3. Bake-Off de Extracción en Google Cloud Vertex AI
-Comparativa reproducible evaluada sobre contratos sintéticos con redacción y estilos no estándar (`style="diverse"`) tras el retiro formal de la serie Gemini 2.5 en Vertex AI el 20 de octubre de 2026.
-
-* **Comando de Reproducción:** `uv run python evals/bakeoff.py --sample-size 5 --output evals/reports/` (ejecutado con credenciales ADC en Vertex AI sobre muestra $n=5$ diversa; objetivo de validación pre-staging: $n \ge 30$)
-* **Reporte Oficial:** [`evals/reports/bakeoff_latest.json`](evals/reports/bakeoff_latest.json)
-
-| Modelo / Candidato | Proveedor | Latencia Media | Costo / 1k docs | Error% | Payment Terms | Rate Sheet | Exactitud Global Conjunta |
-|---|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Rule-Based Baseline (Regex/Parsing)** | `rule_based` | **0.8 ms** | **$0.00** | 0.0% | **100.0%** | **0.0%** | **0.0%** |
-| **Gemini 3.5 Flash (GA Active)** | `vertex_ai` | **7836.5 ms** | **$0.20** | 0.0% | **100.0%** | **100.0%** | **100.0%** |
-| **Gemini 3.8 Flash (GA Active)** | `vertex_ai` | **22889.6 ms** | **$0.26** | 0.0% | **100.0%** | **100.0%** | **100.0%** |
-
-> **Diagnóstico Forense y Fidelidad de la Medición:**
-> En los contratos con redacción variada (`style="diverse"`), el extractor por reglas deterministas captura con éxito los plazos de pago estándar (100%), pero **colapsa al 0% en la tabla de tarifas** debido a la dispersión de estructuras narrativas, llevando la exactitud conjunta a 0.0%. En los contratos evaluados en vivo con Vertex AI mediante esquema estructurado estricto, **Gemini 3.5 Flash** y **Gemini 3.8 Flash** recuperaron fielmente las tarifas tabulares y los plazos netos.
->
-> **Salvaguarda de Ciclo de Vida y Fail-Fast:**
-> - `gemini-3.5-flash` es GA en Vertex AI con fecha de retiro fijada para el **19 de mayo de 2027 o posterior** (región endpoint: `global`).
-> - `gemini-3.8-flash` es GA con retiro para el **2 de septiembre de 2027 o posterior** (región endpoint: `global`).
-> - Se implementó un canario semanal en GitHub Actions (`.github/workflows/model_canary.yml`) y sonda de verificación local (`make check-models`).
-
----
-
-### 4. Seguridad de la API y Control Estricto de Gasto
-Para prevenir la degradación de presupuesto y proteger los modelos en Vertex AI:
-
-1. **API Privada en Cloud Run (IAM de Mínimo Privilegio):**
-   El servicio Cloud Run de la API elimina `allUsers` y exige autenticación IAM. Únicamente la cuenta de servicio de la UI (`catcher-run-sa`) con el rol `roles/run.invoker` tiene autorización de invocación directa servicio a servicio.
-2. **Protección de `/api/audit` con PIN y Rate Limiting:**
-   El endpoint `/api/audit` valida la cabecera `X-API-Key` o `Authorization: Bearer <PIN>` sincronizada desde Secret Manager (`demo-access-pin`) con comparación en tiempo constante (`secrets.compare_digest`). Incluye un limitador de tasa deslizante que extrae la IP real del cliente detrás del proxy de Cloud Run (`X-Forwarded-For`), fijado a 30 peticiones por minuto.
-3. **Fallback Seguro en Modo Público (Zero-Cost Stub):**
-   Las peticiones no autenticadas que lleguen por acceso público ejecutan automáticamente la auditoría utilizando el proveedor `stub` offline ($0.00 de costo, sin llamadas a Vertex AI), garantizando que ningún actor externo pueda drenar la cuota de Google Cloud. En entornos de producción, la UI implementa cierre estricto (*fail-closed*) si el PIN no se encuentra configurado.
-4. **Alertas Presupuestarias y Circuit Breaker:**
-   Terraform provisiona una alerta de facturación en Google Cloud al 50%, 80% y 100% del presupuesto mensual configurado (`spend_basis = "CURRENT_SPEND"`).
-
----
-
-## 🎯 Metodología de Calibración de Bartleby: Brecha de Transferencia de Dominio
-
+#### E. Metodología de Calibración de Bartleby: Brecha de Transferencia de Dominio
 El guardia de abstención fue sometido a calibración empírica tanto en el dominio sintético original como en contratos auténticos de la SEC ([`evals/reports/calibration_cuad_report.json`](evals/reports/calibration_cuad_report.json)):
-
-### Comparativa Multi-Dominio (Sintético vs CUAD Real)
 
 | Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\tau$) | Macro F1 Validación | AUC-ROC Separabilidad | Desempeño Empírico en Transferencia |
 |---|---|:---:|:---:|:---:|---|
@@ -223,7 +156,7 @@ El guardia de abstención fue sometido a calibración empírica tanto en el domi
 >
 > **Conclusión Arquitectónica:** Ningún umbral estático sobre recuperación basada en BM25 / embeddings de hash es suficiente para gobernar contratos comerciales reales. Este resultado justifica y motiva la **Condición #3 de Bartleby: Verificación Semántica por LLM (`verify_relevance_with_llm`)**, evaluada en [`evals/reports/bartleby_llm_verification_report.json`](evals/reports/bartleby_llm_verification_report.json), donde el modelo evalúa materialmente la pertinencia semántica del pasaje antes de validar la evidencia contractual.
 
-### Evaluación de la Condición #3 de Bartleby: Verificación Semántica por LLM
+#### F. Evaluación de la Condición #3 de Bartleby: Verificación Semántica por LLM
 
 Medición empírica en vivo sobre 15 contratos auténticos de la SEC (CUAD, 105 evaluaciones de consulta) comparando el filtro de umbral puro frente a la verificación semántica activa con Vertex AI (`gemini-3.5-flash`), inspeccionando los candidatos del top-5 (`max_verification_candidates=5`):
 
@@ -241,10 +174,73 @@ Medición empírica en vivo sobre 15 contratos auténticos de la SEC (CUAD, 105 
 > 3. **Ganancia Neta en Discriminación:** El filtro semántico eleva la abstención correcta ante ausencias reales del 27.9% al **63.3%** (50/79), reduciendo la falsa abstención al **46.2%** (12/26 frente a 17/26 en la corrida inicial sin enriquecimiento de categorías) y alcanzando el Macro F1 más alto de todas las arquitecturas evaluadas (**0.5575**).
 > 4. **Trade-off Operativo:** Añade ~4.5 segundos de latencia media por consulta y un costo proyectado de ~$2.41 por cada 1,000 consultas auditadas en Gemini 3.5 Flash (~$0.88 en Gemini 3.8 Flash). Fijar `thinking_budget: 0` reduce la latencia de 5,153 ms a 4,511 ms (una mejora del 12.5%), suprimiendo tokens de pensamiento redundantes en clasificación binaria.
 
-1. **Split Train / Validation:** Partición reproducible 60/40 (semilla 42) sobre 50 contratos de la SEC para evaluar transferencia sin sobreajuste.
-2. **Métricas sin Umbral (AUC-ROC):** Mide la capacidad intrínseca del ranking de recuperación de separar presencia vs ausencia con independencia del umbral.
-3. **Contraste contra Baselines Triviales:** Evaluación estricta frente a clasificadores ciegos (*Always Abstain* y *Never Abstain*).
-4. **Condición #3 (Verificación Semántica por LLM):** El guardia combina el filtro de similitud con una verificación semántica que inspecciona si el fragmento efectivamente otorga o niega la cláusula consultada.
+#### G. Mejora Empírica de Recuperación: Dense Vectors y Reranking FlashRank
+
+Para atacar directamente el cuello de botella de recuperación demostrado en los benchmarks anteriores (donde el stub léxico limitaba el Hit@1 al 26.9% y el Hit@5 al 61.5%), se evaluaron modelos de embeddings densos reales (`BAAI/bge-small-en-v1.5`, 384d) junto con un reranker neuronal local (`ms-marco-TinyBERT-L-2-v2`, `flashrank`) sobre los 26 casos con presencia real en CUAD:
+
+| Arquitectura de Recuperación | Modelo de Embedding | Reranker / Fusión | Hit@1 (Top-1) | Hit@5 (Top-5) | Impacto Práctico |
+|---|---|---|:---:|:---:|---|
+| **Léxico Basal (CI / Offline)** | `stub-hash-768d` | Ninguno (Híbrido Lineal) | 26.9% (7/26) | 61.5% (16/26) | Línea de base determinista offline. |
+| **Embeddings Densos Reales** | `bge-small-en-v1.5` | Similitud Coseno Densa | **42.3% (11/26)** | **88.5% (23/26)** | Eleva la cobertura en top-5 en +27.0 puntos porcentuales. |
+| **Híbrido Denso + Reranker** | `bge-small-en-v1.5` | `ms-marco-TinyBERT-L-2-v2` | **53.8% (14/26)** | **80.8% (21/26)** | **Duplica la precisión Hit@1** (de 26.9% a 53.8%), situando la cláusula exacta en el primer puesto. |
+
+---
+
+### 2. Bake-Off de Extracción en Google Cloud Vertex AI (Muestra Diversa n=30)
+Comparativa reproducible evaluada sobre contratos sintéticos con redacción y estructuras no estándar (`style="diverse"`) tras el retiro formal de la serie Gemini 2.5 en Vertex AI el 20 de octubre de 2026.
+
+* **Comando de Reproducción:** `uv run python evals/bakeoff.py --sample-size 30 --output evals/reports/` (ejecutado con credenciales ADC en Vertex AI sobre muestra $n=30$ diversa)
+* **Reporte Oficial:** [`evals/reports/bakeoff_latest.json`](evals/reports/bakeoff_latest.json)
+
+| Modelo / Candidato | Proveedor | Latencia Media | Costo / 1k docs | Error% | Payment Terms | Rate Sheet | Exactitud Global Conjunta |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Rule-Based Baseline (Regex/Parsing)** | `rule_based` | **2.0 ms** | **$0.00** | 0.0% | **100.0%** | **0.0%** | **0.0%** |
+| **Gemini 3.5 Flash (GA Active)** | `vertex_ai` | **2299.6 ms** | **$4.67** | 0.0% | **100.0%** | **100.0%** | **100.0%** |
+| **Gemini 3.8 Flash (GA Active)** | `vertex_ai` | **48095.9 ms** | **$2.15** | 0.0% | **100.0%** | **100.0%** | **100.0%** |
+
+> **Diagnóstico Forense y Fidelidad de la Medición:**
+> En los contratos con redacción variada (`style="diverse"`), el extractor por reglas deterministas captura con éxito los plazos de pago estándar (100%), pero **colapsa al 0% en la tabla de tarifas** debido a la dispersión de estructuras narrativas, llevando la exactitud conjunta a 0.0%. En los contratos evaluados en vivo con Vertex AI mediante esquema estructurado estricto, **Gemini 3.5 Flash** y **Gemini 3.8 Flash** recuperaron fielmente las tarifas tabulares y los plazos netos.
+>
+> **Dinámica de Latencia y Razonamiento:** Con `thinking_budget: 0`, Gemini 3.5 Flash alcanza una latencia media de **2,299.6 ms** por extracción de documento complejo, mientras que Gemini 3.8 Flash sin restricción de pensamiento incurre en deliberación prolongada promediando **48.1 segundos**. Los costos se calcularon rigurosamente a partir de tarifas GA en Vertex AI ($1.50 / $9.00 por 1M tokens para 3.5 Flash; $0.75 / $3.75 introductorio para 3.8 Flash).
+>
+> **Salvaguarda de Ciclo de Vida y Fail-Fast:**
+> - `gemini-3.5-flash` es GA en Vertex AI con fecha de retiro fijada para el **19 de mayo de 2027 o posterior** (región endpoint: `global`).
+> - `gemini-3.8-flash` es GA con retiro para el **2 de septiembre de 2027 o posterior** (región endpoint: `global`).
+> - Se implementó un canario semanal en GitHub Actions (`.github/workflows/model_canary.yml`) y sonda de verificación local (`make check-models`).
+
+---
+
+### 3. Benchmark Sintético Adversarial (300 Paquetes y Ablaciones)
+
+> **Nota Metodológica y Advertencia de Laboratorio:**
+> Este benchmark sintético funciona exclusivamente como una batería de pruebas de integración y regresión unitaria controlada sobre 300 paquetes generados proceduralmente con inyección sintética de anomalías (A01 a A10). El resultado de **100% de exactitud y abstención en A09 en datos sintéticos depende de la heurística de plantilla 3a** (detección determinista de denegaciones explícitas como *"under no circumstances"* en plantillas conocidas). El comportamiento generalizable del sistema en lenguaje abierto no estructurado está medido empíricamente en el **Benchmark de Contratos Reales de la SEC (CUAD)** detallado en la sección 1.
+
+Evaluado de forma automatizada sobre 300 paquetes generados proceduralmente ([`evals/reports/canonical_baseline_report.json`](evals/reports/canonical_baseline_report.json)):
+
+| Métrica de Evaluación | Con Términos Contractuales (Baseline) | Sin Términos (Solo Cotejo 3-Way) | Impacto / Delta |
+|---|:---:|:---:|:---:|
+| **Exactitud Global de Decisión** | **100.0%** (300/300) | **60.0%** (180/300) | **+40.0% Valor de Términos Contractuales** |
+| **Validez de Citas Verbatim** | **100.0%** (120/120) | N/A | Cero alucinaciones de citas |
+| **Abstención Correcta de Bartleby** | **100.0%** (30/30 en A09*) | 0.0% (0/30 en A09) | Detección de silencios (vía heurística 3a*) |
+| **Tasa de Falsos Positivos (A10)** | **0.0%** (0/30) | 0.0% (0/30) | Paquetes limpios aprobados sin fricción |
+| **Recall@5 de Recuperación** | **100.0%** | N/A | Recuperación en plantillas sintéticas |
+| **Latencia Media por Paquete** | **9.9 ms** | 1.1 ms | Ejecución determinista local |
+
+> **Interpretación de la Ablación:** Esta ablación evalúa el impacto de aplicar las reglas contractuales estructuradas (penalizaciones por retraso, plazos de pago netos y topes de precios) frente a un cotejo tripartito puramente aritmético. Prescindir de los términos contractuales degrada la decisión financiera en un **40%**, dejando escapar cargos indebidos (A04, A05, A06).
+
+---
+
+### 4. Seguridad de la API y Control Estricto de Gasto
+Para prevenir la degradación de presupuesto y proteger los modelos en Vertex AI:
+
+1. **API Privada en Cloud Run (IAM de Mínimo Privilegio):**
+   El servicio Cloud Run de la API elimina `allUsers` y exige autenticación IAM. Únicamente la cuenta de servicio de la UI (`catcher-run-sa`) con el rol `roles/run.invoker` tiene autorización de invocación directa servicio a servicio.
+2. **Protección de `/api/audit` con PIN y Rate Limiting:**
+   El endpoint `/api/audit` valida la cabecera `X-API-Key` o `Authorization: Bearer <PIN>` sincronizada desde Secret Manager (`demo-access-pin`) con comparación en tiempo constante (`secrets.compare_digest`). Incluye un limitador de tasa deslizante que extrae la IP real del cliente detrás del proxy de Cloud Run (`X-Forwarded-For`), fijado a 30 peticiones por minuto.
+3. **Fallback Seguro en Modo Público (Zero-Cost Stub):**
+   Las peticiones no autenticadas que lleguen por acceso público ejecutan automáticamente la auditoría utilizando el proveedor `stub` offline ($0.00 de costo, sin llamadas a Vertex AI), garantizando que ningún actor externo pueda drenar la cuota de Google Cloud. En entornos de producción, la UI implementa cierre estricto (*fail-closed*) si el PIN no se encuentra configurado.
+4. **Alertas Presupuestarias y Circuit Breaker:**
+   Terraform provisiona una alerta de facturación en Google Cloud al 50%, 80% y 100% del presupuesto mensual configurado (`spend_basis = "CURRENT_SPEND"`).
 
 ---
 

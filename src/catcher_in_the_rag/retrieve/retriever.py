@@ -95,10 +95,20 @@ class ContractRetriever:
         self,
         contract: Contract,
         embedding_provider: EmbeddingProvider | None = None,
+        use_reranker: bool = False,
     ) -> None:
         self.contract = contract
         self.clauses: list[Clause] = contract.clauses
         self.embedding_provider = embedding_provider or get_embedding_provider()
+        self.use_reranker = use_reranker
+        self._ranker = None
+        if self.use_reranker:
+            try:
+                from flashrank import Ranker
+
+                self._ranker = Ranker(model_name="ms-marco-TinyBERT-L-2-v2")
+            except Exception:
+                self._ranker = None
 
         # BM25 corpus preparation
         corpus_tokens = [_tokenize(f"{c.title} {c.text}") for c in self.clauses]
@@ -150,4 +160,20 @@ class ContractRetriever:
             )
 
         scored.sort(key=lambda x: x.score, reverse=True)
+
+        if self.use_reranker and self._ranker and scored:
+            try:
+                from flashrank import RerankRequest
+
+                candidates = scored[: max(15, top_k)]
+                passages = [
+                    {"id": i, "text": f"{c.title}\n{c.text[:1000]}", "clause": c}
+                    for i, c in enumerate(candidates)
+                ]
+                req = RerankRequest(query=query, passages=passages)
+                reranked = self._ranker.rerank(req)
+                return [p["clause"] for p in reranked[:top_k]]
+            except Exception:
+                pass
+
         return scored[:top_k]
