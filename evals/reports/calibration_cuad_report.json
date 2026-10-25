@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-10-24T07:31:44.104468+00:00",
-  "git_commit_sha": "721fcb14bf8a60212122829f006a491e84bfc1c6",
-  "git_dirty": true,
+  "timestamp": "2026-10-25T01:33:31.381328+00:00",
+  "git_commit_sha": "d98c68be282bfdc15b367890460f5204e18192c5",
+  "git_dirty": false,
   "command": "calibrate_cuad.py",
   "total_contracts": 50,
   "train_contracts_count": 30,
