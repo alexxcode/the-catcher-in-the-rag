@@ -18,19 +18,20 @@ import json
 import math
 import os
 import random
+import sys
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
-import sys
 from pathlib import Path
+from typing import Any
 
 repo_root = Path(__file__).resolve().parent.parent
 if str(repo_root) not in sys.path:
     sys.path.insert(0, str(repo_root))
 
-from catcher_in_the_rag.ingest.cuad_loader import CUADLoader
-from catcher_in_the_rag.providers.factory import get_embedding_provider
-from catcher_in_the_rag.retrieve.retriever import ContractRetriever
-from evals.provenance import get_provenance_metadata
+from catcher_in_the_rag.ingest.cuad_loader import CUADLoader  # noqa: E402
+from catcher_in_the_rag.providers.factory import get_embedding_provider  # noqa: E402
+from catcher_in_the_rag.retrieve.retriever import ContractRetriever  # noqa: E402
+from evals.provenance import get_provenance_metadata  # noqa: E402
 
 
 def _wilson_interval(successes: int, total: int, z: float = 1.96) -> list[float]:
