@@ -169,13 +169,20 @@ class GeminiProvider(LLMProvider):
             else 0
         )
 
+        raw_text = getattr(response, "text", "")
+        resp_text = raw_text if isinstance(raw_text, str) else ""
+        raw_id = getattr(response, "response_id", None)
+        resp_id = raw_id if isinstance(raw_id, str) else None
+        raw_ver = getattr(response, "model_version", None)
+        m_ver = raw_ver if isinstance(raw_ver, str) else None
+
         record = {
             "run_id": run_id,
             "timestamp_utc": datetime.now(UTC).isoformat(),
             "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
-            "response_text": getattr(response, "text", "") or "",
-            "response_id": getattr(response, "response_id", None),
-            "model_version": getattr(response, "model_version", None),
+            "response_text": resp_text,
+            "response_id": resp_id,
+            "model_version": m_ver,
             "prompt_tokens": p_tok,
             "candidate_tokens": c_tok,
             "thought_tokens": th_tok,
