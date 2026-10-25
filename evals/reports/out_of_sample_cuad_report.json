@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-10-25T00:55:23.074522+00:00",
-  "git_commit_sha": "28e71cb0cbdf0ea46bce41dc1e2d3b2e5f1a579b",
-  "git_dirty": false,
+  "timestamp": "2026-10-25T21:19:34.819559+00:00",
+  "git_commit_sha": "bd097c9beceac63ffc4706e54bb866df0eed51da",
+  "git_dirty": true,
   "command": "eval_out_of_sample.py --start 15 --end 50 --llm-provider vertex_ai",
   "evaluation_type": "Out-of-sample held-out evaluation with frozen prompt and official Atticus category definitions",
   "contract_slice": "CUAD-0016 to CUAD-0050 (35 contracts)",
@@ -21,27 +21,27 @@
       ]
     },
     "false_abstention_on_positives": {
-      "count": 73,
+      "count": 74,
       "total": 156,
-      "rate": 0.4679,
+      "rate": 0.4744,
       "wilson_ci95": [
-        0.3914,
-        0.5461
+        0.3976,
+        0.5524
       ]
     },
-    "macro_f1": 0.7494,
+    "macro_f1": 0.746,
     "retrieval_conditioned_verifier": {
       "gold_in_top5_count": 111,
       "llm_accepted_on_hit": 79,
       "hit_acceptance_rate": 0.7117,
       "miss_top5_count": 45,
-      "llm_rejected_on_miss": 41,
-      "miss_rejection_rate": 0.9111
+      "llm_rejected_on_miss": 42,
+      "miss_rejection_rate": 0.9333
     },
     "performance": {
-      "mean_latency_ms": 4983.5,
-      "prompt_tokens": 480061,
-      "candidate_tokens": 46264
+      "mean_latency_ms": 3599.4,
+      "prompt_tokens": 481362,
+      "candidate_tokens": 46461
     }
   }
 }
