@@ -80,6 +80,8 @@ evals/reports/*
 !evals/reports/bakeoff_report_*.json
 !evals/reports/cuad_benchmark_*.json
 !evals/reports/*.jsonl
+!evals/reports/raw/
+!evals/reports/raw/*.jsonl
 
 
 # ── OS ────────────────────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@ import json
 import os
 import sqlite3
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, TypeVar
 
@@ -141,11 +142,58 @@ class GeminiProvider(LLMProvider):
                     f"Vertex AI LLM call failed after {attempt + 1} attempt(s): {err}"
                 ) from err
 
+    def _log_raw_call(
+        self,
+        prompt: str,
+        response: Any,
+        latency_ms: float,
+        extra: dict[str, Any],
+    ) -> None:
+        run_id = os.getenv("RUN_ID") or getattr(self, "run_id", None)
+        if not run_id:
+            run_id = f"run_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
+            self.run_id = run_id
+
+        raw_dir = Path("evals/reports/raw")
+        raw_dir.mkdir(parents=True, exist_ok=True)
+        raw_file = raw_dir / f"{run_id}.jsonl"
+
+        usage = getattr(response, "usage_metadata", None)
+        p_tok = _safe_int(getattr(usage, "prompt_token_count", 0)) if usage else 0
+        c_tok = _safe_int(getattr(usage, "candidates_token_count", 0)) if usage else 0
+        th_tok = (
+            _safe_int(
+                getattr(usage, "thoughts_token_count", getattr(usage, "thinking_token_count", 0))
+            )
+            if usage
+            else 0
+        )
+
+        record = {
+            "run_id": run_id,
+            "timestamp_utc": datetime.now(UTC).isoformat(),
+            "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+            "response_text": getattr(response, "text", "") or "",
+            "response_id": getattr(response, "response_id", None),
+            "model_version": getattr(response, "model_version", None),
+            "prompt_tokens": p_tok,
+            "candidate_tokens": c_tok,
+            "thought_tokens": th_tok,
+            "latency_ms": round(latency_ms, 2),
+            "query": extra.get("query"),
+            "category": extra.get("category"),
+            "contract_id": extra.get("contract_id"),
+            "passage_ids": extra.get("passage_ids"),
+        }
+        with raw_file.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
     def extract_structured(
         self,
         text: str,
         schema: type[T],
         system_prompt: str | None = None,
+        **kwargs: Any,
     ) -> T:
         """Extract structured data conforming to a Pydantic schema using Gemini structured outputs."""
         self._ensure_init()
@@ -186,6 +234,7 @@ class GeminiProvider(LLMProvider):
         response = self._call_with_retry(_invoke_extract)
         raw_json = (response.text or "").strip()
         elapsed_ms = (time.perf_counter() - t0) * 1000
+        self._log_raw_call(prompt, response, elapsed_ms, kwargs)
 
         # Extract usage metadata if available (including thoughts tokens billed as output)
         usage: dict[str, int] = {}
@@ -236,16 +285,18 @@ class GeminiProvider(LLMProvider):
         prompt: str,
         response_schema: type[T],
         system_prompt: str | None = None,
+        **kwargs: Any,
     ) -> T:
         """Alias for extract_structured for API symmetry."""
         return self.extract_structured(
-            text=prompt, schema=response_schema, system_prompt=system_prompt
+            text=prompt, schema=response_schema, system_prompt=system_prompt, **kwargs
         )
 
     def generate_text(
         self,
         prompt: str,
         system_prompt: str | None = None,
+        **kwargs: Any,
     ) -> str:
         """Generate text completion from Gemini."""
         self._ensure_init()
@@ -274,6 +325,7 @@ class GeminiProvider(LLMProvider):
         response = self._call_with_retry(_invoke_generate)
         res_text = response.text or ""
         elapsed_ms = (time.perf_counter() - t0) * 1000
+        self._log_raw_call(full_prompt, response, elapsed_ms, kwargs)
 
         usage: dict[str, int] = {}
         if hasattr(response, "usage_metadata") and response.usage_metadata:
