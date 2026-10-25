@@ -61,12 +61,18 @@ calibrate-cuad: ## Re-calibrate Bartleby on real-world SEC CUAD contracts across
 eval-bartleby-llm: ## Evaluate Bartleby Condition 3 LLM verification against pure vector baseline
 	$(PYTHON) -m evals.eval_bartleby_llm
 
+repro-check: ## Verify empirical reports against raw counts and deterministic recalculation
+	$(PYTHON) evals/repro_check.py
+
 verify: ## Run comprehensive evidence gate and quality checks (Fase 0)
 	$(RUFF) check .
 	$(PYTEST) tests/ -m "not real_llm"
 	$(PYTHON) tools/claim_audit.py
+	$(PYTHON) evals/repro_check.py
 	$(PYTEST) tests/test_report_provenance.py
-	@command -v terraform >/dev/null 2>&1 && (terraform fmt -check infra/terraform/ && terraform -chdir=infra/terraform validate) || true
+	@terraform -chdir=infra/terraform init -backend=false -input=false >/dev/null 2>&1 || true
+	terraform -chdir=infra/terraform fmt -check
+	terraform -chdir=infra/terraform validate
 	@echo "All verify checks passed cleanly."
 
 sync-readme-tables: ## Sync README benchmark tables and claims from report JSONs

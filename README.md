@@ -6,7 +6,7 @@
 ![Python](https://img.shields.io/badge/Python-3.13%20%7C%203.12-3776AB?logo=python&logoColor=white)
 ![Tests](https://img.shields.io/badge/Tests-61%20passing%20%2883%25%20coverage%29-brightgreen)
 ![GCP Vertex AI](https://img.shields.io/badge/GCP-Vertex%20AI%20%28ADC%29-4285F4?logo=googlecloud&logoColor=white)
-![Models](https://img.shields.io/badge/Models-Gemini%202.5%20Flash%20%26%20Pro-8E75C2?logo=google&logoColor=white)
+![Models](https://img.shields.io/badge/Models-Gemini%203.5%20Flash-8E75C2?logo=google&logoColor=white)
 ![Observability](https://img.shields.io/badge/Observability-Langfuse%20Cloud%20%28OTel%20v5%29-FF6B6B)
 ![Real Corpus](https://img.shields.io/badge/Corpus-CUAD%20v1%20%28510%20SEC%20Contracts%29-orange)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -181,7 +181,7 @@ Medición empírica en vivo sobre 15 contratos auténticos de la SEC (CUAD, 105 
 <!-- GEN:mode3_diagnosis -->
 > **Diagnóstico Empírico: Rendimiento Condicionado del Verificador y Cuello de Botella de Recuperación**
 > 1. **Inspección de Casos Condicionados a Recuperación:** En los 26 casos con cláusula presente ([`evals/reports/bartleby_llm_verification_report.json`](evals/reports/bartleby_llm_verification_report.json)), cuando la recuperación ubicó la cláusula correcta dentro del top-5 (16 casos), el verificador LLM confirmó **12 de 16 casos (75.0%)**. Cuando la recuperación fracasó por completo trayendo únicamente fragmentos irrelevantes (10 casos), el verificador **rechazó correctamente 8 de los 10 pasajes (80.0%)**, actuando como filtro de distractores espurios.
-> 2. **El Cuello de Botella es la Recuperación:** En los 26 casos presentes, la búsqueda léxica/hash ubica la cláusula correcta en el rango #1 solo en el **26.9%** de los casos (7/26), y en el top-5 solo en el **61.5%** (16/26). La tasa de falsa abstención (46.2%, 12/26) está gobernada principalmente por las ausencias en el top-5 recuperado.
+> 2. **Desglose de las 12 Falsas Abstenciones y Cuello de Botella:** De las 12 falsas abstenciones totales (46.2%, 12/26), **8 provienen de recuperación fallida** donde el verificador rechazó adecuadamente pasajes distractores ante la ausencia de la cláusula en el top-5 (8 de 10 ausencias en top-5), y **4 provienen de rechazos del verificador** a pesar de que la cláusula correcta sí estaba en el top-5 (16 aciertos menos 12 aceptados = 4). Así, 8 + 4 = 12 falsas abstenciones. En los 26 casos presentes, la búsqueda léxica/hash ubica la cláusula en el rango #1 solo en el **26.9%** (7/26) y en el top-5 en el **61.5%** (16/26).
 > 3. **Ganancia Neta en Discriminación:** El filtro semántico eleva la abstención correcta ante ausencias reales del 27.9% al **63.3%** (50/79), reduciendo la falsa abstención al **46.2%** (12/26 frente a 17/26 en la corrida inicial sin enriquecimiento de categorías) y alcanzando el Macro F1 más alto de todas las arquitecturas evaluadas (**0.5575**).
 > 4. **Trade-off Operativo:** Añade ~4.5 segundos de latencia media por consulta y un costo proyectado de ~$2.41 por cada 1,000 consultas auditadas en Gemini 3.5 Flash (~$0.88 en Gemini 3.8 Flash). Fijar `thinking_budget: 0` reduce la latencia de 5,153 ms a 4511 ms (una mejora del 12.5%), suprimiendo tokens de pensamiento redundantes en clasificación binaria.
 <!-- /GEN -->
@@ -216,7 +216,7 @@ Comparativa reproducible evaluada sobre contratos sintéticos con redacción y e
 > **Diagnóstico Forense y Fidelidad de la Medición:**
 > En los contratos con redacción variada (`style="diverse"`), el extractor por reglas deterministas captura con éxito los plazos de pago estándar (100%), pero **colapsa al 0% en la tabla de tarifas** debido a la dispersión de estructuras narrativas, llevando la exactitud conjunta a 0.0%. En los contratos evaluados en vivo con Vertex AI mediante esquema estructurado estricto, **Gemini 3.5 Flash** y **Gemini 3.8 Flash** recuperaron fielmente las tarifas tabulares y los plazos netos.
 >
-> **Dinámica de Latencia y Razonamiento:** Con `thinking_budget: 0`, Gemini 3.5 Flash alcanza una latencia media de **2299.6 ms** por extracción de documento complejo, mientras que Gemini 3.8 Flash sin restricción de pensamiento incurre en deliberación prolongada promediando **48.1 segundos**. Los costos se calcularon rigurosamente a partir de tarifas GA en Vertex AI ($1.50 / $9.00 por 1M tokens para 3.5 Flash; $0.75 / $3.75 introductorio para 3.8 Flash).
+> **Dinámica de Latencia y Razonamiento:** Con `thinking_budget: 0`, Gemini 3.5 Flash alcanza una latencia media de **2299.6 ms** por extracción de documento complejo, mientras que Gemini 3.8 Flash promedió **48.1 segundos** (hipótesis preliminar a investigar formalmente en Fase 4: sobrecosto de latencia por deliberación interna o reintentos de endpoint, aún no medido de forma aislada). Los costos se calcularon rigurosamente a partir de tarifas GA en Vertex AI ($1.50 / $9.00 por 1M tokens para 3.5 Flash; $0.75 / $3.75 introductorio para 3.8 Flash).
 >
 > **Salvaguarda de Ciclo de Vida y Fail-Fast:**
 > - `gemini-3.5-flash` es GA en Vertex AI con fecha de retiro fijada para el **19 de mayo de 2027 o posterior** (región endpoint: `global`).

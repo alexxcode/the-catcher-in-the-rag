@@ -32,6 +32,13 @@ clause_llm:
   temperature: 0.0
   thinking_budget: 0  # low latency verification guard
 
+alternative_llm:
+  provider: vertex_ai
+  model_id: "gemini-3.8-flash"
+  retirement_date: "2027-09-02"
+  supported_regions: ["global", "us-central1"]
+  temperature: 0.0
+
 # ── Embedding model ───────────────────────────────────────────────────────────
 embeddings:
   provider: vertex_ai
