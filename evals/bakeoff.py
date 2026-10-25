@@ -272,8 +272,8 @@ def print_bakeoff_summary(results: list[CandidateResult]) -> None:
     print(header)
     print("-" * 100)
     for r in results:
-        pmt = f"{r.field_accuracies.get('payment_terms_days', 0.0) * 100:.1f}%"
-        rate = f"{r.field_accuracies.get('rate_sheet', 0.0) * 100:.1f}%"
+        pmt = f"{r.field_accuracies['payment_terms_days'] * 100:.1f}%"
+        rate = f"{r.field_accuracies['rate_sheet'] * 100:.1f}%"
         overall = f"{r.overall_perfect_accuracy * 100:.1f}%"
         lat = f"{r.mean_latency_ms:.1f} ms"
         cost = f"${r.estimated_cost_per_1k_usd:.2f}" if not r.is_simulated else "N/A (Stub)"

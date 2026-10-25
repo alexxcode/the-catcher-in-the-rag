@@ -1,0 +1,17 @@
+# Splits fijos de evaluación para The Catcher in the RAG
+# Ley L5: dev (1-50) para ajuste y análisis de errores; test (51-150) intocable hasta congelar.
+
+dataset: CUAD_v1
+splits:
+  dev:
+    description: "Conjunto de desarrollo y calibración de dominio (inspección de errores y ajuste de prompts)"
+    start_contract: 1
+    end_contract: 50
+    total_contracts: 50
+    contract_ids: "CUAD-0001 a CUAD-0050"
+  test:
+    description: "Conjunto de prueba held-out ciego (evaluación final única con prompt y recuperador congelados)"
+    start_contract: 51
+    end_contract: 150
+    total_contracts: 100
+    contract_ids: "CUAD-0051 a CUAD-0150"

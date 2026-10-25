@@ -6,7 +6,7 @@ PYTHON := uv run python
 PYTEST := uv run pytest
 RUFF   := uv run ruff
 
-.PHONY: help setup install lint format test eval eval-ablations eval-extraction eval-bakeoff calibrate-bartleby eval-cuad calibrate-cuad eval-bartleby-llm sync-readme-tables run-api run-ui clean tf-init tf-plan tf-apply
+.PHONY: help setup install lint format test eval eval-ablations eval-extraction eval-bakeoff calibrate-bartleby eval-cuad calibrate-cuad eval-bartleby-llm sync-readme-tables verify run-api run-ui clean tf-init tf-plan tf-apply
 
 help:  ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -61,8 +61,16 @@ calibrate-cuad: ## Re-calibrate Bartleby on real-world SEC CUAD contracts across
 eval-bartleby-llm: ## Evaluate Bartleby Condition 3 LLM verification against pure vector baseline
 	$(PYTHON) -m evals.eval_bartleby_llm
 
-sync-readme-tables: ## Sync README benchmark tables from report JSONs
-	$(PYTHON) evals/generate_readme_tables.py
+verify: ## Run comprehensive evidence gate and quality checks (Fase 0)
+	$(RUFF) check .
+	$(PYTEST) tests/ -m "not real_llm"
+	$(PYTHON) tools/claim_audit.py
+	$(PYTEST) tests/test_report_provenance.py
+	@command -v terraform >/dev/null 2>&1 && (terraform fmt -check infra/terraform/ && terraform -chdir=infra/terraform validate) || true
+	@echo "All verify checks passed cleanly."
+
+sync-readme-tables: ## Sync README benchmark tables and claims from report JSONs
+	$(PYTHON) evals/generate_readme_tables.py --sync
 
 check-models: ## Verify Vertex AI model availability and detect retirement
 	LLM_PROVIDER=vertex_ai $(PYTHON) -c "from catcher_in_the_rag.providers.factory import get_llm_provider; p = get_llm_provider('vertex_ai'); assert p.provider_type == 'vertex_ai', 'check-models requires LLM_PROVIDER=vertex_ai'; h = p.check_model_health(); print(f'Model health: {h}')"

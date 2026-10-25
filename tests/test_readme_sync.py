@@ -154,3 +154,37 @@ def test_readme_prose_verification_metrics_in_sync() -> None:
     assert f"{m3['false_abstention_rate'] * 100:.1f}%" in content
     assert f"{m3['macro_f1']:.4f}" in content
 
+
+def test_readme_all_gen_blocks_in_sync() -> None:
+    """Verify that every GEN block in README.md matches its generator byte-for-byte."""
+    from evals.generate_readme_tables import GENERATORS
+
+    readme_path = Path("README.md")
+    content = readme_path.read_text(encoding="utf-8")
+
+    for name, gen_fn in GENERATORS.items():
+        pattern = re.compile(
+            rf"<!--\s*GEN:{name}\s*-->([\s\S]*?)<!--\s*/GEN\s*-->"
+        )
+        match = pattern.search(content)
+        assert match is not None, f"Block <!-- GEN:{name} --> missing from README.md"
+
+        actual_block = match.group(1).strip()
+        expected_block = gen_fn().strip()
+        assert actual_block == expected_block, (
+            f"Block <!-- GEN:{name} --> in README.md is out of sync with generator. Run 'python evals/generate_readme_tables.py --sync'."
+        )
+
+
+def test_readme_prose_claim_audit() -> None:
+    """Verify that no ungrounded orphan numbers exist in README.md prose outside GEN blocks."""
+    from tools.claim_audit import audit_markdown_file, load_allowlist
+
+    allowlist_path = Path("tools/claim_allowlist.yaml")
+    allowed_numbers, allowed_regexes = load_allowlist(allowlist_path)
+    violations = audit_markdown_file(Path("README.md"), allowed_numbers, allowed_regexes)
+
+    assert len(violations) == 0, (
+        f"Found {len(violations)} ungrounded numbers in README.md prose. Violations: {violations[:5]}"
+    )
+

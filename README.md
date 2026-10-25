@@ -42,7 +42,7 @@ El núcleo del proyecto es un **harness de evaluación científica reproducible*
 | **1. El LLM Extrae, el Código Decide** | Las decisiones financieras (`APPROVE`, `REVIEW`, `REJECT`, `ABSTAIN`) son emitidas por un motor de políticas determinista ([`policy/engine.py`](src/catcher_in_the_rag/policy/engine.py)). Jamás se delega la aprobación monetaria al criterio estocástico de un prompt. |
 | **2. Citas Textuales Infalsificables** | Todo hallazgo contractual exige document ID, rango de caracteres `[start_char:end_char]` y cita literal. El validador ([`validate/validator.py`](src/catcher_in_the_rag/validate/validator.py)) descarta implacablemente cualquier hallazgo cuya cita no coincida byte a byte con el contrato. |
 | **3. Preferiría No Hacerlo (`bartleby`)** | Cuando un contrato no regula un cargo (ej. recargos de flete o seguros no pactados), el guardia de abstención [Bartleby](src/catcher_in_the_rag/bartleby/guard.py) emite `NO_EVIDENCE` y `ABSTAIN`. La arquitectura prefiere no dictaminar antes que inventar reglas contractuales. |
-| **4. Desacoplamiento Offline / Determinista** | La suite completa de tests unitarios y de integración (67 pasados, 2 omitidos sin datos de CUAD locales; 69 pasando con `make download-data`) y las evaluaciones basales corren en CI de forma 100% offline y determinista con el proveedor `stub`, eliminando costos de red y flakiness en integración continua. |
+| **4. Desacoplamiento Offline / Determinista** | La suite completa de tests unitarios y de integración y las evaluaciones basales corren en CI de forma offline y determinista con el proveedor `stub`, eliminando costos de red y flakiness en integración continua. |
 | **5. Autenticación ADC sin Secretos en Git** | En entornos cloud reales, la conexión a Gemini en Google Cloud Vertex AI opera mediante Application Default Credentials (ADC), sin almacenar API keys en el repositorio ni en variables de entorno fijas. |
 
 ---
@@ -129,60 +129,72 @@ Los resultados se serializan automáticamente con procedencia criptográfica (SH
 * **Comando de Recalibración:** `make calibrate-cuad` o `uv run python -m evals.calibrate_cuad`
 * **Commit de Referencia:** Verificado en Git SHA registrado en metadata de reporte.
 
+<!-- GEN:cuad_table -->
 | Métrica | Modo Offline (`stub-hash-768d`) | Vertex AI (`text-embedding-005` Live) | Intervalo de Confianza (95% Wilson Stub) | Interpretación y Significado Práctico |
 |---|:---:|:---:|:---:|---|
-| **Recall@1** | 35.5% | *Pendiente de cuota Vertex AI* | — | Precisión de primer ranking en contratos no estructurados. |
-| **Recall@3** | 72.4% | *Pendiente de cuota Vertex AI* | — | Cláusula relevante localizada dentro del top 3 de candidatos. |
-| **Recall@5** | 81.6% | *Pendiente de cuota Vertex AI* | — | Cobertura agregada en contratos extensos (50k a 175k caracteres). |
-| **MRR** | 0.5336 | *Pendiente de cuota Vertex AI* | — | Posición recíproca media del fragmento probatorio real. |
-| **Abstención en Negativos** | **51.5%** | *Pendiente de cuota Vertex AI* | `[41.8%, 61.1%]` | Ante cláusulas ausentes reales (`answers: []`), Bartleby rehúsa alucinar. |
-| **Abstención Errónea (Positivos)** | **14.5%** | *Pendiente de cuota Vertex AI* | `[8.3%, 24.1%]` | Tasa de sobre-abstención en presencia de cláusulas legítimas válidas. |
-| **Falsa Afirmación Espuria** | **48.5%** | *Pendiente de cuota Vertex AI* | — | Riesgo residual de afirmar falsamente una penalización inexistente. |
+| **Recall@1** | 35.5% | NOT MEASURED | — | Precisión de primer ranking en contratos no estructurados. |
+| **Recall@3** | 72.4% | NOT MEASURED | — | Cláusula relevante localizada dentro del top 3 de candidatos. |
+| **Recall@5** | 81.6% | NOT MEASURED | — | Cobertura agregada en contratos extensos (50k a 175k caracteres). |
+| **MRR** | 0.5336 | NOT MEASURED | — | Posición recíproca media del fragmento probatorio real. |
+| **Abstención en Negativos** | **51.5%** | NOT MEASURED | `[41.8%, 61.1%]` | Ante cláusulas ausentes reales (`answers: []`), Bartleby rehúsa alucinar. |
+| **Abstención Errónea (Positivos)** | **14.5%** | NOT MEASURED | `[8.3%, 24.1%]` | Tasa de sobre-abstención en presencia de cláusulas legítimas válidas. |
+| **Falsa Afirmación Espuria** | **48.5%** | NOT MEASURED | — | Riesgo residual de afirmar falsamente una penalización inexistente. |
+<!-- /GEN -->
 
 #### E. Metodología de Calibración de Bartleby: Brecha de Transferencia de Dominio
 El guardia de abstención fue sometido a calibración empírica tanto en el dominio sintético original como en contratos auténticos de la SEC ([`evals/reports/calibration_cuad_report.json`](evals/reports/calibration_cuad_report.json)):
 
+<!-- GEN:domain_calibration_table -->
 | Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\tau$) | Macro F1 Validación | AUC-ROC Separabilidad | Desempeño Empírico en Transferencia |
 |---|---|:---:|:---:|:---:|---|
 | **Plantillas Sintéticas (+ Heurística 3a*)** | Datagen M1 (300 paquetes) | **0.50** | **1.0000** | **0.1204** | F1 1.0000 debido a regex de denegación 3a ("under no circumstances"). Score puro sin 3a da F1 0.4737 (abstención 0.0%). |
 | **Contratos SEC Reales (Transfer)** | CUAD v1 Train/Val (60/40) | **0.50** (fijado) | **0.4418** | **0.5552** | **Sub-abstención:** ante ausencias solo abstiene 26.9%, dejando pasar el 73.1% como alucinaciones. |
 | **Contratos SEC Reales (Recalibrado)** | CUAD v1 Train/Val (60/40) | **0.80** (recalibrado) | **0.4982** | **0.5552** | Eleva abstención en ausencias a 80.8%, pero incrementa falsas abstenciones al 80.6% (vs clasificador ciego: 0.4262). |
+<!-- /GEN -->
 
+<!-- GEN:domain_calibration_diagnosis -->
 > **Diagnóstico Empírico Fundamental: El Límite de la Similitud Vectorial y Separabilidad AUC-ROC**
 > En datos sintéticos controlados, un umbral de relevancia $\tau = 0.50$ logra un Macro F1 de **1.0000** en validación retenida (gracias al filtro de negación explícita de la Condición #3a de Bartleby), aun cuando el puntaje de recuperación léxica por sí solo invierte la señal (AUC-ROC **0.1204** debido al alto solapamiento de palabras clave en cláusulas que prohíben recargos). Sin embargo, al transferir directamente ese umbral a contratos reales de la SEC (CUAD, evaluado sobre 50 contratos con BM25 + embeddings stub; Train: 30, Val: 20, semilla 42):
 >
 > 1. **Colapso de Separabilidad:** El AUC-ROC no paramétrico (Wilcoxon-Mann-Whitney) es de **0.5552** en validación (0.4940 en entrenamiento). Esto demuestra matemáticamente que la distribución de puntajes híbridos (BM25 + embeddings hash) entre cláusulas presentes y cláusulas ausentes es **casi indistinguible del azar** (~0.50).
-> 2. **Falso Óptimo y Clasificador Trivial:** A $\tau = 0.50$, Bartleby sufre de **sub-abstención** (deja pasar el 73.1% de ausencias). Al barrer la rejilla de 0.20 a 0.90, elevar el umbral a $\tau = 0.80$ mejora el Macro F1 a 0.4982, pero a costa de rechazar erróneamente el 80.6% de las cláusulas presentes. Además, este desempeño apenas supera en un marginal 0.07 al clasificador trivial ciego ("Siempre Abstenerse", Macro F1 = 0.4262).
+> 2. **Falso Óptimo y Clasificador Trivial:** A $\tau = 0.50$, Bartleby sufre de **sub-abstención** (deja pasar el 73.1% de ausencias). Al barrer la rejilla de 0.20 a 0.90, elevar el umbral a $\tau = 0.80$ eleva la abstención en ausencias al 80.8%, mejorando el Macro F1 a 0.4982, pero a costa de rechazar erróneamente el 80.6% de las cláusulas presentes. Además, este desempeño apenas supera en un marginal 0.07 al clasificador trivial ciego ("Siempre Abstenerse", Macro F1 = 0.4262).
 >
 > **Conclusión Arquitectónica:** Ningún umbral estático sobre recuperación basada en BM25 / embeddings de hash es suficiente para gobernar contratos comerciales reales. Este resultado justifica y motiva la **Condición #3 de Bartleby: Verificación Semántica por LLM (`verify_relevance_with_llm`)**, evaluada en [`evals/reports/bartleby_llm_verification_report.json`](evals/reports/bartleby_llm_verification_report.json), donde el modelo evalúa materialmente la pertinencia semántica del pasaje antes de validar la evidencia contractual.
+<!-- /GEN -->
 
 #### F. Evaluación de la Condición #3 de Bartleby: Verificación Semántica por LLM
 
 Medición empírica en vivo sobre 15 contratos auténticos de la SEC (CUAD, 105 evaluaciones de consulta) comparando el filtro de umbral puro frente a la verificación semántica activa con Vertex AI (`gemini-3.5-flash`), inspeccionando los candidatos del top-5 (`max_verification_candidates=5`):
 
+<!-- GEN:llm_verification_table -->
 | Modo de Guardia | $\tau$ | Verificación LLM | Abstención Correcta (Recall) | Falsa Abstención (Error) | Macro F1 | Latencia Media | Costo Estimado / 1k* |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | **Pure Vector Hybrid (tau=0.50)** | **0.50** | `Desactivada` | **27.9% (22/79)** | **0.0% (0/26)** | **0.4564** | 35.9 ms | $0.0000 |
 | **Pure Vector Hybrid (tau=0.70)** | **0.70** | `Desactivada` | **40.5% (32/79)** | **26.9% (7/26)** | **0.4777** | 37.3 ms | $0.0000 |
 | **Bartleby Condition 3 (tau=0.50 + LLM Verification)** | **0.50** | `Gemini 3.5 Flash` | **63.3% (50/79)** | **46.2% (12/26)** | **0.5575** | 4511.1 ms | $2.4094 |
+<!-- /GEN -->
 
+<!-- GEN:llm_verification_footnote -->
 *\*Costo estimado a partir de tokens medidos (100,766 prompt / 11,315 candidate, incluyendo tokens de pensamiento contabilizados como salida) y tarifas pay-as-you-go oficiales en Vertex AI ($1.50 / $9.00 por millón de tokens para Gemini 3.5 Flash según [`config/pricing.yaml`](config/pricing.yaml)). Con Gemini 3.8 Flash, el costo estimado resulta en ~$0.88/1k con la tarifa introductoria vigente ($0.75 / $3.75 hasta el 31 de diciembre de 2026) y en ~$1.77/1k con la tarifa estándar ($1.50 / $7.50 a partir del 1 de enero de 2027).*
+<!-- /GEN -->
 
+<!-- GEN:mode3_diagnosis -->
 > **Diagnóstico Empírico: Rendimiento Condicionado del Verificador y Cuello de Botella de Recuperación**
 > 1. **Inspección de Casos Condicionados a Recuperación:** En los 26 casos con cláusula presente ([`evals/reports/bartleby_llm_verification_report.json`](evals/reports/bartleby_llm_verification_report.json)), cuando la recuperación ubicó la cláusula correcta dentro del top-5 (16 casos), el verificador LLM confirmó **12 de 16 casos (75.0%)**. Cuando la recuperación fracasó por completo trayendo únicamente fragmentos irrelevantes (10 casos), el verificador **rechazó correctamente 8 de los 10 pasajes (80.0%)**, actuando como filtro de distractores espurios.
 > 2. **El Cuello de Botella es la Recuperación:** En los 26 casos presentes, la búsqueda léxica/hash ubica la cláusula correcta en el rango #1 solo en el **26.9%** de los casos (7/26), y en el top-5 solo en el **61.5%** (16/26). La tasa de falsa abstención (46.2%, 12/26) está gobernada principalmente por las ausencias en el top-5 recuperado.
 > 3. **Ganancia Neta en Discriminación:** El filtro semántico eleva la abstención correcta ante ausencias reales del 27.9% al **63.3%** (50/79), reduciendo la falsa abstención al **46.2%** (12/26 frente a 17/26 en la corrida inicial sin enriquecimiento de categorías) y alcanzando el Macro F1 más alto de todas las arquitecturas evaluadas (**0.5575**).
-> 4. **Trade-off Operativo:** Añade ~4.5 segundos de latencia media por consulta y un costo proyectado de ~$2.41 por cada 1,000 consultas auditadas en Gemini 3.5 Flash (~$0.88 en Gemini 3.8 Flash). Fijar `thinking_budget: 0` reduce la latencia de 5,153 ms a 4,511 ms (una mejora del 12.5%), suprimiendo tokens de pensamiento redundantes en clasificación binaria.
+> 4. **Trade-off Operativo:** Añade ~4.5 segundos de latencia media por consulta y un costo proyectado de ~$2.41 por cada 1,000 consultas auditadas en Gemini 3.5 Flash (~$0.88 en Gemini 3.8 Flash). Fijar `thinking_budget: 0` reduce la latencia de 5,153 ms a 4511 ms (una mejora del 12.5%), suprimiendo tokens de pensamiento redundantes en clasificación binaria.
+<!-- /GEN -->
 
 #### G. Mejora Empírica de Recuperación: Dense Vectors y Reranking FlashRank
 
-Para atacar directamente el cuello de botella de recuperación demostrado en los benchmarks anteriores (donde el stub léxico limitaba el Hit@1 al 26.9% y el Hit@5 al 61.5%), se evaluaron modelos de embeddings densos reales (`BAAI/bge-small-en-v1.5`, 384d) junto con un reranker neuronal local (`ms-marco-TinyBERT-L-2-v2`, `flashrank`) sobre los 26 casos con presencia real en CUAD:
-
+<!-- GEN:retrieval_table -->
 | Arquitectura de Recuperación | Modelo de Embedding | Reranker / Fusión | Hit@1 (Top-1) | Hit@5 (Top-5) | Impacto Práctico |
 |---|---|---|:---:|:---:|---|
 | **Léxico Basal (CI / Offline)** | `stub-hash-768d` | Ninguno (Híbrido Lineal) | 26.9% (7/26) | 61.5% (16/26) | Línea de base determinista offline. |
-| **Embeddings Densos Reales** | `bge-small-en-v1.5` | Similitud Coseno Densa | **42.3% (11/26)** | **88.5% (23/26)** | Eleva la cobertura en top-5 en +27.0 puntos porcentuales. |
-| **Híbrido Denso + Reranker** | `bge-small-en-v1.5` | `ms-marco-TinyBERT-L-2-v2` | **53.8% (14/26)** | **80.8% (21/26)** | **Duplica la precisión Hit@1** (de 26.9% a 53.8%), situando la cláusula exacta en el primer puesto. |
+| **Embeddings Densos Reales** | `bge-small-en-v1.5` | Similitud Coseno Densa | NOT MEASURED | NOT MEASURED | Pendiente de reporte en Fase 1 (`evals/eval_retrieval.py`). |
+| **Híbrido Denso + Reranker** | `bge-small-en-v1.5` | `ms-marco-TinyBERT-L-2-v2` | NOT MEASURED | NOT MEASURED | Pendiente de reporte en Fase 1 (`evals/eval_retrieval.py`). |
+<!-- /GEN -->
 
 ---
 
@@ -192,21 +204,25 @@ Comparativa reproducible evaluada sobre contratos sintéticos con redacción y e
 * **Comando de Reproducción:** `uv run python evals/bakeoff.py --sample-size 30 --output evals/reports/` (ejecutado con credenciales ADC en Vertex AI sobre muestra $n=30$ diversa)
 * **Reporte Oficial:** [`evals/reports/bakeoff_latest.json`](evals/reports/bakeoff_latest.json)
 
+<!-- GEN:bakeoff_table -->
 | Modelo / Candidato | Proveedor | Latencia Media | Costo / 1k docs | Error% | Payment Terms | Rate Sheet | Exactitud Global Conjunta |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|
 | **Rule-Based Baseline (Regex/Parsing)** | `rule_based` | **2.0 ms** | **$0.00** | 0.0% | **100.0%** | **0.0%** | **0.0%** |
 | **Gemini 3.5 Flash (GA Active)** | `vertex_ai` | **2299.6 ms** | **$4.67** | 0.0% | **100.0%** | **100.0%** | **100.0%** |
 | **Gemini 3.8 Flash (GA Active)** | `vertex_ai` | **48095.9 ms** | **$2.15** | 0.0% | **100.0%** | **100.0%** | **100.0%** |
+<!-- /GEN -->
 
+<!-- GEN:bakeoff_diagnosis -->
 > **Diagnóstico Forense y Fidelidad de la Medición:**
 > En los contratos con redacción variada (`style="diverse"`), el extractor por reglas deterministas captura con éxito los plazos de pago estándar (100%), pero **colapsa al 0% en la tabla de tarifas** debido a la dispersión de estructuras narrativas, llevando la exactitud conjunta a 0.0%. En los contratos evaluados en vivo con Vertex AI mediante esquema estructurado estricto, **Gemini 3.5 Flash** y **Gemini 3.8 Flash** recuperaron fielmente las tarifas tabulares y los plazos netos.
 >
-> **Dinámica de Latencia y Razonamiento:** Con `thinking_budget: 0`, Gemini 3.5 Flash alcanza una latencia media de **2,299.6 ms** por extracción de documento complejo, mientras que Gemini 3.8 Flash sin restricción de pensamiento incurre en deliberación prolongada promediando **48.1 segundos**. Los costos se calcularon rigurosamente a partir de tarifas GA en Vertex AI ($1.50 / $9.00 por 1M tokens para 3.5 Flash; $0.75 / $3.75 introductorio para 3.8 Flash).
+> **Dinámica de Latencia y Razonamiento:** Con `thinking_budget: 0`, Gemini 3.5 Flash alcanza una latencia media de **2299.6 ms** por extracción de documento complejo, mientras que Gemini 3.8 Flash sin restricción de pensamiento incurre en deliberación prolongada promediando **48.1 segundos**. Los costos se calcularon rigurosamente a partir de tarifas GA en Vertex AI ($1.50 / $9.00 por 1M tokens para 3.5 Flash; $0.75 / $3.75 introductorio para 3.8 Flash).
 >
 > **Salvaguarda de Ciclo de Vida y Fail-Fast:**
 > - `gemini-3.5-flash` es GA en Vertex AI con fecha de retiro fijada para el **19 de mayo de 2027 o posterior** (región endpoint: `global`).
 > - `gemini-3.8-flash` es GA con retiro para el **2 de septiembre de 2027 o posterior** (región endpoint: `global`).
 > - Se implementó un canario semanal en GitHub Actions (`.github/workflows/model_canary.yml`) y sonda de verificación local (`make check-models`).
+<!-- /GEN -->
 
 ---
 
@@ -217,16 +233,16 @@ Comparativa reproducible evaluada sobre contratos sintéticos con redacción y e
 
 Evaluado de forma automatizada sobre 300 paquetes generados proceduralmente ([`evals/reports/canonical_baseline_report.json`](evals/reports/canonical_baseline_report.json)):
 
+<!-- GEN:synthetic_ablation_table -->
 | Métrica de Evaluación | Con Términos Contractuales (Baseline) | Sin Términos (Solo Cotejo 3-Way) | Impacto / Delta |
 |---|:---:|:---:|:---:|
-| **Exactitud Global de Decisión** | **100.0%** (300/300) | **60.0%** (180/300) | **+40.0% Valor de Términos Contractuales** |
-| **Validez de Citas Verbatim** | **100.0%** (120/120) | N/A | Cero alucinaciones de citas |
-| **Abstención Correcta de Bartleby** | **100.0%** (30/30 en A09*) | 0.0% (0/30 en A09) | Detección de silencios (vía heurística 3a*) |
+| **Exactitud Global de Decisión** | **100.0%** (300/300) | **60.0%** (180/300) | **ablación: sin evaluador de cláusulas (+40.0% degradación)** |
+| **Validez de Citas Verbatim** | **100.0%** (120/120) [plantillas sintéticas] | N/A | Cero citas sintéticas inválidas |
+| **Abstención Correcta de Bartleby** | **100.0%** (30/30 en A09*) | 0.0% (0/30 en A09) | Detección de silencios (vía heurística de plantilla 3a*) |
 | **Tasa de Falsos Positivos (A10)** | **0.0%** (0/30) | 0.0% (0/30) | Paquetes limpios aprobados sin fricción |
-| **Recall@5 de Recuperación** | **100.0%** | N/A | Recuperación en plantillas sintéticas |
-| **Latencia Media por Paquete** | **9.9 ms** | 1.1 ms | Ejecución determinista local |
-
-> **Interpretación de la Ablación:** Esta ablación evalúa el impacto de aplicar las reglas contractuales estructuradas (penalizaciones por retraso, plazos de pago netos y topes de precios) frente a un cotejo tripartito puramente aritmético. Prescindir de los términos contractuales degrada la decisión financiera en un **40%**, dejando escapar cargos indebidos (A04, A05, A06).
+| **Recall@5 de Recuperación** | **100.0%** [plantillas sintéticas] | N/A | Recuperación en plantillas sintéticas |
+| **Latencia Media por Paquete** | **16.7 ms** | 0.0 ms | Ejecución determinista local |
+<!-- /GEN -->
 
 ---
 
