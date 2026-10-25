@@ -112,6 +112,16 @@ def audit_markdown_file(
         r"|(?P<integer>\b\d{1,3}(?:,\d{3})+\b|\b\d+\b)"
     )
 
+    # Catch numbers written in words in Spanish and English (e.g. "noventa y ocho por ciento", "tres de cada cuatro")
+    words_pattern = re.compile(
+        r"(?i)\b(?:"
+        r"(?:noventa|ochenta|setenta|sesenta|cincuenta|cuarenta|treinta|veinte|veinti[a-záéíóú]+)\s+y\s+(?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)"
+        r"|(?:cero|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|veinti[a-záéíóú]+|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|quinientos|mil|mill[oó]n|millones)(?:\s+y\s+[a-záéíóú]+)?\s+(?:por\s+ciento|percent)"
+        r"|(?:por\s+ciento|percent)"
+        r"|(?:de\s+cada|out\s+of)\s+(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|cien|\d+)"
+        r")\b"
+    )
+
     lines = content_outside_gen.splitlines()
     for line_num, line in enumerate(lines, 1):
         # Skip HTML comments entirely
@@ -131,6 +141,18 @@ def audit_markdown_file(
                         "context": line.strip()[:100],
                     }
                 )
+
+        for match in words_pattern.finditer(line):
+            token = match.group(0).strip()
+            violations.append(
+                {
+                    "file": str(file_path),
+                    "line": line_num,
+                    "token": token,
+                    "type": "number_in_words",
+                    "context": line.strip()[:100],
+                }
+            )
 
     return violations
 
@@ -160,16 +182,43 @@ def audit_markdown_models(file_path: Path, allowed_models: set[str]) -> list[dic
     return violations
 
 
+def get_exempt_files(allowlist_path: Path) -> set[str]:
+    if not allowlist_path.exists():
+        return set()
+    with allowlist_path.open("r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    return {str(Path(f)).lower() for f in data.get("exempt_files", [])}
+
+
+def discover_markdown_files(repo_root: Path, exempt_files: set[str]) -> list[Path]:
+    md_files: list[Path] = []
+    for p in repo_root.rglob("*.md"):
+        try:
+            rel = p.relative_to(repo_root)
+        except ValueError:
+            continue
+        # Skip hidden directories, venv, caches, node_modules relative to repo root
+        if any(
+            part.startswith(".")
+            or part in ["venv", ".venv", "site-packages", "node_modules", "brain", ".terraform"]
+            for part in rel.parts[:-1]
+        ):
+            continue
+        if str(rel).lower() in exempt_files or rel.name.lower() in exempt_files:
+            continue
+        md_files.append(rel)
+    return sorted(md_files)
+
+
 def main() -> int:
     allowlist_path = Path("tools/claim_allowlist.yaml")
     models_yaml_path = Path("config/models.yaml")
     allowed_numbers, allowed_regexes = load_allowlist(allowlist_path)
     allowed_models = get_allowed_models(models_yaml_path)
+    exempt_files = get_exempt_files(allowlist_path)
 
-    files_to_check = [Path("README.md")]
-    docs_dir = Path("docs")
-    if docs_dir.exists():
-        files_to_check.extend(docs_dir.glob("**/*.md"))
+    repo_root = Path.cwd()
+    files_to_check = discover_markdown_files(repo_root, exempt_files)
 
     all_violations: list[dict[str, Any]] = []
     model_violations: list[dict[str, Any]] = []

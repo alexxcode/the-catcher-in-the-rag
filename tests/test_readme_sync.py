@@ -8,10 +8,13 @@ Enforces:
 
 from __future__ import annotations
 
+import ast
 import inspect
 import json
 import re
 from pathlib import Path
+
+import pytest
 
 from evals.generate_readme_tables import (
     generate_bakeoff_table,
@@ -39,6 +42,38 @@ def test_no_hardcoded_numbers_in_domain_table_generator() -> None:
         "Must read synthetic metrics directly from synth_data dictionary."
     )
     assert "cuad_data[" in source, "Must read CUAD metrics directly from cuad_data dictionary."
+
+
+def test_no_numeric_defaults_or_hardcoded_metrics_in_any_generator_function() -> None:
+    """Verify that the entire generate_readme_tables.py contains zero numeric defaults in .get() calls."""
+    gen_path = Path("evals/generate_readme_tables.py")
+    tree = ast.parse(gen_path.read_text(encoding="utf-8"))
+
+    for node in ast.walk(tree):
+        # Prohibit any .get() call with a numeric default: .get(key, <number>)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "get":
+            # Positional default arg: .get(key, default)
+            if len(node.args) >= 2:
+                default_arg = node.args[1]
+                if (
+                    isinstance(default_arg, ast.Constant)
+                    and isinstance(default_arg.value, (int, float))
+                    and not isinstance(default_arg.value, bool)
+                ):
+                    pytest.fail(
+                        f"Forbidden numeric default in .get() at line {node.lineno}: {default_arg.value}"
+                    )
+            # Keyword default arg: .get(key, default=...)
+            for kw in node.keywords:
+                if (
+                    kw.arg == "default"
+                    and isinstance(kw.value, ast.Constant)
+                    and isinstance(kw.value.value, (int, float))
+                    and not isinstance(kw.value.value, bool)
+                ):
+                    pytest.fail(
+                        f"Forbidden numeric default in .get(default=...) at line {node.lineno}: {kw.value.value}"
+                    )
 
 
 def test_readme_domain_calibration_table_in_sync() -> None:

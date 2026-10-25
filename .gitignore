@@ -79,6 +79,8 @@ evals/reports/*
 !evals/reports/out_of_sample_cuad_report.json
 !evals/reports/bakeoff_report_*.json
 !evals/reports/cuad_benchmark_*.json
+!evals/reports/*.jsonl
+
 
 # ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store

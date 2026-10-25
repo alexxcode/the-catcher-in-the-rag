@@ -1,0 +1,105 @@
+{"case_id": 1, "contract_id": "CUAD-0001", "category": "Governing Law", "is_present": true, "hit_at_5": true, "abstained_mode_3": false}
+{"case_id": 2, "contract_id": "CUAD-0001", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 3, "contract_id": "CUAD-0001", "category": "Liquidated Damages", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 4, "contract_id": "CUAD-0001", "category": "Cap On Liability", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 5, "contract_id": "CUAD-0001", "category": "Audit Rights", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 6, "contract_id": "CUAD-0001", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 7, "contract_id": "CUAD-0001", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 8, "contract_id": "CUAD-0002", "category": "Governing Law", "is_present": true, "hit_at_5": true, "abstained_mode_3": false}
+{"case_id": 9, "contract_id": "CUAD-0002", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 10, "contract_id": "CUAD-0002", "category": "Liquidated Damages", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 11, "contract_id": "CUAD-0002", "category": "Cap On Liability", "is_present": true, "hit_at_5": true, "abstained_mode_3": false}
+{"case_id": 12, "contract_id": "CUAD-0002", "category": "Audit Rights", "is_present": true, "hit_at_5": true, "abstained_mode_3": false}
+{"case_id": 13, "contract_id": "CUAD-0002", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 14, "contract_id": "CUAD-0002", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 15, "contract_id": "CUAD-0003", "category": "Governing Law", "is_present": true, "hit_at_5": true, "abstained_mode_3": false}
+{"case_id": 16, "contract_id": "CUAD-0003", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 17, "contract_id": "CUAD-0003", "category": "Liquidated Damages", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 18, "contract_id": "CUAD-0003", "category": "Cap On Liability", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 19, "contract_id": "CUAD-0003", "category": "Audit Rights", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 20, "contract_id": "CUAD-0003", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 21, "contract_id": "CUAD-0003", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 22, "contract_id": "CUAD-0004", "category": "Governing Law", "is_present": true, "hit_at_5": true, "abstained_mode_3": false}
+{"case_id": 23, "contract_id": "CUAD-0004", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 24, "contract_id": "CUAD-0004", "category": "Liquidated Damages", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 25, "contract_id": "CUAD-0004", "category": "Cap On Liability", "is_present": true, "hit_at_5": true, "abstained_mode_3": false}
+{"case_id": 26, "contract_id": "CUAD-0004", "category": "Audit Rights", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 27, "contract_id": "CUAD-0004", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 28, "contract_id": "CUAD-0004", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 29, "contract_id": "CUAD-0005", "category": "Governing Law", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 30, "contract_id": "CUAD-0005", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 31, "contract_id": "CUAD-0005", "category": "Liquidated Damages", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 32, "contract_id": "CUAD-0005", "category": "Cap On Liability", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 33, "contract_id": "CUAD-0005", "category": "Audit Rights", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 34, "contract_id": "CUAD-0005", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 35, "contract_id": "CUAD-0005", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 36, "contract_id": "CUAD-0006", "category": "Governing Law", "is_present": true, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 37, "contract_id": "CUAD-0006", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 38, "contract_id": "CUAD-0006", "category": "Liquidated Damages", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 39, "contract_id": "CUAD-0006", "category": "Cap On Liability", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 40, "contract_id": "CUAD-0006", "category": "Audit Rights", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 41, "contract_id": "CUAD-0006", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 42, "contract_id": "CUAD-0006", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 43, "contract_id": "CUAD-0007", "category": "Governing Law", "is_present": true, "hit_at_5": true, "abstained_mode_3": false}
+{"case_id": 44, "contract_id": "CUAD-0007", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 45, "contract_id": "CUAD-0007", "category": "Liquidated Damages", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 46, "contract_id": "CUAD-0007", "category": "Cap On Liability", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 47, "contract_id": "CUAD-0007", "category": "Audit Rights", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 48, "contract_id": "CUAD-0007", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 49, "contract_id": "CUAD-0007", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 50, "contract_id": "CUAD-0008", "category": "Governing Law", "is_present": true, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 51, "contract_id": "CUAD-0008", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 52, "contract_id": "CUAD-0008", "category": "Liquidated Damages", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 53, "contract_id": "CUAD-0008", "category": "Cap On Liability", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 54, "contract_id": "CUAD-0008", "category": "Audit Rights", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 55, "contract_id": "CUAD-0008", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 56, "contract_id": "CUAD-0008", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 57, "contract_id": "CUAD-0009", "category": "Governing Law", "is_present": true, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 58, "contract_id": "CUAD-0009", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 59, "contract_id": "CUAD-0009", "category": "Liquidated Damages", "is_present": true, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 60, "contract_id": "CUAD-0009", "category": "Cap On Liability", "is_present": true, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 61, "contract_id": "CUAD-0009", "category": "Audit Rights", "is_present": true, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 62, "contract_id": "CUAD-0009", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 63, "contract_id": "CUAD-0009", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 64, "contract_id": "CUAD-0010", "category": "Governing Law", "is_present": true, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 65, "contract_id": "CUAD-0010", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 66, "contract_id": "CUAD-0010", "category": "Liquidated Damages", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 67, "contract_id": "CUAD-0010", "category": "Cap On Liability", "is_present": true, "hit_at_5": true, "abstained_mode_3": false}
+{"case_id": 68, "contract_id": "CUAD-0010", "category": "Audit Rights", "is_present": true, "hit_at_5": false, "abstained_mode_3": true}
+{"case_id": 69, "contract_id": "CUAD-0010", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 70, "contract_id": "CUAD-0010", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 71, "contract_id": "CUAD-0011", "category": "Governing Law", "is_present": true, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 72, "contract_id": "CUAD-0011", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 73, "contract_id": "CUAD-0011", "category": "Liquidated Damages", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 74, "contract_id": "CUAD-0011", "category": "Cap On Liability", "is_present": true, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 75, "contract_id": "CUAD-0011", "category": "Audit Rights", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 76, "contract_id": "CUAD-0011", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 77, "contract_id": "CUAD-0011", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 78, "contract_id": "CUAD-0012", "category": "Governing Law", "is_present": true, "hit_at_5": true, "abstained_mode_3": false}
+{"case_id": 79, "contract_id": "CUAD-0012", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 80, "contract_id": "CUAD-0012", "category": "Liquidated Damages", "is_present": true, "hit_at_5": true, "abstained_mode_3": false}
+{"case_id": 81, "contract_id": "CUAD-0012", "category": "Cap On Liability", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 82, "contract_id": "CUAD-0012", "category": "Audit Rights", "is_present": true, "hit_at_5": true, "abstained_mode_3": false}
+{"case_id": 83, "contract_id": "CUAD-0012", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 84, "contract_id": "CUAD-0012", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 85, "contract_id": "CUAD-0013", "category": "Governing Law", "is_present": true, "hit_at_5": true, "abstained_mode_3": true}
+{"case_id": 86, "contract_id": "CUAD-0013", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 87, "contract_id": "CUAD-0013", "category": "Liquidated Damages", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 88, "contract_id": "CUAD-0013", "category": "Cap On Liability", "is_present": true, "hit_at_5": true, "abstained_mode_3": true}
+{"case_id": 89, "contract_id": "CUAD-0013", "category": "Audit Rights", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 90, "contract_id": "CUAD-0013", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 91, "contract_id": "CUAD-0013", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 92, "contract_id": "CUAD-0014", "category": "Governing Law", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 93, "contract_id": "CUAD-0014", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 94, "contract_id": "CUAD-0014", "category": "Liquidated Damages", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 95, "contract_id": "CUAD-0014", "category": "Cap On Liability", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 96, "contract_id": "CUAD-0014", "category": "Audit Rights", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 97, "contract_id": "CUAD-0014", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 98, "contract_id": "CUAD-0014", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 99, "contract_id": "CUAD-0015", "category": "Governing Law", "is_present": true, "hit_at_5": true, "abstained_mode_3": true}
+{"case_id": 100, "contract_id": "CUAD-0015", "category": "Payment Terms", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 101, "contract_id": "CUAD-0015", "category": "Liquidated Damages", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 102, "contract_id": "CUAD-0015", "category": "Cap On Liability", "is_present": true, "hit_at_5": true, "abstained_mode_3": true}
+{"case_id": 103, "contract_id": "CUAD-0015", "category": "Audit Rights", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 104, "contract_id": "CUAD-0015", "category": "Termination", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}
+{"case_id": 105, "contract_id": "CUAD-0015", "category": "Warranties", "is_present": false, "hit_at_5": false, "abstained_mode_3": false}

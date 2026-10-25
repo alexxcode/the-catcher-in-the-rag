@@ -13,6 +13,7 @@ import json
 import math
 import sys
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -50,7 +51,55 @@ def check_bartleby_llm_report(report_path: Path, pricing_path: Path) -> list[str
         return errors
 
     m3 = modes[2]
-    # Check false abstentions breakdown: (16 - llm_accepted_on_hit) + llm_rejected_on_miss == false_abstentions
+
+    # 1. Verify against raw per-case JSONL data
+    cases_file = report_path.parent / "bartleby_llm_verification_cases.jsonl"
+    if not cases_file.exists():
+        errors.append(f"Missing required raw case log: {cases_file}")
+    else:
+        cases: list[dict[str, Any]] = []
+        with cases_file.open("r", encoding="utf-8") as cf:
+            for line in cf:
+                if line.strip():
+                    cases.append(json.loads(line))
+
+        raw_c_abs = sum(1 for c in cases if not c.get("is_present") and c.get("abstained_mode_3"))
+        raw_f_abs = sum(1 for c in cases if c.get("is_present") and c.get("abstained_mode_3"))
+        raw_tot_abs = sum(1 for c in cases if not c.get("is_present"))
+        raw_tot_pres = sum(1 for c in cases if c.get("is_present"))
+        raw_acc_on_hit = sum(
+            1 for c in cases if c.get("is_present") and c.get("hit_at_5") and not c.get("abstained_mode_3")
+        )
+        raw_rej_on_miss = sum(
+            1 for c in cases if c.get("is_present") and not c.get("hit_at_5") and c.get("abstained_mode_3")
+        )
+
+        if m3.get("correct_abstentions") != raw_c_abs:
+            errors.append(
+                f"Raw case verification failed: cases JSONL has {raw_c_abs} correct abstentions, but summary report claims {m3.get('correct_abstentions')}"
+            )
+        if m3.get("false_abstentions") != raw_f_abs:
+            errors.append(
+                f"Raw case verification failed: cases JSONL has {raw_f_abs} false abstentions, but summary report claims {m3.get('false_abstentions')}"
+            )
+        if m3.get("total_absences") != raw_tot_abs:
+            errors.append(
+                f"Raw case verification failed: cases JSONL has {raw_tot_abs} absences, but summary report claims {m3.get('total_absences')}"
+            )
+        if m3.get("total_presences") != raw_tot_pres:
+            errors.append(
+                f"Raw case verification failed: cases JSONL has {raw_tot_pres} presences, but summary report claims {m3.get('total_presences')}"
+            )
+        if m3.get("llm_accepted_on_hit") != raw_acc_on_hit:
+            errors.append(
+                f"Raw case verification failed: cases JSONL has {raw_acc_on_hit} accepted on hit, but summary report claims {m3.get('llm_accepted_on_hit')}"
+            )
+        if m3.get("llm_rejected_on_miss") != raw_rej_on_miss:
+            errors.append(
+                f"Raw case verification failed: cases JSONL has {raw_rej_on_miss} rejected on miss, but summary report claims {m3.get('llm_rejected_on_miss')}"
+            )
+
+    # 2. Check false abstentions breakdown: (16 - llm_accepted_on_hit) + llm_rejected_on_miss == false_abstentions
     hit_acc = m3.get("llm_accepted_on_hit", 0)
     miss_rej = m3.get("llm_rejected_on_miss", 0)
     expected_false_abs = (16 - hit_acc) + miss_rej

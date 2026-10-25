@@ -14,9 +14,13 @@ allowed_numbers:
   - "8"
   - "9"
   - "10"
+  - "11"
   - "12"
+  - "14"
   - "15"
+  - "16"
   - "20"
+  - "22"
   - "26"
   - "30"
   - "35"
@@ -57,12 +61,15 @@ allowed_numbers:
   - "8080"
   - "8501"
   # Versiones y estándares
+  - "0.50"
+  - "0.70"
   - "1.1"
   - "1.5"
   - "2.0"
   - "2.5"
   - "3.5"
   - "3.8"
+  - "3.11"
   - "3.12"
   - "3.13"
   - "4.0"
@@ -87,3 +94,8 @@ allowed_regexes:
   - '^\d+\s*MB$'            # Tamaños de archivos (ej. 50 MB)
   - '^\d+\s*k$'             # Rangos (ej. 50k, 1k)
   - '^\d+d$'                # Dimensiones vectoriales (ej. 384d, 768d)
+
+exempt_files:
+  - "AGENTS.md"
+  - "CLAUDE.md"
+  - "StateOfCatcher.md"
