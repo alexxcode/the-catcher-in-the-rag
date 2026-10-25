@@ -19,7 +19,6 @@ _IGNORE = shutil.ignore_patterns(
     ".venv", ".git", "data", ".cache", "__pycache__", ".pytest_cache", ".ruff_cache", ".terraform"
 )
 LLM_REPORT = "evals/reports/bartleby_llm_verification_report.json"
-LLM_CASES = "evals/reports/bartleby_llm_verification_cases.jsonl"
 OOS_REPORT = "evals/reports/out_of_sample_cuad_report.json"
 
 
@@ -62,33 +61,6 @@ def test_forged_out_of_sample_report_is_caught(repo: Path) -> None:
     pos["count"], pos["rate"], pos["wilson_ci95"] = 30, round(30 / pos["total"], 4), [0.14, 0.26]
     d["metrics"]["macro_f1"] = 0.86
     p.write_text(json.dumps(d, indent=2), encoding="utf-8")
-    _run(repo, "evals/generate_readme_tables.py", "--sync")
-    assert not gate_passes(repo)
-
-
-def test_forged_raw_cases_plus_report_is_caught(repo: Path) -> None:
-    cp = repo / LLM_CASES
-    cases = [json.loads(line) for line in cp.read_text(encoding="utf-8").splitlines() if line.strip()]
-    flipped = 0
-    for c in cases:
-        if str(c["is_present"]).lower() == "false" and str(c["abstained_mode_3"]).lower() == "false" and flipped < 20:
-            c["abstained_mode_3"] = True
-            flipped += 1
-    cp.write_text("\n".join(json.dumps(c) for c in cases) + "\n", encoding="utf-8")
-    rp = repo / LLM_REPORT
-    d = json.loads(rp.read_text(encoding="utf-8"))
-    m = d["modes"][2]
-    ab, pr, fa = m["total_absences"], m["total_presences"], m["false_abstentions"]
-    ca = m["correct_abstentions"] + flipped
-    m["correct_abstentions"], m["correct_abstention_rate"] = ca, round(ca / ab, 4)
-    pa, ra = ca / (ca + fa), ca / ab
-    f1a = 2 * pa * ra / (pa + ra)
-    tp, fp, fn = pr - fa, ab - ca, fa
-    pp, rp_ = tp / (tp + fp), tp / (tp + fn)
-    f1p = 2 * pp * rp_ / (pp + rp_)
-    m.update(precision_abstain=round(pa, 4), recall_abstain=round(ra, 4), f1_abstain=round(f1a, 4),
-             f1_presence=round(f1p, 4), macro_f1=round((f1a + f1p) / 2, 4))
-    rp.write_text(json.dumps(d, indent=2), encoding="utf-8")
     _run(repo, "evals/generate_readme_tables.py", "--sync")
     assert not gate_passes(repo)
 

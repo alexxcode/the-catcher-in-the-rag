@@ -80,6 +80,7 @@ def run_bartleby_llm_eval(
     llm_provider_type: str = "vertex_ai",
     allow_stub: bool = False,
 ) -> BartlebyLLMVerificationReport:
+    initial_provenance = get_provenance_metadata({"eval": "Bartleby LLM Verification"})
     # Fail fast if attempting to measure LLM verification with stub without explicit override
     if llm_provider_type == "stub" and not allow_stub:
         raise ValueError(
@@ -193,6 +194,8 @@ def run_bartleby_llm_eval(
                 scored_clauses,
                 query_topic=tc["category"],
                 llm_provider=llm_to_pass,
+                query=tc["query"],
+                contract_id=tc["contract_id"],
             )
 
             if tc["is_present"]:
@@ -294,7 +297,7 @@ def run_bartleby_llm_eval(
             )
         )
 
-    provenance = get_provenance_metadata({"eval": "Bartleby LLM Verification"})
+    provenance = initial_provenance
 
     if llm_provider_type == "stub":
         summary = (

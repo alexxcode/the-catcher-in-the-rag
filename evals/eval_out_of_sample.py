@@ -16,6 +16,7 @@ from catcher_in_the_rag.bartleby.guard import BartlebyGuard  # noqa: E402
 from catcher_in_the_rag.ingest.cuad_loader import CUADLoader  # noqa: E402
 from catcher_in_the_rag.providers.factory import get_embedding_provider, get_llm_provider  # noqa: E402
 from catcher_in_the_rag.retrieve.retriever import ContractRetriever  # noqa: E402
+from evals.provenance import get_provenance_metadata  # noqa: E402
 
 
 def wilson_interval(successes: int, total: int, z: float = 1.95996) -> tuple[float, float]:
@@ -37,6 +38,14 @@ def run_out_of_sample_evaluation(
     embedding_provider_name: str = "stub",
     llm_provider_name: str = "vertex_ai",
 ) -> dict[str, Any]:
+    initial_provenance = get_provenance_metadata(
+        {
+            "dataset": "CUAD_v1",
+            "sample": f"contracts_{start_contract}_to_{end_contract}",
+            "categories_count": len(categories) if categories else 12,
+            "evaluation_type": "out_of_sample_held_out",
+        }
+    )
     loader = CUADLoader()
     all_contracts = loader.load_contracts(limit=end_contract)
     out_of_sample_contracts = all_contracts[start_contract:end_contract]
@@ -123,6 +132,8 @@ def run_out_of_sample_evaluation(
             scored_clauses,
             query_topic=tc["category"],
             llm_provider=llm_provider,
+            query=tc["query"],
+            contract_id=tc["contract_id"],
         )
 
         if tc["is_present"]:
@@ -177,16 +188,7 @@ def run_out_of_sample_evaluation(
     tokens_p = getattr(llm_provider, "total_prompt_tokens", 0) - tokens_p_start
     tokens_c = getattr(llm_provider, "total_candidate_tokens", 0) - tokens_c_start
 
-    from evals.provenance import get_provenance_metadata
-
-    provenance = get_provenance_metadata(
-        {
-            "dataset": "CUAD_v1",
-            "sample": f"contracts_{start_contract}_to_{end_contract}",
-            "categories_count": len(categories),
-            "evaluation_type": "out_of_sample_held_out",
-        }
-    )
+    provenance = initial_provenance
 
     report = {
         "timestamp": datetime.now(UTC).isoformat(),

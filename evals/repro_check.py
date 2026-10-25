@@ -334,7 +334,7 @@ def run_all_checks() -> int:
             print(f"  ❌ {err}", file=sys.stderr)
         return 1
 
-    print(" Repro-Check Passed: All JSON report metrics match exact arithmetic recalculations, raw cases, and pricing.")
+    print(" Repro-Check Passed: All JSON report metrics match exact arithmetic recalculations and pricing.")
     return 0
 
 

@@ -69,6 +69,9 @@ class BartlebyGuard:
         candidate_clause: ScoredClause,
         query_topic: str,
         llm_provider: Any = None,
+        query: str | None = None,
+        contract_id: str | None = None,
+        passage_ids: list[str] | None = None,
     ) -> bool:
         """Condition 3: Use LLM to verify whether candidate clause actually answers or governs the topic."""
         if not llm_provider or getattr(llm_provider, "provider_type", "") == "stub":
@@ -106,11 +109,22 @@ class BartlebyGuard:
             f"or does not contain substantive terms on this topic."
         )
 
+        extra_kwargs = {
+            "query": query,
+            "category": query_topic,
+            "contract_id": contract_id,
+            "passage_ids": passage_ids or [candidate_clause.clause_id],
+        }
+
         try:
             if hasattr(llm_provider, "extract_structured"):
-                decision = llm_provider.extract_structured(prompt, RelevanceVerification)
+                decision = llm_provider.extract_structured(
+                    prompt, RelevanceVerification, **extra_kwargs
+                )
             elif hasattr(llm_provider, "generate_structured"):
-                decision = llm_provider.generate_structured(prompt, RelevanceVerification)
+                decision = llm_provider.generate_structured(
+                    prompt, RelevanceVerification, **extra_kwargs
+                )
             else:
                 return True
             return bool(decision.is_relevant)
@@ -122,6 +136,8 @@ class BartlebyGuard:
         retrieved_clauses: list[ScoredClause],
         query_topic: str | None = None,
         llm_provider: Any = None,
+        query: str | None = None,
+        contract_id: str | None = None,
     ) -> BartlebyAssessment:
         """Evaluate candidate clauses against relevance thresholds and authorization criteria.
 
@@ -191,9 +207,17 @@ class BartlebyGuard:
         # Condition 3b: LLM Semantic Verification Guard (Multi-candidate inspection)
         if llm_provider and query_topic and passing:
             candidates_to_inspect = passing[: self.max_verification_candidates]
+            all_passage_ids = [c.clause_id for c in retrieved_clauses]
             confirmed_clause = None
             for candidate in candidates_to_inspect:
-                if self.verify_relevance_with_llm(candidate, query_topic, llm_provider):
+                if self.verify_relevance_with_llm(
+                    candidate,
+                    query_topic,
+                    llm_provider,
+                    query=query,
+                    contract_id=contract_id,
+                    passage_ids=all_passage_ids,
+                ):
                     confirmed_clause = candidate
                     break
 

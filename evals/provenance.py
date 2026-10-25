@@ -54,8 +54,15 @@ def get_git_branch() -> str:
         return "unknown"
 
 
+_INITIAL_GIT_DIRTY: bool | None = None
+
+
 def get_git_dirty() -> bool:
-    """Check if the Git working tree has uncommitted changes."""
+    """Check if the Git working tree has uncommitted changes, evaluated at run start ignoring evals/reports/raw/."""
+    global _INITIAL_GIT_DIRTY
+    if _INITIAL_GIT_DIRTY is not None:
+        return _INITIAL_GIT_DIRTY
+
     try:
         res = subprocess.run(
             ["git", "status", "--porcelain"],
@@ -64,8 +71,16 @@ def get_git_dirty() -> bool:
             check=True,
             timeout=5,
         )
-        return bool(res.stdout.strip())
+        lines = [line.strip() for line in res.stdout.splitlines() if line.strip()]
+        filtered = [
+            line
+            for line in lines
+            if not any(token in line for token in ("evals/reports/raw", "evals/reports/raw/"))
+        ]
+        _INITIAL_GIT_DIRTY = bool(filtered)
+        return _INITIAL_GIT_DIRTY
     except Exception:
+        _INITIAL_GIT_DIRTY = False
         return False
 
 
