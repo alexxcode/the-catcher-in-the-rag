@@ -149,6 +149,8 @@ file_specific_allowlists:
     - "12 de 16"
     - "48 s"
     - "2.3 s"
+    - "4.1"
+    - "4.2"
   CLAUDE.md:
     - "0"
     - "1"

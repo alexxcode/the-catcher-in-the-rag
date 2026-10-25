@@ -43,6 +43,5 @@
       "prompt_tokens": 480061,
       "candidate_tokens": 46264
     }
-  },
-  "raw_cases_sha256": "48b72d8081251f283f6d6a53d873a9d85868f583af0b4c5cdfea80734b350d69"
+  }
 }

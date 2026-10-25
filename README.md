@@ -123,7 +123,7 @@ El harness de evaluación somete al RAG híbrido (BM25 + Dense Vectors) a dos ti
 2. **Evaluación de Ausencia Negativa (Anti-Alucinación de Bartleby):** Se evalúan consultas sobre cláusulas que el contrato expresamente **no contiene** (`answers: []`). Si el sistema inventa una cláusula o cita un fragmento irrelevante para sancionar al proveedor, comete una *afirmación espuria*; si emite `ABSTAIN` y `NO_EVIDENCE`, se considera una **abstención correcta**.
 
 #### D. Resultados Empíricos y Reproducibilidad
-Los resultados se serializan automáticamente con procedencia criptográfica (SHA de commit de Git, timestamp ISO con microsegundos y comando exacto) en [`evals/reports/cuad_benchmark_latest.json`](evals/reports/cuad_benchmark_latest.json):
+Los resultados se serializan automáticamente con procedencia formal (SHA de commit de Git, timestamp ISO con microsegundos y comando exacto) en [`evals/reports/cuad_benchmark_latest.json`](evals/reports/cuad_benchmark_latest.json):
 
 * **Comando de Reproducción Offline (Stub / CI):** `make eval-cuad` o `uv run python -m evals.run --eval-cuad`
 * **Comando de Recalibración:** `make calibrate-cuad` o `uv run python -m evals.calibrate_cuad`
@@ -164,7 +164,10 @@ El guardia de abstención fue sometido a calibración empírica tanto en el domi
 
 #### F. Evaluación de la Condición #3 de Bartleby: Verificación Semántica por LLM
 
+> **Estado:** reportado; sin registro crudo por llamada (se re-mide en el paso 4).
+
 Medición empírica en vivo sobre 15 contratos auténticos de la SEC (CUAD, 105 evaluaciones de consulta) comparando el filtro de umbral puro frente a la verificación semántica activa con Vertex AI (`gemini-3.5-flash`), inspeccionando los candidatos del top-5 (`max_verification_candidates=5`):
+
 
 <!-- GEN:llm_verification_table -->
 | Modo de Guardia | $\tau$ | Verificación LLM | Abstención Correcta (Recall) | Falsa Abstención (Error) | Macro F1 | Latencia Media | Costo Estimado / 1k* |
