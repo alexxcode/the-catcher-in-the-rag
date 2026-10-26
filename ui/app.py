@@ -86,8 +86,9 @@ def execute_audit(package: ProcurementPackage) -> dict[str, Any]:
                 return {
                     "package": package,
                     "decision": Decision.model_validate(data["decision"]),
+                    # The API returns findings as "validated_findings" (AuditResponse).
                     "validated_findings": [
-                        Finding.model_validate(f) for f in data.get("findings", [])
+                        Finding.model_validate(f) for f in data.get("validated_findings", [])
                     ],
                     "bartleby_abstained": data.get("bartleby_abstained", False),
                     "bartleby_reason": data.get("bartleby_reason"),
@@ -685,7 +686,12 @@ if selected_screen == "📋 Review Workspace":
 
         # ── Findings & Citations Section ──────────────────────────────────────
         st.markdown("### 🔍 Verified Findings & Verbatim Citations")
-        if not findings:
+        if not findings and decision.decision.value != "APPROVE":
+            st.error(
+                f"Decisión {decision.decision.value} sin hallazgos en la respuesta: "
+                "faltan los hallazgos (revisa la respuesta de la API o el pipeline)."
+            )
+        elif not findings:
             st.success(
                 "No discrepancies detected. 3-way match and contract terms are fully compliant."
             )
@@ -1239,7 +1245,13 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                             )
 
                         st.markdown("##### Findings Detected")
-                        if not findings_list:
+                        sim_decision = audit_res["decision"].decision.value
+                        if not findings_list and sim_decision != "APPROVE":
+                            st.error(
+                                f"Decisión {sim_decision} sin hallazgos en la respuesta: "
+                                "faltan los hallazgos."
+                            )
+                        elif not findings_list:
                             st.success("No discrepancies detected. Compliant.")
                         else:
                             for f_idx, f_item in enumerate(findings_list, 1):
