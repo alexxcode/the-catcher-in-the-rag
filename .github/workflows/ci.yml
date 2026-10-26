@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # provenance tests resolve report git_commit_sha in history
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
