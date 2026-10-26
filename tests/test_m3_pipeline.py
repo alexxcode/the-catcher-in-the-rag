@@ -1,8 +1,30 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
+import pytest
+
 from catcher_in_the_rag.graph import run_audit
 from catcher_in_the_rag.schemas import AnomalyType, DecisionType
 from datagen.generator import generate_package
+
+
+def _pin_synthetic_tau(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Synthetic templates use the tau calibrated on them, not the CUAD tau in config."""
+    import catcher_in_the_rag.bartleby.guard as guard_module
+
+    report = Path("evals/reports/calibration_bartleby_report.json")
+    synth_tau = json.loads(report.read_text(encoding="utf-8"))["optimal_threshold"]
+    original = guard_module.load_bartleby_thresholds
+    monkeypatch.setattr(
+        guard_module, "load_bartleby_thresholds", lambda tau=None: original(tau=synth_tau)
+    )
+
+
+@pytest.fixture(autouse=True)
+def _synthetic_tau(monkeypatch: pytest.MonkeyPatch) -> None:
+    _pin_synthetic_tau(monkeypatch)
 
 
 def test_m3_pipeline_detects_a04_payment_terms() -> None:

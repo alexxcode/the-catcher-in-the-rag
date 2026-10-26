@@ -1,12 +1,27 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
+
+import pytest
 
 from catcher_in_the_rag.schemas import AnomalyType
 from datagen.generator import generate_package
 from evals.metrics import ClassMetric, EvaluationReport
 from evals.report_writer import save_report
 from evals.runner import EvaluationRunner
+
+
+def _pin_synthetic_tau(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Synthetic templates use the tau calibrated on them, not the CUAD tau in config."""
+    import catcher_in_the_rag.bartleby.guard as guard_module
+
+    report = Path("evals/reports/calibration_bartleby_report.json")
+    synth_tau = json.loads(report.read_text(encoding="utf-8"))["optimal_threshold"]
+    original = guard_module.load_bartleby_thresholds
+    monkeypatch.setattr(
+        guard_module, "load_bartleby_thresholds", lambda tau=None: original(tau=synth_tau)
+    )
 
 
 def test_class_metric_computation() -> None:
@@ -22,7 +37,8 @@ def test_class_metric_computation() -> None:
     assert metric.f1 == 0.8889
 
 
-def test_evaluation_runner_baseline() -> None:
+def test_evaluation_runner_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
+    _pin_synthetic_tau(monkeypatch)
     # Generate 1 package for each anomaly type (10 packages total)
     dataset = [
         generate_package(seed=500 + idx, anomaly=anomaly, package_id=f"PKG-EVAL-{anomaly.value}")

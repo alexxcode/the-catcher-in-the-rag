@@ -1,5 +1,6 @@
 bartleby:
-  min_relevance_score: 0.50
+  # calibrado en contratos CUAD 1–15, evaluado fuera de muestra en 16–50; ver out_of_sample_cuad_stub_tau0.80_report.json
+  min_relevance_score: 0.80
   min_evidence_spans: 1
 matching:
   unit_price_tolerance_pct: 0.01
