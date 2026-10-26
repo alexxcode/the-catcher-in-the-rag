@@ -32,7 +32,7 @@ The Catcher in the RAG is a portfolio-grade, end-to-end pipeline: ingestion → 
 1. **LLM extracts and explains; deterministic code decides.** Approve/review/reject comes from a policy engine, never from free-form LLM judgment.
 2. **Every finding carries a citation** (document id, span offsets, verbatim quote). A validator drops any finding whose quote is not found verbatim in the source.
 3. **Abstain over guess.** If no relevant clause is retrieved, the output is `NO_EVIDENCE`, not an invented rule. This is enforced by a dedicated component, `bartleby` (see section 5), not left to prompt wording.
-4. **No custom model training.** Only API/off-the-shelf models (LLM, embeddings, reranker).
+4. **No custom model training.** Only API/off-the-shelf models (LLM, embeddings).
 5. **Reproducible.** Seeded generators, pinned dependency versions, pinned dataset versions, a one-command eval run.
 6. **Offline mode must work.** A deterministic stub provider runs the whole pipeline without LLM calls, so CI and demos never depend on network or cost.
 7. **No secrets in the repo.** On GCP, authenticate with service identities (Application Default Credentials); anything else lives in Secret Manager or environment variables.
@@ -55,7 +55,7 @@ The Catcher in the RAG is a portfolio-grade, end-to-end pipeline: ingestion → 
                                       │
                          [5 match (deterministic, tolerances)]
                                       │
-              [6 retrieve contract terms (hybrid + rerank, scoped to vendor contract)]
+              [6 retrieve contract terms (hybrid, scoped to vendor contract)]
                                       │
               [6b bartleby: abstention gate → NO_EVIDENCE or continue]
                                       │
@@ -104,13 +104,13 @@ Each synthetic package stores its labels in a sidecar `labels.json` (anomaly ids
 
 Metrics: extraction field accuracy · retrieval recall@k and MRR against labeled spans · citation validity rate · faithfulness · per-class precision/recall for A01–A10 · correct-abstention rate of `bartleby` (A09), and its over-abstention rate on A01–A08 and A10 (abstaining when evidence existed) · false-positive rate on A10 · cost and latency per package.
 
-Required ablations: no-RAG vs RAG; with vs without reranker; stub vs real LLM.
+Required ablations: no-RAG vs RAG; stub vs real LLM.
 
 Rules: eval is one command (`make eval`), writes a versioned JSON report, and the dashboard reads only that report. Failure cases are shown, not hidden. Initial acceptance targets are set **after** the first baseline run, not before.
 
 ## 9. Stack
 
-Python 3.11+ · LangGraph (agent) · Pydantic (typed schemas, structured output) · FastAPI (API) · BM25 + dense hybrid retrieval, off-the-shelf reranker · Ragas (RAG metrics, supplementary) · pytest · ruff · Docker Compose (local) · GitHub Actions.
+Python 3.11+ · LangGraph (agent) · Pydantic (typed schemas, structured output) · FastAPI (API) · BM25 + dense hybrid retrieval · Ragas (RAG metrics, supplementary) · pytest · ruff · Docker Compose (local) · GitHub Actions.
 
 **Cloud: everything on GCP (decided).**
 

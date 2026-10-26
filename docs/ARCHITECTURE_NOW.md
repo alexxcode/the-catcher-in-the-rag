@@ -32,7 +32,7 @@ flowchart TD
 | `providers/gemini.py` | — | Hay llamadas en `extract_structured`, `generate_text`, `check_model_health` y en los embeddings. Todas pasan por `MAX_LIVE_CALLS`, que vale 0 por defecto y bloquea la llamada |
 | `match/`, `validate/`, `policy/` | Deterministas; nunca llaman a un LLM | — |
 
-- `.env` local no define `LLM_PROVIDER` ni `EMBEDDING_PROVIDER`: todo corre en stub. El reranker (`flashrank`) nunca se activa: ningún código pasa `use_reranker=True`, y el paquete no está instalado en `.venv`.
+- `.env` local no define `LLM_PROVIDER` ni `EMBEDDING_PROVIDER`: todo corre en stub.
 - Las mediciones de CUAD usan embeddings stub: lo dice `measure_mode3_runs.py`, y `eval_bartleby_llm.py` también, salvo que el entorno diga otra cosa.
 
 ## 3. Responsabilidad cortada o duplicada
@@ -44,7 +44,7 @@ Estado tras los commits de esta ronda (puntos 1–10 de la versión anterior):
 3. **Abstenciones en A04, A05, A06:** si Bartleby se abstiene, se emite un hallazgo con `verification_status = NOT_VERIFIABLE`, sin cita y con el motivo. El validador lo conserva y la política lo manda a REVIEW. Si no se abstiene, la cita sigue saliendo de frases fijas buscadas con `find_span`, no de lo recuperado.
 4. **A09:** ya no hay `return` temprano. Se revisan todas las líneas y los motivos de abstención se acumulan.
 5. **Validación de citas:** solo en `validate/validator.py`. `BartlebyGuard.evaluate_finding` se borró.
-6. **"Requiere revisión humana":** lo decide `extract` cuando falla el LLM. `decide` ya no lo sobrescribe ni añade aviso: arrastra el flag del estado (OR con el de la política). El objeto `Decision` no refleja el fallo de extracción; solo el estado final.
+6. **"Requiere revisión humana":** `extract` solo informa `llm_extraction_failed`; `PolicyEngine.evaluate(extraction_failed=...)` lo decide una vez. El `Decision` lleva `requires_human_review=True` y el motivo, y nunca es APPROVE.
 7. **La UI recalcula por su cuenta:** sin cambios. `ui/app.py` crea su propio `ContractRetriever()` y `BartlebyGuard()` para la vista de RAG.
 8. **Elección del provider:** una sola función, `resolve_llm_provider(credential)` en `providers/factory.py`, usada por la API y la UI. La UI solo manda el PIN si el auditor lo desbloqueó. Si `API_URL` falla, muestra "API no disponible: modo local/stub" y corre con stub; la barra lateral muestra el modo activo.
 9. **Configuración sin uso:** se borraron `min_bm25_score`, `min_dense_score`, `top_k_to_llm`, `retrieval.*` y `eval.trace_sample_rate`.
