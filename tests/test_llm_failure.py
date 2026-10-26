@@ -8,6 +8,7 @@ Verifies that:
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -34,8 +35,12 @@ class MockFailingClient:
         return mock_response
 
 
-def test_gemini_retry_recovers_after_transient_429() -> None:
+def test_gemini_retry_recovers_after_transient_429(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """Verify that a transient 429 recovers on subsequent retry."""
+    monkeypatch.setenv("MAX_LIVE_CALLS", "100")  # mocked client, no network
+    monkeypatch.setenv("RAW_LOG_DIR", str(tmp_path))
     provider = GeminiProvider(model_id="gemini-3.5-flash")
     mock_client = MockFailingClient(
         fail_count=2, error_message="429 ResourceExhausted: Quota exceeded"
@@ -50,8 +55,12 @@ def test_gemini_retry_recovers_after_transient_429() -> None:
     assert result != ""
 
 
-def test_gemini_retry_exhausted_raises_explicit_runtime_error() -> None:
+def test_gemini_retry_exhausted_raises_explicit_runtime_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """Verify that persistent 429 fails fast with clear error message, never silent degradation."""
+    monkeypatch.setenv("MAX_LIVE_CALLS", "100")  # mocked client, no network
+    monkeypatch.setenv("RAW_LOG_DIR", str(tmp_path))
     provider = GeminiProvider(model_id="gemini-3.5-flash")
     mock_client = MockFailingClient(
         fail_count=10, error_message="429 ResourceExhausted: Quota exceeded"

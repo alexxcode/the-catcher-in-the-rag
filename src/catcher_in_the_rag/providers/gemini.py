@@ -24,6 +24,18 @@ def _safe_int(val: Any) -> int:
         return 0
 
 
+_live_calls_used = 0
+
+
+def _consume_live_call() -> None:
+    """Hard cap on real Vertex network calls per process; MAX_LIVE_CALLS defaults to 0 (blocked)."""
+    global _live_calls_used
+    limit = _safe_int(os.getenv("MAX_LIVE_CALLS", "0"))
+    if _live_calls_used >= limit:
+        raise RuntimeError(f"MAX_LIVE_CALLS={limit} reached; live call blocked")
+    _live_calls_used += 1
+
+
 class GeminiProvider(LLMProvider):
     """Real GCP generative AI provider using Vertex AI (ADC credentials, no API keys).
 
@@ -118,6 +130,7 @@ class GeminiProvider(LLMProvider):
     ) -> Any:
         """Execute Vertex AI generation with bounded exponential backoff on transient 429 / 503 errors."""
         for attempt in range(max_retries):
+            _consume_live_call()
             try:
                 return call_fn()
             except Exception as err:
@@ -154,7 +167,7 @@ class GeminiProvider(LLMProvider):
             run_id = f"run_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
             self.run_id = run_id
 
-        raw_dir = Path("evals/reports/raw")
+        raw_dir = Path(os.getenv("RAW_LOG_DIR", "evals/reports/raw"))
         raw_dir.mkdir(parents=True, exist_ok=True)
         raw_file = raw_dir / f"{run_id}.jsonl"
 
@@ -378,6 +391,7 @@ class GeminiProvider(LLMProvider):
         Fails fast with a clear explanation if the pinned model has been retired or is unavailable.
         """
         self._ensure_init()
+        _consume_live_call()
         t0 = time.perf_counter()
         try:
             if self._use_genai and self._genai_client is not None:
@@ -555,6 +569,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
             batch_embeddings: list[list[float]] = []
 
             for attempt in range(max_retries):
+                _consume_live_call()
                 try:
                     if self._use_genai:
                         res = self._genai_client.models.embed_content(
@@ -605,6 +620,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
         self._ensure_init()
         max_retries = 5
         for attempt in range(max_retries):
+            _consume_live_call()
             try:
                 if self._use_genai:
                     res = self._genai_client.models.embed_content(

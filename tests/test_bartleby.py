@@ -89,7 +89,7 @@ class MockLLMVerificationProvider:
         self._should_fail = should_fail
         self.call_count = 0
 
-    def generate_structured(self, prompt: str, response_schema: type) -> Any:
+    def generate_structured(self, prompt: str, response_schema: type, **kwargs: Any) -> Any:
         self.call_count += 1
         if self._should_fail:
             raise RuntimeError("API quota exceeded")
