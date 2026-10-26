@@ -51,7 +51,17 @@ class ContractTermsEvaluator:
         retriever = ContractRetriever(contract)
 
         # ── 1. Term and Expiration Check (A06) ──────────────────────────────────
-        if invoice.invoice_date > contract.expiration_date and not contract.auto_renew:
+        if contract.expiration_date is None:
+            findings.append(
+                self._not_verifiable(
+                    f"F-A06-{len(findings) + 1}",
+                    AnomalyType.A06,
+                    "expiration_date",
+                    "Contract expiration date not found; term validity cannot be checked.",
+                    "expiration date missing from contract text",
+                )
+            )
+        elif invoice.invoice_date > contract.expiration_date and not contract.auto_renew:
             scored = retriever.retrieve("term expiration termination date agreement", top_k=2)
             assessment = self.bartleby.evaluate_retrieval(
                 scored, query_topic="term_and_termination", llm_provider=self.llm_provider

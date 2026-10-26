@@ -56,7 +56,7 @@ class RuleBasedContractExtractor:
         exp_match = re.search(r"until\s*(\d{4}-\d{2}-\d{2})", raw_text, re.IGNORECASE) or re.search(
             r"expire on\s*(\d{4}-\d{2}-\d{2})", raw_text, re.IGNORECASE
         )
-        expiration_date = date.fromisoformat(exp_match.group(1)) if exp_match else date(2026, 1, 1)
+        expiration_date = date.fromisoformat(exp_match.group(1)) if exp_match else None
 
         # Auto-renewal check (properly handling 'without automatic renewal')
         has_renew = bool(re.search(r"shall automatically renew", raw_text, re.IGNORECASE))

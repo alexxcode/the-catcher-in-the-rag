@@ -134,9 +134,12 @@ def test_audit_package_payload(
     assert response.status_code == 200
     data = response.json()
     assert data["package_id"] == "PKG-API-TEST"
-    # raw_text has no expiration clause: Bartleby abstains and A06 goes to human review.
+    # raw_text has no expiration date: extractor leaves it None, A06 is NOT_VERIFIABLE -> REVIEW.
     assert data["decision"]["decision"] == DecisionType.REVIEW.value
-    assert all(f["verification_status"] == "NOT_VERIFIABLE" for f in data["validated_findings"])
+    assert [(f["anomaly_type"], f["verification_status"]) for f in data["validated_findings"]] == [
+        ("A06", "NOT_VERIFIABLE")
+    ]
+    assert "expiration date missing" in data["validated_findings"][0]["description"]
 
 
 def test_audit_missing_payload(client: TestClient) -> None:

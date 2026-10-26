@@ -786,7 +786,9 @@ if selected_screen == "📋 Review Workspace":
             col_c1.metric("Contract ID", c.contract_id)
             col_c2.metric("Vendor", c.vendor_name)
             col_c3.metric("Effective", c.effective_date.isoformat())
-            col_c4.metric("Expiration", c.expiration_date.isoformat())
+            col_c4.metric(
+                "Expiration", c.expiration_date.isoformat() if c.expiration_date else "NOT FOUND"
+            )
 
             st.markdown(
                 f"**Agreed Payment Terms:** `Net {c.payment_terms_days} days` | **Auto-Renewal:** `{c.auto_renew}`"

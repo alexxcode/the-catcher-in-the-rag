@@ -56,7 +56,9 @@ class Contract(BaseModel):
     vendor_id: str = Field(..., description="Vendor identifier")
     vendor_name: str = Field(..., description="Legal vendor name")
     effective_date: date = Field(..., description="Start date of agreement")
-    expiration_date: date = Field(..., description="Expiration date of agreement")
+    expiration_date: date | None = Field(
+        default=None, description="Expiration date of agreement (None if not found)"
+    )
     auto_renew: bool = Field(default=False, description="Whether contract auto-renews")
     payment_terms_days: Annotated[int, Field(ge=0, description="Agreed net payment terms (days)")]
     late_delivery_penalty_pct_per_day: Annotated[
