@@ -22,12 +22,6 @@ variable "max_live_calls" {
   default     = 0
 }
 
-variable "max_instances" {
-  description = "Maximum Cloud Run instances to prevent runaway cost."
-  type        = number
-  default     = 3
-}
-
 variable "container_image" {
   description = "Container image URL in Artifact Registry."
   type        = string

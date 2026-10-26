@@ -167,10 +167,11 @@ resource "google_cloud_run_v2_service" "api" {
 
   template {
     service_account = google_service_account.cloud_run_sa.email
+    timeout         = "60s"
 
     scaling {
       min_instance_count = 0
-      max_instance_count = var.max_instances
+      max_instance_count = 2
     }
 
     containers {
@@ -273,7 +274,7 @@ resource "google_cloud_run_v2_service" "ui" {
 
     scaling {
       min_instance_count = 0
-      max_instance_count = var.max_instances
+      max_instance_count = 2
     }
 
     containers {
