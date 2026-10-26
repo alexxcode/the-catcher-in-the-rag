@@ -34,6 +34,9 @@ def test_is_tracing_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
     monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
     assert is_tracing_enabled()
+    monkeypatch.delenv("LANGFUSE_ENABLED", raising=False)
+    assert isinstance(get_tracer(), NoOpTracer)  # under pytest without LANGFUSE_ENABLED=1
+    monkeypatch.setenv("LANGFUSE_ENABLED", "1")
     tracer = get_tracer()
     assert isinstance(tracer, LangfuseTracer)
     assert tracer.public_key == "pk-lf-test"

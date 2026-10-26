@@ -12,7 +12,9 @@ from __future__ import annotations
 
 import contextlib
 import os
+import sys
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any
 
 
@@ -195,6 +197,13 @@ def get_tracer(sample_rate: float = 1.0) -> BaseTracer:
     secret_key = os.getenv("LANGFUSE_SECRET_KEY")
 
     if not public_key or not secret_key:
+        return NoOpTracer()
+
+    # Tests and evals never trace unless LANGFUSE_ENABLED=1.
+    main_file = getattr(sys.modules.get("__main__"), "__file__", None)
+    in_evals = bool(main_file) and "evals" in Path(main_file).resolve().parts
+    in_tests_or_evals = "pytest" in sys.modules or in_evals
+    if in_tests_or_evals and os.getenv("LANGFUSE_ENABLED") != "1":
         return NoOpTracer()
 
     # Sample rate control to conserve Hobby tier units
