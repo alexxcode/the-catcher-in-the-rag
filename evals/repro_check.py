@@ -344,6 +344,8 @@ def run_all_checks() -> int:
         if name in registered_handlers:
             handler = registered_handlers[name]
             all_errors.extend(handler(p))
+        elif name.startswith("out_of_sample_cuad_") and name.endswith("_report.json"):
+            all_errors.extend(check_out_of_sample_cuad_report(p))
         elif name.startswith("bakeoff_report_"):
             all_errors.extend(check_bakeoff_report(p, pricing_path))
         elif name.startswith("cuad_benchmark_") or name.startswith("eval_report_"):

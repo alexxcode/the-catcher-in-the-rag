@@ -284,6 +284,8 @@ def run_out_of_sample_evaluation(
         "git_dirty": provenance["git_dirty"],
         "command": provenance["command"],
         "tau_override": tau,
+        "llm_provider": llm_provider_name,
+        "embedding_provider": embedding_provider_name,
         "evaluation_type": "Out-of-sample held-out evaluation with frozen prompt and official Atticus category definitions",
         "contract_slice": f"CUAD-{start_contract + 1:04d} to CUAD-{end_contract:04d} ({len(out_of_sample_contracts)} contracts)",
         "num_contracts": len(out_of_sample_contracts),
@@ -381,11 +383,18 @@ if __name__ == "__main__":
             out = "evals/reports/retrieval_ablation_oos_report.json"
         run_retrieval_ablation(args.start, args.end, args.embedding_provider, out)
         sys.exit(0)
+    output = args.output
+    if output == "evals/reports/out_of_sample_cuad_report.json" and (
+        args.tau is not None or args.llm_provider != "vertex_ai"
+    ):
+        # Never overwrite the LLM report: variants get their own file.
+        tau_tag = f"_tau{args.tau:.2f}" if args.tau is not None else ""
+        output = f"evals/reports/out_of_sample_cuad_{args.llm_provider}{tau_tag}_report.json"
     run_out_of_sample_evaluation(
         start_contract=args.start,
         end_contract=args.end,
         embedding_provider_name=args.embedding_provider,
         llm_provider_name=args.llm_provider,
-        output_path=args.output,
+        output_path=output,
         tau=args.tau,
     )
