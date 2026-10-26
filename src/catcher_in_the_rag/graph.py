@@ -199,7 +199,7 @@ def build_audit_graph(
     provider = llm_provider or get_llm_provider()
     extractor = DocumentExtractor(provider=provider)
     policy = policy_engine or PolicyEngine()
-    terms_evaluator = ContractTermsEvaluator()
+    terms_evaluator = ContractTermsEvaluator(llm_provider=provider)
 
     extract_fn = create_extract_node(
         extractor, extract_contract_from_text=extract_contract_from_text

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Any
 
 from catcher_in_the_rag.bartleby.guard import BartlebyGuard
 from catcher_in_the_rag.retrieve.retriever import ContractRetriever
@@ -15,8 +16,11 @@ from catcher_in_the_rag.schemas import (
 class ContractTermsEvaluator:
     """Evaluates invoice and delivery against retrieved contract clauses."""
 
-    def __init__(self, bartleby_guard: BartlebyGuard | None = None) -> None:
+    def __init__(
+        self, bartleby_guard: BartlebyGuard | None = None, llm_provider: Any = None
+    ) -> None:
         self.bartleby = bartleby_guard or BartlebyGuard()
+        self.llm_provider = llm_provider
 
     def evaluate(self, package: ProcurementPackage) -> tuple[list[Finding], bool, str | None]:
         """Apply contract clauses to package.
@@ -35,7 +39,7 @@ class ContractTermsEvaluator:
         if invoice.invoice_date > contract.expiration_date and not contract.auto_renew:
             scored = retriever.retrieve("term expiration termination date agreement", top_k=2)
             assessment = self.bartleby.evaluate_retrieval(
-                scored, query_topic="term_and_termination"
+                scored, query_topic="term_and_termination", llm_provider=self.llm_provider
             )
             citation: Citation | None = None
             quote = f'until {contract.expiration_date.isoformat()} ("Expiration Date")'
@@ -67,7 +71,9 @@ class ContractTermsEvaluator:
         actual_days = (invoice.payment_due_date - invoice.invoice_date).days
         if actual_days < contract.payment_terms_days:
             scored = retriever.retrieve("payment terms net days invoice receipt", top_k=2)
-            assessment = self.bartleby.evaluate_retrieval(scored, query_topic="payment_terms")
+            assessment = self.bartleby.evaluate_retrieval(
+                scored, query_topic="payment_terms", llm_provider=self.llm_provider
+            )
             quote = f"payable Net {contract.payment_terms_days} days"
             span = contract.find_span(quote)
             citation = None
@@ -100,7 +106,9 @@ class ContractTermsEvaluator:
                 scored = retriever.retrieve(
                     "liquidated penalty delay late delivery percentage", top_k=2
                 )
-                assessment = self.bartleby.evaluate_retrieval(scored, query_topic="penalties")
+                assessment = self.bartleby.evaluate_retrieval(
+                    scored, query_topic="penalties", llm_provider=self.llm_provider
+                )
                 penalty_rate = contract.late_delivery_penalty_pct_per_day
                 rate_decimal = penalty_rate / Decimal("100.0")
                 penalty_amt = (Decimal(str(delay_days)) * rate_decimal * po.total_amount).quantize(
@@ -142,7 +150,7 @@ class ContractTermsEvaluator:
                 # Query contract for clause supporting this extra item/fee
                 scored = retriever.retrieve(inv_item.description, top_k=3)
                 assessment = self.bartleby.evaluate_retrieval(
-                    scored, query_topic=inv_item.description
+                    scored, query_topic=inv_item.description, llm_provider=self.llm_provider
                 )
                 if assessment.abstained:
                     # Bartleby invokes "I would prefer not to": no clause authorizes this fee
