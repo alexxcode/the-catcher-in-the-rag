@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-10-26T04:25:15.438352+00:00",
-  "git_commit_sha": "d165e65e22e2eedc849b652e180215fafc01c42e",
+  "timestamp": "2026-10-26T04:43:10.257501+00:00",
+  "git_commit_sha": "3cdff0dcf27d70d113630b88b207e7a0304046df",
   "git_dirty": false,
   "command": "eval_out_of_sample.py --retrieval-ablation --embedding-provider vertex_ai --start 15 --end 50",
   "evaluation_type": "Retrieval ablation (bm25 / dense / hybrid) on out-of-sample presence cases",
@@ -11,21 +11,21 @@
   "metrics": {
     "bm25": {
       "hit_at_1": {
-        "count": 83,
+        "count": 47,
         "total": 156,
-        "rate": 0.5321,
+        "rate": 0.3013,
         "wilson_ci95": [
-          0.4539,
-          0.6086
+          0.2348,
+          0.3773
         ]
       },
       "hit_at_5": {
-        "count": 131,
+        "count": 107,
         "total": 156,
-        "rate": 0.8397,
+        "rate": 0.6859,
         "wilson_ci95": [
-          0.7741,
-          0.889
+          0.6093,
+          0.7535
         ]
       }
     },
