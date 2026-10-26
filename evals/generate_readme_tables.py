@@ -268,6 +268,45 @@ def generate_mode3_diagnosis() -> str:
     )
 
 
+def generate_operating_point() -> str:
+    """Operating-point reading (two sentences) plus the LLM comparability note."""
+    from catcher_in_the_rag.bartleby.guard import load_bartleby_thresholds
+
+    (_, _, lo), (_, _, hi), (_, _, llm_rep) = _oos_rows()
+    cfg_tau = load_bartleby_thresholds()["min_relevance_score"]
+
+    def parts(d: dict) -> tuple[dict, dict, int, int]:
+        m = d["metrics"]
+        ca, fa = m["correct_abstention_on_negatives"], m["false_abstention_on_positives"]
+        return ca, fa, ca["count"] + fa["count"], ca["total"] + fa["total"]
+
+    ca_hi, fa_hi, _, _ = parts(hi)
+    ca_lo, _, n_lo, q_lo = parts(lo)
+    cfg_txt = " (valor actual de `config/thresholds.yaml`)" if cfg_tau == hi["tau_override"] else ""
+    s1 = (
+        f"Sin LLM, $\\tau$ = {hi['tau_override']:.2f}{cfg_txt} se abstiene en "
+        f"{ca_hi['rate'] * 100:.1f}% de las ausencias ({ca_hi['count']}/{ca_hi['total']}) y en "
+        f"{fa_hi['rate'] * 100:.1f}% de las presencias ({fa_hi['count']}/{fa_hi['total']})."
+    )
+    verb = "casi nunca se abstiene" if n_lo / q_lo < 0.25 else "se abstiene"
+    s2 = (
+        f"$\\tau$ = {lo['tau_override']:.2f} {verb}: {n_lo} de {q_lo} consultas "
+        f"({n_lo / q_lo * 100:.1f}%), y solo en {ca_lo['rate'] * 100:.1f}% de las ausencias."
+    )
+    llm_emb = llm_rep.get("embedding_provider") or "stub"
+    reasons = []
+    if llm_emb != hi.get("embedding_provider"):
+        reasons.append(f"usó embeddings `{llm_emb}`")
+    if llm_rep.get("git_dirty"):
+        reasons.append("se generó con `git_dirty: true`")
+    note = (
+        f"La fila con LLM no es comparable con las filas sin LLM: {' y '.join(reasons)}."
+        if reasons
+        else "La fila con LLM usa los mismos embeddings que las filas sin LLM."
+    )
+    return f"{s1} {s2}\n\n> **Nota:** {note}"
+
+
 def generate_oos_bartleby_table() -> str:
     """Out-of-sample (contracts 16-50) abstention per configuration plus Always-Abstain."""
     rows = [
@@ -436,16 +475,14 @@ def generate_bakeoff_diagnosis() -> str:
 
 
 GENERATORS = {
-    "cuad_table": generate_cuad_table,
     "domain_calibration_table": generate_domain_calibration_table,
     "domain_calibration_diagnosis": generate_domain_calibration_diagnosis,
     "llm_verification_table": generate_llm_verification_table,
     "llm_verification_footnote": generate_llm_verification_footnote,
     "mode3_diagnosis": generate_mode3_diagnosis,
     "oos_bartleby_table": generate_oos_bartleby_table,
+    "operating_point": generate_operating_point,
     "retrieval_table": generate_retrieval_table,
-    "bakeoff_table": generate_bakeoff_table,
-    "bakeoff_diagnosis": generate_bakeoff_diagnosis,
     "synthetic_ablation_table": generate_synthetic_ablation_table,
 }
 

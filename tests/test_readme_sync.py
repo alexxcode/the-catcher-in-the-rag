@@ -17,8 +17,6 @@ from pathlib import Path
 import pytest
 
 from evals.generate_readme_tables import (
-    generate_bakeoff_table,
-    generate_cuad_table,
     generate_domain_calibration_table,
     generate_llm_verification_table,
 )
@@ -86,28 +84,6 @@ def test_readme_domain_calibration_table_in_sync() -> None:
 
     assert generated_table in readme_content, (
         "README.md domain calibration table does not match generated table from JSON reports. Run 'make sync-readme-tables' to update."
-    )
-
-
-def test_readme_cuad_table_in_sync() -> None:
-    """Verify that README.md CUAD benchmark table matches generate_cuad_table() exactly."""
-    readme_path = Path("README.md")
-    readme_content = readme_path.read_text(encoding="utf-8")
-    generated_table = generate_cuad_table().strip()
-
-    assert generated_table in readme_content, (
-        "README.md CUAD benchmark table is out of sync with evals/reports/cuad_benchmark_latest.json."
-    )
-
-
-def test_readme_bakeoff_table_in_sync() -> None:
-    """Verify that README.md Bakeoff table matches generate_bakeoff_table() exactly."""
-    readme_path = Path("README.md")
-    readme_content = readme_path.read_text(encoding="utf-8")
-    generated_table = generate_bakeoff_table().strip()
-
-    assert generated_table in readme_content, (
-        "README.md Bake-Off table is out of sync with evals/reports/bakeoff_latest.json."
     )
 
 
