@@ -49,6 +49,7 @@ gcloud-key*.json
 .terraform.lock.hcl
 *.tfstate
 *.tfstate.*
+infra/terraform/tfplan
 *.tfvars
 !*.tfvars.example
 crash.log
