@@ -10,7 +10,7 @@ from typing import Any
 import streamlit as st
 from dotenv import load_dotenv
 
-from catcher_in_the_rag.bartleby.guard import BartlebyGuard
+from catcher_in_the_rag.bartleby.guard import BartlebyGuard, load_bartleby_thresholds
 from catcher_in_the_rag.graph import audit_pipeline
 from catcher_in_the_rag.ingest.cuad_loader import (
     CUADContract,
@@ -518,16 +518,34 @@ with st.sidebar:
 
     st.divider()
     st.markdown("#### System Safeguards")
-    st.markdown("🔒 **Abstention Guard:** Bartleby Active")
-    st.markdown("📑 **Citations:** Strict Verbatim Matching")
+    _tau = load_bartleby_thresholds()["min_relevance_score"]
+    if not active_mode.startswith("local/"):
+        _llm_check = "la decide la API"
+    elif active_mode == "local/stub":
+        _llm_check = "inactiva (stub)"
+    else:
+        _llm_check = "activa"
+    st.markdown(f"🔒 **Bartleby:** τ = {_tau:.2f} (config); verificación LLM 3b: {_llm_check}")
+    _last = st.session_state.get("audit_results")
+    if _last:
+        _fs = _last.get("validated_findings", [])
+        _nv = sum(1 for f in _fs if f.verification_status == "NOT_VERIFIABLE")
+        st.markdown(
+            f"📑 **Citas (última auditoría):** {len(_fs) - _nv} con cita validada, "
+            f"{_nv} NOT_VERIFIABLE"
+        )
+    else:
+        st.markdown("📑 **Citas:** sin auditoría en esta sesión")
     st.markdown("🤖 **Decision Logic:** Deterministic Policy Engine")
     if is_tracing_enabled():
         host_preview = os.getenv("LANGFUSE_BASE_URL") or os.getenv(
             "LANGFUSE_HOST", "cloud.langfuse.com"
         )
-        st.markdown(f"📡 **Observability:** 🟢 Langfuse Active (`{host_preview[:22]}`)")
+        st.markdown(
+            f"📡 **Langfuse:** claves definidas (`{host_preview[:22]}`); entrega al servidor no medida"
+        )
     else:
-        st.markdown("📡 **Observability:** ⚪ NoOpTracer (Offline)")
+        st.markdown("📡 **Langfuse:** sin claves (NoOpTracer)")
 
 
 # ── SCREEN 1: REVIEW WORKSPACE ────────────────────────────────────────────────
@@ -835,9 +853,11 @@ if selected_screen == "📋 Review Workspace":
                 "Submit Audit Sign-Off", type="secondary", use_container_width=True
             )
 
+            st.caption("Nota: este botón no guarda nada; solo muestra un mensaje en pantalla.")
             if confirm_btn:
-                st.success(
-                    f"Audit decision recorded for {package.package_id} with status: {override_action}"
+                st.info(
+                    f"No guardado: {package.package_id} — {override_action} "
+                    "(sin persistencia implementada)"
                 )
 
 
@@ -847,7 +867,7 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
         '<div class="hero-title">CUAD Real-World Contract Corpus</div>', unsafe_allow_html=True
     )
     st.markdown(
-        '<div class="hero-subtitle">The Atticus Project (CC BY 4.0): 510 commercial agreements filed with the SEC, annotated across 41 legal clause categories with verbatim spans and ground-truth negative absence labeling</div>',
+        '<div class="hero-subtitle">The Atticus Project (CC BY 4.0): commercial agreements filed with the SEC, annotated with clause spans and absence labels</div>',
         unsafe_allow_html=True,
     )
 
@@ -859,11 +879,7 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
         )
     else:
         # Top KPI Metrics Banner
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("SEC Edgar Contracts", f"{cuad_loader.count()}", "Commercial EDGAR")
-        m2.metric("Legal Categories", "41 Categories", "Expert-annotated")
-        m3.metric("Span Ground Truth", "100% Verbatim", "Exact start/end offsets")
-        m4.metric("Melville Negatives", "37+ per contract", "True absence baseline")
+        st.metric("SEC Edgar Contracts (loaded from CUADv1.json)", f"{cuad_loader.count()}")
 
         st.divider()
 
@@ -917,8 +933,8 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                             <div style="font-weight: 700; color: #38BDF8; font-size: 1.05rem; margin-top: 2px;">{contract_obj.title[:35]}...</div>
                             <div style="margin-top: 6px; font-size: 0.85rem; color: #E2E8F0;">
                                 📏 <strong>Length:</strong> {contract_obj.char_length:,} characters (~{contract_obj.char_length // 4:,} tokens)<br/>
-                                ✅ <strong>Present Clauses:</strong> {len(contract_obj.annotations)} / 41<br/>
-                                📜 <strong>Absent Categories:</strong> {len(contract_obj.absent_categories)} / 41
+                                ✅ <strong>Present Clauses:</strong> {len(contract_obj.annotations)} / {len(contract_obj.annotations) + len(contract_obj.absent_categories)}<br/>
+                                📜 <strong>Absent Categories:</strong> {len(contract_obj.absent_categories)} / {len(contract_obj.annotations) + len(contract_obj.absent_categories)}
                             </div>
                         </div>
                         """,
@@ -928,7 +944,7 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
             if contract_obj:
                 tab_cats, tab_rag, tab_sim, tab_raw = st.tabs(
                     [
-                        "📑 41 Clause Categories",
+                        "📑 Clause Categories",
                         "⚡ Live Hybrid RAG & Bartleby Playground",
                         "🧾 Simulated Procurement Audit",
                         "📜 Full SEC Contract Text",
@@ -942,7 +958,7 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                         cat_filter = st.radio(
                             "Filter Category Status",
                             [
-                                "All Categories (41)",
+                                "All Categories",
                                 "Present Clauses Only",
                                 "Absent Clauses Only (Bartleby Negatives)",
                             ],
