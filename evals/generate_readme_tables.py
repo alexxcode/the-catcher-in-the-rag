@@ -114,8 +114,8 @@ def generate_domain_calibration_table() -> str:
     table = f"""| Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\\tau$) | Macro F1 Validación | AUC-ROC Separabilidad | Desempeño Empírico en Transferencia |
 |---|---|:---:|:---:|:---:|---|
 | **Plantillas Sintéticas (+ Heurística 3a*)** | Datagen M1 (300 paquetes) | **{synth_t:.2f}** | **{synth_f1:.4f}** | **{synth_auc:.4f}** | F1 1.0000 debido a regex de denegación 3a ("under no circumstances"). Score puro sin 3a da F1 {pure_f1:.4f} (abstención {pure_abs:.1f}%). |
-| **Contratos SEC Reales (Transfer)** | CUAD v1 Train/Val (60/40) | **{synth_t:.2f}** (fijado) | **{val_synth:.4f}** | **{auc_val:.4f}** | **Sub-abstención:** ante ausencias solo abstiene {val_c_synth:.1f}%, dejando pasar el {100 - val_c_synth:.1f}% como alucinaciones. |
-| **Contratos SEC Reales (Recalibrado)** | CUAD v1 Train/Val (60/40) | **{cuad_t:.2f}** (recalibrado) | **{val_cuad:.4f}** | **{auc_val:.4f}** | Eleva abstención en ausencias a {val_c_opt:.1f}%, pero incrementa falsas abstenciones al {val_f_opt:.1f}% (vs clasificador ciego: {always_f1:.4f}). |"""
+| **Contratos SEC Reales (Transfer)** | CUAD v1, contratos 1–{cuad_data["total_contracts"]}, Train/Val 60/40 | **{synth_t:.2f}** (fijado) | **{val_synth:.4f}** | **{auc_val:.4f}** | Abstención correcta en ausencias {val_c_synth:.1f}% ({100 - val_c_synth:.1f}% pasan). |
+| **Contratos SEC Reales (Recalibrado)** | CUAD v1, contratos 1–{cuad_data["total_contracts"]}, Train/Val 60/40 | **{cuad_t:.2f}** (recalibrado, no aplicado) | **{val_cuad:.4f}** | **{auc_val:.4f}** | Abstención correcta {val_c_opt:.1f}%, falsas abstenciones {val_f_opt:.1f}% (Siempre Abstenerse: {always_f1:.4f}). |"""
     return table
 
 
@@ -304,13 +304,31 @@ def generate_domain_calibration_diagnosis() -> str:
     always_f1 = cuad_data["baseline_always_abstain"]["macro_f1"]
     delta_f1 = val_cuad - always_f1
 
-    text = f"""> **Diagnóstico Empírico Fundamental: El Límite de la Similitud Vectorial y Separabilidad AUC-ROC**
-> En datos sintéticos controlados, un umbral de relevancia $\\tau = {synth_t:.2f}$ logra un Macro F1 de **{synth_f1:.4f}** en validación retenida (gracias al filtro de negación explícita de la Condición #3a de Bartleby), aun cuando el puntaje de recuperación léxica por sí solo invierte la señal (AUC-ROC **{synth_auc:.4f}** debido al alto solapamiento de palabras clave en cláusulas que prohíben recargos). Sin embargo, al transferir directamente ese umbral a contratos reales de la SEC (CUAD, evaluado sobre 50 contratos con BM25 + embeddings stub; Train: 30, Val: 20, semilla 42):
+    n_tot = cuad_data["total_contracts"]
+    n_tr = cuad_data["train_contracts_count"]
+    n_va = cuad_data["val_contracts_count"]
+    emb = cuad_data["embedding_provider"]
+    tr_ci = cuad_data.get("auc_roc_train_ci95")
+    va_ci = cuad_data.get("auc_roc_val_ci95")
+
+    def ci_txt(ci: list[float] | None) -> str:
+        return f" [IC95 {ci[0]:.4f}–{ci[1]:.4f}]" if ci else " [IC no reportado]"
+
+    if va_ci and va_ci[0] <= 0.5 <= va_ci[1]:
+        auc_note = (
+            "el intervalo de validación incluye 0.50: no distinguible del azar en esta muestra."
+        )
+    elif va_ci:
+        auc_note = "el intervalo de validación excluye 0.50."
+    else:
+        auc_note = "sin intervalo, no se puede comparar con 0.50."
+
+    text = f"""> **Diagnóstico de calibración en CUAD** (`evals/reports/calibration_cuad_report.json`)
+> Sintético (referencia, no evidencia): $\\tau = {synth_t:.2f}$, Macro F1 validación {synth_f1:.4f}, AUC-ROC {synth_auc:.4f}.
+> CUAD: {n_tot} contratos (entrenamiento {n_tr}, validación {n_va}, semilla 42), embeddings `{emb}`.
 >
-> 1. **Colapso de Separabilidad:** El AUC-ROC no paramétrico (Wilcoxon-Mann-Whitney) es de **{auc_val:.4f}** en validación ({auc_train:.4f} en entrenamiento). Esto demuestra matemáticamente que la distribución de puntajes híbridos (BM25 + embeddings hash) entre cláusulas presentes y cláusulas ausentes es **casi indistinguible del azar** (~0.50).
-> 2. **Falso Óptimo y Clasificador Trivial:** A $\\tau = {synth_t:.2f}$, Bartleby sufre de **sub-abstención** (deja pasar el {100 - val_c_synth:.1f}% de ausencias). Al barrer la rejilla de 0.20 a 0.90, elevar el umbral a $\\tau = {cuad_t:.2f}$ eleva la abstención en ausencias al {val_c_opt:.1f}%, mejorando el Macro F1 a {val_cuad:.4f}, pero a costa de rechazar erróneamente el {val_f_opt:.1f}% de las cláusulas presentes. Además, este desempeño apenas supera en un marginal {delta_f1:.2f} al clasificador trivial ciego ("Siempre Abstenerse", Macro F1 = {always_f1:.4f}).
->
-> **Conclusión Arquitectónica:** Ningún umbral estático sobre recuperación basada en BM25 / embeddings de hash es suficiente para gobernar contratos comerciales reales. Este resultado justifica y motiva la **Condición #3 de Bartleby: Verificación Semántica por LLM (`verify_relevance_with_llm`)**, evaluada en [`evals/reports/bartleby_llm_verification_report.json`](evals/reports/bartleby_llm_verification_report.json), donde el modelo evalúa materialmente la pertinencia semántica del pasaje antes de validar la evidencia contractual."""
+> 1. **AUC-ROC (Wilcoxon-Mann-Whitney):** entrenamiento {auc_train:.4f}{ci_txt(tr_ci)}; validación {auc_val:.4f}{ci_txt(va_ci)}; {auc_note}
+> 2. **Umbral:** a $\\tau = {synth_t:.2f}$ la abstención correcta en ausencias de validación es {val_c_synth:.1f}%. A $\\tau = {cuad_t:.2f}$ (óptimo de entrenamiento) es {val_c_opt:.1f}%, con {val_f_opt:.1f}% de falsas abstenciones y Macro F1 {val_cuad:.4f} (Siempre Abstenerse: {always_f1:.4f}; diferencia {delta_f1:+.4f})."""
     return text
 
 

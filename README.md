@@ -8,8 +8,8 @@ Auditor determinista de compras corporativas (procurement) con verificación con
 - **Ejecución:** Pruebas offline con `make test`, puerta completa con `make verify`, UI en `make run-ui` (puerto 8501) y API en `make run-api` (puerto 8000).
 
 ## Limitaciones
-- Embeddings stub (`stub-hash-768d`) en las mediciones de CUAD salvo la sección 4 (`text-embedding-005`); la Regla 3a es una heurística de plantilla sintética; los datos sintéticos no constituyen evidencia empírica de producción.
-- **NOT MEASURED:** Bartleby recalibrado con embeddings reales y latencia en red distribuida.
+- Embeddings stub (`stub-hash-768d`) en las mediciones de CUAD salvo la calibración (sección 2, contratos 1–15) y la sección 4 (`text-embedding-005`); la Regla 3a es una heurística de plantilla sintética; los datos sintéticos no constituyen evidencia empírica de producción.
+- **NOT MEASURED:** abstención fuera de muestra (contratos 16–50) con el τ recalibrado, y latencia en red distribuida. El τ recalibrado no está aplicado en `config/thresholds.yaml`.
 - **Reranker:** no medido, desactivado.
 
 ## Resultados Medidos
@@ -27,22 +27,21 @@ Auditor determinista de compras corporativas (procurement) con verificación con
 | **Falsa Afirmación Espuria** | **48.5%** | NOT MEASURED | — | Riesgo residual de afirmar falsamente una penalización inexistente. |
 <!-- /GEN -->
 
-### 2. Calibración de Dominio (`make calibrate-cuad` -> `evals/reports/calibration_cuad_report.json`)
+### 2. Calibración de Dominio (`MAX_LIVE_CALLS=80 uv run python -m evals.calibrate_cuad --embedding-provider vertex_ai` -> `evals/reports/calibration_cuad_report.json`)
 <!-- GEN:domain_calibration_table -->
 | Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\tau$) | Macro F1 Validación | AUC-ROC Separabilidad | Desempeño Empírico en Transferencia |
 |---|---|:---:|:---:|:---:|---|
 | **Plantillas Sintéticas (+ Heurística 3a*)** | Datagen M1 (300 paquetes) | **0.50** | **1.0000** | **0.1204** | F1 1.0000 debido a regex de denegación 3a ("under no circumstances"). Score puro sin 3a da F1 0.4737 (abstención 0.0%). |
-| **Contratos SEC Reales (Transfer)** | CUAD v1 Train/Val (60/40) | **0.50** (fijado) | **0.4418** | **0.5552** | **Sub-abstención:** ante ausencias solo abstiene 26.9%, dejando pasar el 73.1% como alucinaciones. |
-| **Contratos SEC Reales (Recalibrado)** | CUAD v1 Train/Val (60/40) | **0.80** (recalibrado) | **0.4982** | **0.5552** | Eleva abstención en ausencias a 80.8%, pero incrementa falsas abstenciones al 80.6% (vs clasificador ciego: 0.4262). |
+| **Contratos SEC Reales (Transfer)** | CUAD v1, contratos 1–15, Train/Val 60/40 | **0.50** (fijado) | **0.4496** | **0.5909** | Abstención correcta en ausencias 25.8% (74.2% pasan). |
+| **Contratos SEC Reales (Recalibrado)** | CUAD v1, contratos 1–15, Train/Val 60/40 | **0.80** (recalibrado, no aplicado) | **0.5457** | **0.5909** | Abstención correcta 54.8%, falsas abstenciones 36.4% (Siempre Abstenerse: 0.4247). |
 <!-- /GEN -->
 <!-- GEN:domain_calibration_diagnosis -->
-> **Diagnóstico Empírico Fundamental: El Límite de la Similitud Vectorial y Separabilidad AUC-ROC**
-> En datos sintéticos controlados, un umbral de relevancia $\tau = 0.50$ logra un Macro F1 de **1.0000** en validación retenida (gracias al filtro de negación explícita de la Condición #3a de Bartleby), aun cuando el puntaje de recuperación léxica por sí solo invierte la señal (AUC-ROC **0.1204** debido al alto solapamiento de palabras clave en cláusulas que prohíben recargos). Sin embargo, al transferir directamente ese umbral a contratos reales de la SEC (CUAD, evaluado sobre 50 contratos con BM25 + embeddings stub; Train: 30, Val: 20, semilla 42):
+> **Diagnóstico de calibración en CUAD** (`evals/reports/calibration_cuad_report.json`)
+> Sintético (referencia, no evidencia): $\tau = 0.50$, Macro F1 validación 1.0000, AUC-ROC 0.1204.
+> CUAD: 15 contratos (entrenamiento 9, validación 6, semilla 42), embeddings `text-embedding-005`.
 >
-> 1. **Colapso de Separabilidad:** El AUC-ROC no paramétrico (Wilcoxon-Mann-Whitney) es de **0.5552** en validación (0.4940 en entrenamiento). Esto demuestra matemáticamente que la distribución de puntajes híbridos (BM25 + embeddings hash) entre cláusulas presentes y cláusulas ausentes es **casi indistinguible del azar** (~0.50).
-> 2. **Falso Óptimo y Clasificador Trivial:** A $\tau = 0.50$, Bartleby sufre de **sub-abstención** (deja pasar el 73.1% de ausencias). Al barrer la rejilla de 0.20 a 0.90, elevar el umbral a $\tau = 0.80$ eleva la abstención en ausencias al 80.8%, mejorando el Macro F1 a 0.4982, pero a costa de rechazar erróneamente el 80.6% de las cláusulas presentes. Además, este desempeño apenas supera en un marginal 0.07 al clasificador trivial ciego ("Siempre Abstenerse", Macro F1 = 0.4262).
->
-> **Conclusión Arquitectónica:** Ningún umbral estático sobre recuperación basada en BM25 / embeddings de hash es suficiente para gobernar contratos comerciales reales. Este resultado justifica y motiva la **Condición #3 de Bartleby: Verificación Semántica por LLM (`verify_relevance_with_llm`)**, evaluada en [`evals/reports/bartleby_llm_verification_report.json`](evals/reports/bartleby_llm_verification_report.json), donde el modelo evalúa materialmente la pertinencia semántica del pasaje antes de validar la evidencia contractual.
+> 1. **AUC-ROC (Wilcoxon-Mann-Whitney):** entrenamiento 0.7708 [IC95 0.6202–0.9214]; validación 0.5909 [IC95 0.3885–0.7933]; el intervalo de validación incluye 0.50: no distinguible del azar en esta muestra.
+> 2. **Umbral:** a $\tau = 0.50$ la abstención correcta en ausencias de validación es 25.8%. A $\tau = 0.80$ (óptimo de entrenamiento) es 54.8%, con 36.4% de falsas abstenciones y Macro F1 0.5457 (Siempre Abstenerse: 0.4247; diferencia +0.1210).
 <!-- /GEN -->
 
 ### 3. Verificación Semántica LLM (`make eval-bartleby-llm` -> `evals/reports/bartleby_llm_verification_report.json`)
