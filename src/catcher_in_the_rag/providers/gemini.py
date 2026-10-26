@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import sqlite3
 import time
@@ -25,6 +26,14 @@ def _safe_int(val: Any) -> int:
 
 
 _live_calls_used = 0
+
+
+# Embedding request limits (lower EMBED_BATCH_MAX_TEXTS to 25 if Vertex rejects the size).
+EMBED_BATCH_MAX_TEXTS = 50
+EMBED_BATCH_MAX_TOKENS = 20_000
+EMBED_BATCH_PAUSE_SECONDS = 2.0
+EMBED_429_WAIT_SECONDS = 30.0
+EMBED_MAX_429_RETRIES = 5
 
 
 def _raw_run_id(owner: Any) -> str:
@@ -525,35 +534,40 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
         latency_ms: float,
         task_type: str,
         query: str | None,
+        status: str | None = None,
     ) -> None:
-        """Same raw log as generation calls; embedding vectors are not stored."""
+        """Same raw log as generation calls; embedding vectors are not stored.
+
+        Failed attempts are logged with ``status`` (e.g. "429") and SDK fields as null.
+        """
         meta = getattr(response, "metadata", None)
         billable = getattr(meta, "billable_character_count", None) if meta else None
         stats = [getattr(e, "statistics", None) for e in embeddings]
         tok = [getattr(st, "token_count", None) for st in stats if st is not None]
         raw_ver = getattr(response, "model_version", None)
         raw_id = getattr(response, "response_id", None)
-        _append_raw_record(
-            {
-                "run_id": _raw_run_id(self),
-                "timestamp_utc": datetime.now(UTC).isoformat(),
-                "call_type": "embedding",
-                "model_id": self.model_id,
-                "task_type": task_type,
-                "prompt_sha256": hashlib.sha256("\n".join(texts).encode("utf-8")).hexdigest(),
-                "input_sha256": [hashlib.sha256(t.encode("utf-8")).hexdigest() for t in texts],
-                "num_inputs": len(texts),
-                "input_chars": sum(len(t) for t in texts),
-                "billable_character_count": _safe_int(billable) if billable is not None else None,
-                "input_tokens": int(sum(tok)) if tok and None not in tok else None,
-                "response_text": None,
-                "response_id": raw_id if isinstance(raw_id, str) else None,
-                "model_version": raw_ver if isinstance(raw_ver, str) else None,
-                "embedding_dims": self.dimensionality,
-                "latency_ms": round(latency_ms, 2),
-                "query": query,
-            }
-        )
+        record: dict[str, Any] = {
+            "run_id": _raw_run_id(self),
+            "timestamp_utc": datetime.now(UTC).isoformat(),
+            "call_type": "embedding",
+            "model_id": self.model_id,
+            "task_type": task_type,
+            "prompt_sha256": hashlib.sha256("\n".join(texts).encode("utf-8")).hexdigest(),
+            "input_sha256": [hashlib.sha256(t.encode("utf-8")).hexdigest() for t in texts],
+            "num_inputs": len(texts),
+            "input_chars": sum(len(t) for t in texts),
+            "billable_character_count": _safe_int(billable) if billable is not None else None,
+            "input_tokens": int(sum(tok)) if tok and None not in tok else None,
+            "response_text": None,
+            "response_id": raw_id if isinstance(raw_id, str) else None,
+            "model_version": raw_ver if isinstance(raw_ver, str) else None,
+            "embedding_dims": self.dimensionality,
+            "latency_ms": round(latency_ms, 2),
+            "query": query,
+        }
+        if status is not None:
+            record["status"] = status
+        _append_raw_record(record)
 
     def _ensure_init(self) -> None:
         if self._model is not None or self._genai_client is not None:
@@ -589,80 +603,85 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
             )
             raise ImportError(msg) from err
 
-    def embed_texts(
-        self, texts: list[str], batch_size: int = 10, pace_delay_seconds: float = 0.2
+    def _embed_with_retry(
+        self, texts: list[str], task_type: str, query: str | None = None
     ) -> list[list[float]]:
-        """Embed a batch of document texts with persistent disk caching and quota pacing."""
+        """One embedding request; on 429 wait and retry. Every attempt counts against MAX_LIVE_CALLS."""
+        for attempt in range(EMBED_MAX_429_RETRIES + 1):
+            _consume_live_call()
+            t0 = time.perf_counter()
+            try:
+                if self._use_genai:
+                    res = self._genai_client.models.embed_content(
+                        model=self.model_id,
+                        contents=texts,
+                        config={"output_dimensionality": self.dimensionality},
+                    )
+                    resp, emb_objs = res, list(res.embeddings)
+                else:
+                    from vertexai.language_models import TextEmbeddingInput
+
+                    inputs = [TextEmbeddingInput(text=t, task_type=task_type) for t in texts]
+                    resp = None
+                    emb_objs = list(
+                        self._model.get_embeddings(
+                            inputs, output_dimensionality=self.dimensionality
+                        )
+                    )
+            except Exception as err:
+                err_str = str(err).lower()
+                if "429" not in err_str and "resource_exhausted" not in err_str:
+                    raise
+                self._log_raw_embedding(
+                    texts, None, [], (time.perf_counter() - t0) * 1000, task_type, query, "429"
+                )
+                if attempt == EMBED_MAX_429_RETRIES:
+                    raise
+                time.sleep(EMBED_429_WAIT_SECONDS)
+                continue
+            self._log_raw_embedding(
+                texts, resp, emb_objs, (time.perf_counter() - t0) * 1000, task_type, query
+            )
+            return [list(e.values) for e in emb_objs]
+        return []
+
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        """Embed document texts with disk caching; batches of <= EMBED_BATCH_MAX_TEXTS texts
+        and <= EMBED_BATCH_MAX_TOKENS estimated tokens (chars / 4), paced between batches."""
         if not texts:
             return []
 
-        # 1. Check disk cache for each text
         results: list[list[float] | None] = [self._get_cached(t) for t in texts]
         missing_indices = [i for i, r in enumerate(results) if r is None]
-
         if not missing_indices:
-            # Complete cache hit! 0 external API calls needed
             return [r for r in results if r is not None]
 
         self._ensure_init()
 
-        # 2. Fetch missing texts in batches with pacing
-        for chunk_start in range(0, len(missing_indices), batch_size):
-            chunk_indices = missing_indices[chunk_start : chunk_start + batch_size]
+        batches: list[list[int]] = []
+        current: list[int] = []
+        current_tokens = 0
+        for idx in missing_indices:
+            est = math.ceil(len(texts[idx][:6000]) / 4)
+            if current and (
+                len(current) >= EMBED_BATCH_MAX_TEXTS
+                or current_tokens + est > EMBED_BATCH_MAX_TOKENS
+            ):
+                batches.append(current)
+                current, current_tokens = [], 0
+            current.append(idx)
+            current_tokens += est
+        if current:
+            batches.append(current)
+
+        for n, chunk_indices in enumerate(batches):
+            if n > 0:
+                time.sleep(EMBED_BATCH_PAUSE_SECONDS)
             batch_texts = [texts[idx][:6000] for idx in chunk_indices]
-            max_retries = 5
-            batch_embeddings: list[list[float]] = []
-
-            for attempt in range(max_retries):
-                _consume_live_call()
-                try:
-                    t0 = time.perf_counter()
-                    if self._use_genai:
-                        res = self._genai_client.models.embed_content(
-                            model=self.model_id,
-                            contents=batch_texts,
-                            config={"output_dimensionality": self.dimensionality},
-                        )
-                        batch_embeddings = [list(e.values) for e in res.embeddings]
-                        resp, emb_objs = res, list(res.embeddings)
-                    else:
-                        from vertexai.language_models import TextEmbeddingInput
-
-                        inputs = [
-                            TextEmbeddingInput(text=t, task_type="RETRIEVAL_DOCUMENT")
-                            for t in batch_texts
-                        ]
-                        embeddings = self._model.get_embeddings(
-                            inputs, output_dimensionality=self.dimensionality
-                        )
-                        batch_embeddings = [list(e.values) for e in embeddings]
-                        resp, emb_objs = None, list(embeddings)
-                    self._log_raw_embedding(
-                        batch_texts,
-                        resp,
-                        emb_objs,
-                        (time.perf_counter() - t0) * 1000,
-                        "RETRIEVAL_DOCUMENT",
-                        None,
-                    )
-                    break
-                except Exception as err:
-                    err_str = str(err).lower()
-                    if (
-                        "429" in err_str or "quota" in err_str or "resource" in err_str
-                    ) and attempt < max_retries - 1:
-                        backoff = 2.0 * (2**attempt)
-                        time.sleep(backoff)
-                        continue
-                    raise
-
-            # Store in cache and update results
+            batch_embeddings = self._embed_with_retry(batch_texts, "RETRIEVAL_DOCUMENT")
             for idx, emb in zip(chunk_indices, batch_embeddings, strict=False):
                 results[idx] = emb
                 self._put_cached(texts[idx], emb)
-
-            if chunk_start + batch_size < len(missing_indices):
-                time.sleep(pace_delay_seconds)
 
         return [r or [] for r in results]
 
@@ -674,46 +693,6 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
             return cached
 
         self._ensure_init()
-        max_retries = 5
-        for attempt in range(max_retries):
-            _consume_live_call()
-            try:
-                t0 = time.perf_counter()
-                if self._use_genai:
-                    res = self._genai_client.models.embed_content(
-                        model=self.model_id,
-                        contents=query[:6000],
-                        config={"output_dimensionality": self.dimensionality},
-                    )
-                    emb = list(res.embeddings[0].values)
-                    resp, emb_objs = res, list(res.embeddings)
-                else:
-                    from vertexai.language_models import TextEmbeddingInput
-
-                    inputs = [TextEmbeddingInput(text=query[:6000], task_type="RETRIEVAL_QUERY")]
-                    embeddings = self._model.get_embeddings(
-                        inputs, output_dimensionality=self.dimensionality
-                    )
-                    emb = list(embeddings[0].values)
-                    resp, emb_objs = None, list(embeddings)
-                self._log_raw_embedding(
-                    [query[:6000]],
-                    resp,
-                    emb_objs,
-                    (time.perf_counter() - t0) * 1000,
-                    "RETRIEVAL_QUERY",
-                    query,
-                )
-
-                self._put_cached(cache_key, emb)
-                return emb
-            except Exception as err:
-                err_str = str(err).lower()
-                if (
-                    "429" in err_str or "quota" in err_str or "resource" in err_str
-                ) and attempt < max_retries - 1:
-                    backoff = 2.0 * (2**attempt)
-                    time.sleep(backoff)
-                    continue
-                raise
-        return []
+        emb = self._embed_with_retry([query[:6000]], "RETRIEVAL_QUERY", query)[0]
+        self._put_cached(cache_key, emb)
+        return emb
