@@ -39,3 +39,11 @@ models:
     prompt_cost_per_1m: 1.25
     candidate_cost_per_1m: 5.00
     description: "Legacy Gemini 1.5 Pro promotional pricing (pre-retirement)"
+
+# ── Embeddings (billed per input character, not per token) ───────────────────
+# Source: https://cloud.google.com/vertex-ai/generative-ai/pricing
+# Rate supplied by the operator on 2026-10-26 (date consulted); not re-checked by the agent.
+embeddings:
+  text-embedding-005:
+    cost_per_1k_characters: 0.000025
+    description: "Vertex AI text-embedding-005, $0.000025 per 1,000 input characters"
