@@ -1,301 +1,309 @@
 {
-  "timestamp": "2026-10-25T01:33:31.381328+00:00",
-  "git_commit_sha": "d98c68be282bfdc15b367890460f5204e18192c5",
+  "timestamp": "2026-10-26T05:16:39.432403+00:00",
+  "git_commit_sha": "c03ae184ff560bf0ad3451f3e580671c7b1c6594",
   "git_dirty": false,
-  "command": "calibrate_cuad.py",
-  "total_contracts": 50,
-  "train_contracts_count": 30,
-  "val_contracts_count": 20,
-  "embedding_provider": "stub-hash-768d",
-  "auc_roc_train": 0.494,
-  "auc_roc_val": 0.5552,
+  "command": "calibrate_cuad.py --embedding-provider vertex_ai",
+  "total_contracts": 15,
+  "train_contracts_count": 9,
+  "val_contracts_count": 6,
+  "embedding_provider": "text-embedding-005",
+  "auc_roc_train": 0.7708,
+  "auc_roc_val": 0.5909,
   "synthetic_optimal_threshold": 0.5,
   "cuad_optimal_threshold": 0.8,
-  "optimal_f1_train": 0.4704,
-  "train_f1_at_synthetic_threshold": 0.3576,
-  "validation_f1_at_optimal": 0.4982,
-  "validation_f1_at_synthetic_threshold": 0.4418,
-  "val_correct_abstention_at_synthetic": 0.2692,
-  "val_false_abstention_at_synthetic": 0.0556,
-  "val_correct_abstention_at_optimal": 0.8077,
-  "val_false_abstention_at_optimal": 0.8056,
+  "optimal_f1_train": 0.6646,
+  "train_f1_at_synthetic_threshold": 0.4439,
+  "validation_f1_at_optimal": 0.5457,
+  "validation_f1_at_synthetic_threshold": 0.4496,
+  "val_correct_abstention_at_synthetic": 0.2581,
+  "val_false_abstention_at_synthetic": 0.0,
+  "val_correct_abstention_at_optimal": 0.5484,
+  "val_false_abstention_at_optimal": 0.3636,
   "baseline_always_abstain": {
     "description": "Blind Reject (always declines, tau -> inf)",
     "correct_abstention_rate": 1.0,
     "false_abstention_rate": 1.0,
-    "macro_f1": 0.4262
+    "macro_f1": 0.4247
   },
   "baseline_never_abstain": {
     "description": "Blind Accept (never declines, tau -> 0)",
     "correct_abstention_rate": 0.0,
     "false_abstention_rate": 0.0,
-    "macro_f1": 0.2045
+    "macro_f1": 0.2075
   },
-  "domain_gap_analysis": "At synthetic threshold tau=0.50, Bartleby under-abstains on absent clauses: it correctly abstains on only 26.9% of absences in validation, leaving through 73.1% of missing clauses (hallucination vulnerability). Raising threshold to tau=0.80 increases validation correct abstention to 80.8%, but incurs 80.6% false abstentions on present clauses. AUC-ROC is 0.5552 (near-uninformative separability), and optimal Macro F1 (0.4982) exceeds the trivial Always-Abstain baseline (0.4262) by only marginal gap. Vector similarity alone cannot reliably guard real contracts, proving the necessity of Condition 3 LLM verification.",
+  "domain_gap_analysis": "At synthetic threshold tau=0.50, validation correct abstention on absent clauses is 25.8% (74.2% of absences pass). At calibrated tau=0.80, validation correct abstention is 54.8% with 36.4% false abstentions on present clauses. Validation AUC-ROC is 0.5909 (95% CI 0.3885-0.7933); optimal Macro F1 is 0.5457 vs Always-Abstain baseline 0.4247.",
   "candidates": [
     {
       "min_relevance_score": 0.2,
       "min_evidence_spans": 1,
       "correct_abstentions": 0,
-      "total_absences": 145,
+      "total_absences": 48,
       "abstention_rate": 0.0,
       "abstention_rate_ci": [
         0.0,
-        0.0258
+        0.0741
       ],
       "false_abstentions": 0,
-      "total_presences": 65,
+      "total_presences": 15,
       "false_abstention_rate": 0.0,
       "false_abstention_rate_ci": [
         0.0,
-        0.0558
+        0.2039
       ],
       "precision": 0.0,
       "recall": 0.0,
-      "f1_score": 0.2364,
+      "f1_score": 0.1923,
       "is_optimal": false
     },
     {
       "min_relevance_score": 0.3,
       "min_evidence_spans": 1,
-      "correct_abstentions": 2,
-      "total_absences": 145,
-      "abstention_rate": 0.0138,
+      "correct_abstentions": 3,
+      "total_absences": 48,
+      "abstention_rate": 0.0625,
       "abstention_rate_ci": [
-        0.0038,
-        0.0489
+        0.0215,
+        0.1684
       ],
       "false_abstentions": 0,
-      "total_presences": 65,
+      "total_presences": 15,
       "false_abstention_rate": 0.0,
       "false_abstention_rate_ci": [
         0.0,
-        0.0558
+        0.2039
       ],
       "precision": 1.0,
-      "recall": 0.0138,
-      "f1_score": 0.2517,
+      "recall": 0.0625,
+      "f1_score": 0.2588,
       "is_optimal": false
     },
     {
       "min_relevance_score": 0.4,
       "min_evidence_spans": 1,
       "correct_abstentions": 12,
-      "total_absences": 145,
-      "abstention_rate": 0.0828,
+      "total_absences": 48,
+      "abstention_rate": 0.25,
       "abstention_rate_ci": [
-        0.048,
-        0.1391
+        0.1492,
+        0.3878
       ],
-      "false_abstentions": 4,
-      "total_presences": 65,
-      "false_abstention_rate": 0.0615,
+      "false_abstentions": 0,
+      "total_presences": 15,
+      "false_abstention_rate": 0.0,
       "false_abstention_rate_ci": [
-        0.0242,
-        0.1478
+        0.0,
+        0.2039
       ],
-      "precision": 0.75,
-      "recall": 0.0828,
-      "f1_score": 0.3101,
+      "precision": 1.0,
+      "recall": 0.25,
+      "f1_score": 0.4273,
       "is_optimal": false
     },
     {
       "min_relevance_score": 0.5,
       "min_evidence_spans": 1,
-      "correct_abstentions": 20,
-      "total_absences": 145,
-      "abstention_rate": 0.1379,
+      "correct_abstentions": 13,
+      "total_absences": 48,
+      "abstention_rate": 0.2708,
       "abstention_rate_ci": [
-        0.0911,
-        0.2035
+        0.1657,
+        0.41
       ],
-      "false_abstentions": 5,
-      "total_presences": 65,
-      "false_abstention_rate": 0.0769,
+      "false_abstentions": 0,
+      "total_presences": 15,
+      "false_abstention_rate": 0.0,
       "false_abstention_rate_ci": [
-        0.0333,
-        0.1678
+        0.0,
+        0.2039
       ],
-      "precision": 0.8,
-      "recall": 0.1379,
-      "f1_score": 0.3576,
+      "precision": 1.0,
+      "recall": 0.2708,
+      "f1_score": 0.4439,
       "is_optimal": false
     },
     {
       "min_relevance_score": 0.55,
       "min_evidence_spans": 1,
-      "correct_abstentions": 25,
-      "total_absences": 145,
-      "abstention_rate": 0.1724,
+      "correct_abstentions": 13,
+      "total_absences": 48,
+      "abstention_rate": 0.2708,
       "abstention_rate_ci": [
-        0.1196,
-        0.2421
+        0.1657,
+        0.41
       ],
-      "false_abstentions": 8,
-      "total_presences": 65,
-      "false_abstention_rate": 0.1231,
+      "false_abstentions": 0,
+      "total_presences": 15,
+      "false_abstention_rate": 0.0,
       "false_abstention_rate_ci": [
-        0.0637,
-        0.2245
+        0.0,
+        0.2039
       ],
-      "precision": 0.7576,
-      "recall": 0.1724,
-      "f1_score": 0.376,
+      "precision": 1.0,
+      "recall": 0.2708,
+      "f1_score": 0.4439,
       "is_optimal": false
     },
     {
       "min_relevance_score": 0.6,
       "min_evidence_spans": 1,
-      "correct_abstentions": 31,
-      "total_absences": 145,
-      "abstention_rate": 0.2138,
+      "correct_abstentions": 14,
+      "total_absences": 48,
+      "abstention_rate": 0.2917,
       "abstention_rate_ci": [
-        0.1549,
-        0.2875
+        0.1824,
+        0.4318
       ],
-      "false_abstentions": 10,
-      "total_presences": 65,
-      "false_abstention_rate": 0.1538,
+      "false_abstentions": 0,
+      "total_presences": 15,
+      "false_abstention_rate": 0.0,
       "false_abstention_rate_ci": [
-        0.0858,
-        0.2606
+        0.0,
+        0.2039
       ],
-      "precision": 0.7561,
-      "recall": 0.2138,
-      "f1_score": 0.4017,
+      "precision": 1.0,
+      "recall": 0.2917,
+      "f1_score": 0.4602,
       "is_optimal": false
     },
     {
       "min_relevance_score": 0.65,
       "min_evidence_spans": 1,
-      "correct_abstentions": 44,
-      "total_absences": 145,
-      "abstention_rate": 0.3034,
+      "correct_abstentions": 15,
+      "total_absences": 48,
+      "abstention_rate": 0.3125,
       "abstention_rate_ci": [
-        0.2345,
-        0.3826
+        0.1995,
+        0.4533
       ],
-      "false_abstentions": 13,
-      "total_presences": 65,
-      "false_abstention_rate": 0.2,
+      "false_abstentions": 0,
+      "total_presences": 15,
+      "false_abstention_rate": 0.0,
       "false_abstention_rate_ci": [
-        0.1208,
-        0.3127
+        0.0,
+        0.2039
       ],
-      "precision": 0.7719,
-      "recall": 0.3034,
-      "f1_score": 0.4564,
+      "precision": 1.0,
+      "recall": 0.3125,
+      "f1_score": 0.4762,
       "is_optimal": false
     },
     {
       "min_relevance_score": 0.7,
       "min_evidence_spans": 1,
-      "correct_abstentions": 51,
-      "total_absences": 145,
-      "abstention_rate": 0.3517,
+      "correct_abstentions": 19,
+      "total_absences": 48,
+      "abstention_rate": 0.3958,
       "abstention_rate_ci": [
-        0.2787,
-        0.4324
+        0.2702,
+        0.5369
       ],
-      "false_abstentions": 21,
-      "total_presences": 65,
-      "false_abstention_rate": 0.3231,
+      "false_abstentions": 0,
+      "total_presences": 15,
+      "false_abstention_rate": 0.0,
       "false_abstention_rate_ci": [
-        0.222,
-        0.4439
+        0.0,
+        0.2039
       ],
-      "precision": 0.7083,
-      "recall": 0.3517,
-      "f1_score": 0.4518,
+      "precision": 1.0,
+      "recall": 0.3958,
+      "f1_score": 0.5378,
       "is_optimal": false
     },
     {
       "min_relevance_score": 0.75,
       "min_evidence_spans": 1,
-      "correct_abstentions": 71,
-      "total_absences": 145,
-      "abstention_rate": 0.4897,
+      "correct_abstentions": 23,
+      "total_absences": 48,
+      "abstention_rate": 0.4792,
       "abstention_rate_ci": [
-        0.4096,
-        0.5702
+        0.3447,
+        0.6167
       ],
-      "false_abstentions": 34,
-      "total_presences": 65,
-      "false_abstention_rate": 0.5231,
+      "false_abstentions": 2,
+      "total_presences": 15,
+      "false_abstention_rate": 0.1333,
       "false_abstention_rate_ci": [
-        0.4038,
-        0.6398
+        0.0374,
+        0.3788
       ],
-      "precision": 0.6762,
-      "recall": 0.4897,
-      "f1_score": 0.4664,
+      "precision": 0.92,
+      "recall": 0.4792,
+      "f1_score": 0.5604,
       "is_optimal": false
     },
     {
       "min_relevance_score": 0.8,
       "min_evidence_spans": 1,
-      "correct_abstentions": 112,
-      "total_absences": 145,
-      "abstention_rate": 0.7724,
+      "correct_abstentions": 32,
+      "total_absences": 48,
+      "abstention_rate": 0.6667,
       "abstention_rate_ci": [
-        0.6977,
-        0.8331
+        0.5254,
+        0.7832
       ],
-      "false_abstentions": 53,
-      "total_presences": 65,
-      "false_abstention_rate": 0.8154,
+      "false_abstentions": 3,
+      "total_presences": 15,
+      "false_abstention_rate": 0.2,
       "false_abstention_rate_ci": [
-        0.7045,
-        0.8911
+        0.0705,
+        0.4519
       ],
-      "precision": 0.6788,
-      "recall": 0.7724,
-      "f1_score": 0.4704,
+      "precision": 0.9143,
+      "recall": 0.6667,
+      "f1_score": 0.6646,
       "is_optimal": true
     },
     {
       "min_relevance_score": 0.85,
       "min_evidence_spans": 1,
-      "correct_abstentions": 140,
-      "total_absences": 145,
-      "abstention_rate": 0.9655,
+      "correct_abstentions": 41,
+      "total_absences": 48,
+      "abstention_rate": 0.8542,
       "abstention_rate_ci": [
-        0.9218,
-        0.9852
+        0.7283,
+        0.9275
       ],
-      "false_abstentions": 63,
-      "total_presences": 65,
-      "false_abstention_rate": 0.9692,
+      "false_abstentions": 11,
+      "total_presences": 15,
+      "false_abstention_rate": 0.7333,
       "false_abstention_rate_ci": [
-        0.8946,
-        0.9915
+        0.4805,
+        0.891
       ],
-      "precision": 0.6897,
-      "recall": 0.9655,
-      "f1_score": 0.4301,
+      "precision": 0.7885,
+      "recall": 0.8542,
+      "f1_score": 0.5638,
       "is_optimal": false
     },
     {
       "min_relevance_score": 0.9,
       "min_evidence_spans": 1,
-      "correct_abstentions": 145,
-      "total_absences": 145,
+      "correct_abstentions": 48,
+      "total_absences": 48,
       "abstention_rate": 1.0,
       "abstention_rate_ci": [
-        0.9742,
+        0.9259,
         1.0
       ],
-      "false_abstentions": 65,
-      "total_presences": 65,
-      "false_abstention_rate": 1.0,
+      "false_abstentions": 14,
+      "total_presences": 15,
+      "false_abstention_rate": 0.9333,
       "false_abstention_rate_ci": [
-        0.9442,
-        1.0
+        0.7018,
+        0.9881
       ],
-      "precision": 0.6905,
+      "precision": 0.7742,
       "recall": 1.0,
-      "f1_score": 0.4085,
+      "f1_score": 0.4989,
       "is_optimal": false
     }
+  ],
+  "auc_roc_train_ci95": [
+    0.6202,
+    0.9214
+  ],
+  "auc_roc_val_ci95": [
+    0.3885,
+    0.7933
   ]
 }
