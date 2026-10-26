@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-10-26T05:32:35.249891+00:00",
-  "git_commit_sha": "508b5019f32d8a0d1e1b91bdf63c4b114f9e7fab",
+  "timestamp": "2026-10-26T09:48:53.129338+00:00",
+  "git_commit_sha": "5d8c04b48bcac039335e404018600a7a05f2b1bc",
   "git_dirty": false,
   "command": "eval_out_of_sample.py --start 15 --end 50 --embedding-provider vertex_ai --llm-provider stub --tau 0.50",
   "tau_override": 0.5,
@@ -42,7 +42,7 @@
       "miss_rejection_rate": 0.0
     },
     "performance": {
-      "mean_latency_ms": 16.8,
+      "mean_latency_ms": 10.5,
       "prompt_tokens": 0,
       "candidate_tokens": 0
     }
