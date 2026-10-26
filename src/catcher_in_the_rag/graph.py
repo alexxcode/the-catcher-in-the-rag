@@ -89,7 +89,6 @@ def create_extract_node(
             "package_id": pkg.package_id,
             "package": pkg,
             "llm_extraction_failed": llm_extraction_failed,
-            "requires_human_review": llm_extraction_failed,
         }
 
     return extract_node
@@ -140,12 +139,11 @@ def create_policy_node(policy_engine: PolicyEngine) -> NodeFn:
             findings=findings,
             bartleby_abstained=abstained,
             bartleby_reason=reason,
+            extraction_failed=state.get("llm_extraction_failed", False),
         )
-        # Extraction failure is decided once, in the extract node; carry it forward.
         return {
             "decision": decision,
-            "requires_human_review": state.get("requires_human_review", False)
-            or decision.requires_human_review,
+            "requires_human_review": decision.requires_human_review,
         }
 
     return policy_node

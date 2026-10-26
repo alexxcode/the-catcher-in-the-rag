@@ -8,6 +8,7 @@ Verifies that:
 
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -16,6 +17,7 @@ import pytest
 
 from catcher_in_the_rag.graph import audit_pipeline
 from catcher_in_the_rag.providers.gemini import GeminiProvider
+from catcher_in_the_rag.providers.stub import StubLLMProvider
 
 
 class MockFailingClient:
@@ -146,18 +148,20 @@ def test_llm_fatal_error_does_not_silently_approve() -> None:
             "auto_renew": False,
             "late_delivery_penalty_pct_per_day": 0.0,
             "rate_sheet": [{"item_id": "I1", "description": "Item", "max_unit_price": 1000.0}],
-            "raw_text": "Non-standard unstructured legal text that requires LLM parsing.",
+            "raw_text": (
+                'This Agreement remains in force until 2027-01-01 ("Expiration Date"). '
+                "All invoices are payable Net 30 days."
+            ),
         },
     }
 
-    # If the LLM extractor raises RuntimeError, it should either propagate or mark requires_human_review,
-    # NEVER return DecisionType.APPROVE with zero findings!
-    try:
-        final_state = audit_pipeline(fake_package_dict, llm_provider=failing_provider)
-        # If it reached state, it MUST require human review
-        assert (
-            final_state.get("requires_human_review") is True
-            or final_state["decision"].decision.value != "APPROVE"
-        )
-    except RuntimeError as err:
-        assert "500" in str(err)
+    # Control: the same package with a working (stub) provider is approved.
+    control = audit_pipeline(copy.deepcopy(fake_package_dict), llm_provider=StubLLMProvider())
+    assert control["decision"].decision.value == "APPROVE"
+
+    # The extractor falls back to rules; the Decision itself must carry the review flag.
+    final_state = audit_pipeline(copy.deepcopy(fake_package_dict), llm_provider=failing_provider)
+    decision = final_state["decision"]
+    assert decision.decision.value != "APPROVE"
+    assert decision.requires_human_review is True
+    assert "LLM extraction failed" in decision.justification

@@ -63,6 +63,32 @@ class PolicyEngine:
         findings: list[Finding],
         bartleby_abstained: bool = False,
         bartleby_reason: str | None = None,
+        extraction_failed: bool = False,
+    ) -> Decision:
+        """Produce the decision; a failed LLM extraction forces human review and never APPROVE."""
+        decision = self._evaluate(
+            package_id, invoice_total, findings, bartleby_abstained, bartleby_reason
+        )
+        if not extraction_failed:
+            return decision
+        update: dict[str, object] = {
+            "requires_human_review": True,
+            "justification": (
+                f"{decision.justification} [LLM extraction failed; contract terms parsed by "
+                "rule fallback; human review required.]"
+            ),
+        }
+        if decision.decision == DecisionType.APPROVE:
+            update["decision"] = DecisionType.REVIEW
+        return decision.model_copy(update=update)
+
+    def _evaluate(
+        self,
+        package_id: str,
+        invoice_total: Decimal,
+        findings: list[Finding],
+        bartleby_abstained: bool = False,
+        bartleby_reason: str | None = None,
     ) -> Decision:
         """Evaluate invoice total and findings against policy rules to produce a deterministic decision."""
         all_findings = list(findings)
