@@ -149,6 +149,28 @@ def _render_audit_status(last_mode_slot: Any, citas_slot: Any) -> None:
     )
 
 
+def _all_findings(result: dict[str, Any]) -> list[Finding]:
+    """Validated findings plus policy findings (e.g. A08) carried only in decision.findings,
+    without duplicates."""
+    decision = result.get("decision")
+    merged: list[Finding] = []
+    seen: set[tuple[str, str, str]] = set()
+    for f in [*getattr(decision, "findings", []), *result.get("validated_findings", [])]:
+        key = (f.finding_id, str(f.anomaly_type), f.description)
+        if key not in seen:
+            seen.add(key)
+            merged.append(f)
+    return merged
+
+
+def _display_description(finding: Finding) -> str:
+    """A09: short sentence only; the full abstention reason is shown in the Bartleby card."""
+    if str(getattr(finding.anomaly_type, "value", finding.anomaly_type)) == "A09":
+        short = finding.description.split(" NO_EVIDENCE", 1)[0].strip()
+        return f"Cláusula no encontrada en el contrato: {short}"
+    return finding.description
+
+
 _NUMBER_RE = re.compile(r"\$?\d(?:[\d,\-]|\.(?=\d))*%?")
 
 
@@ -520,7 +542,7 @@ if selected_screen == "📋 Review Workspace":
 
         res = st.session_state["audit_results"]
         decision = res["decision"]
-        findings: list[Finding] = res.get("validated_findings", [])
+        findings: list[Finding] = _all_findings(res)
         bartleby_abstained = res.get("bartleby_abstained", False)
         bartleby_reason = res.get("bartleby_reason")
 
@@ -609,7 +631,7 @@ if selected_screen == "📋 Review Workspace":
                             else finding.anomaly_type
                         )
                         st.markdown(
-                            _finding_html(idx, anom_code, finding.description),
+                            _finding_html(idx, anom_code, _display_description(finding)),
                             unsafe_allow_html=True,
                         )
                     with col_f2:
@@ -1106,7 +1128,7 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                             audit_res = execute_audit(sim_pkg)
 
                         dec = audit_res["decision"]
-                        findings_list = audit_res.get("validated_findings", [])
+                        findings_list = _all_findings(audit_res)
                         b_abstained = audit_res.get("bartleby_abstained", False)
 
                         dec_class = {
@@ -1153,8 +1175,13 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                             st.success("No discrepancies detected. Compliant.")
                         else:
                             for f_idx, f_item in enumerate(findings_list, 1):
+                                f_rule = str(
+                                    getattr(f_item.anomaly_type, "value", f_item.anomaly_type)
+                                )
                                 st.markdown(
-                                    f"**{f_idx}. [{f_item.anomaly_type.value if hasattr(f_item.anomaly_type, 'value') else f_item.anomaly_type}] {f_item.description}**"
+                                    _finding_html(f_idx, f_rule, _display_description(f_item))
+                                    + f"<div class='decision-meta'>Severity: {f_item.severity}</div>",
+                                    unsafe_allow_html=True,
                                 )
                                 if f_item.citation:
                                     st.markdown(
