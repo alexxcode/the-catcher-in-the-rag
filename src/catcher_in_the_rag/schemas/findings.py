@@ -23,6 +23,7 @@ class AnomalyType(StrEnum):
 
 
 FindingSeverity = Literal["INFO", "WARNING", "ERROR"]
+VerificationStatus = Literal["VERIFIED", "NOT_VERIFIABLE"]
 
 
 class Finding(BaseModel):
@@ -42,6 +43,10 @@ class Finding(BaseModel):
     calculated_difference: Decimal | None = Field(
         default=None,
         description="Quantitative discrepancy amount (e.g. overbilled amount, penalty amount)",
+    )
+    verification_status: VerificationStatus = Field(
+        default="VERIFIED",
+        description="NOT_VERIFIABLE when Bartleby abstained: routed to human review, not an accusation",
     )
 
 

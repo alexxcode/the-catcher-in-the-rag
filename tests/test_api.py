@@ -134,8 +134,9 @@ def test_audit_package_payload(
     assert response.status_code == 200
     data = response.json()
     assert data["package_id"] == "PKG-API-TEST"
-    assert data["decision"]["decision"] == DecisionType.APPROVE.value
-    assert len(data["validated_findings"]) == 0
+    # raw_text has no expiration clause: Bartleby abstains and A06 goes to human review.
+    assert data["decision"]["decision"] == DecisionType.REVIEW.value
+    assert all(f["verification_status"] == "NOT_VERIFIABLE" for f in data["validated_findings"])
 
 
 def test_audit_missing_payload(client: TestClient) -> None:

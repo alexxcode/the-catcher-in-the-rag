@@ -123,6 +123,9 @@ class PolicyEngine:
         has_review = False
 
         for f in all_findings:
+            if f.verification_status == "NOT_VERIFIABLE":
+                has_review = True
+                continue
             rule = self.anomaly_map.get(f.anomaly_type.value, "review").lower()
             if rule == "reject" or f.severity == "ERROR":
                 has_reject = True

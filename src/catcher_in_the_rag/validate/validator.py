@@ -19,6 +19,8 @@ def validate_citation(finding: Finding, contract: Contract, strict_require: bool
     are strictly discarded.
     """
     if not finding.citation:
+        if finding.verification_status == "NOT_VERIFIABLE":
+            return True
         return not (strict_require or finding.anomaly_type in CONTRACT_ANOMALIES)
 
     cit = finding.citation
