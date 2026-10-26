@@ -7,7 +7,6 @@ import yaml
 from pydantic import BaseModel, Field
 
 from catcher_in_the_rag.retrieve.retriever import ScoredClause
-from catcher_in_the_rag.schemas import Finding
 
 
 def load_bartleby_thresholds(tau: float | None = None) -> dict[str, Any]:
@@ -28,7 +27,9 @@ def load_bartleby_thresholds(tau: float | None = None) -> dict[str, Any]:
         with cfg_file.open("r", encoding="utf-8") as f:
             data = (yaml.safe_load(f) or {}).get("bartleby", {})
     return {
-        "min_relevance_score": float(tau if tau is not None else data.get("min_relevance_score", 0.5)),
+        "min_relevance_score": float(
+            tau if tau is not None else data.get("min_relevance_score", 0.5)
+        ),
         "min_evidence_spans": int(data.get("min_evidence_spans", 1)),
     }
 
@@ -249,21 +250,3 @@ class BartlebyGuard:
             reason=None,
             surviving_clauses=passing,
         )
-
-    def evaluate_finding(
-        self,
-        finding: Finding,
-        contract_raw_text: str,
-    ) -> bool:
-        """Verify that a proposed finding carries a valid, verbatim quote from the contract."""
-        if not finding.citation:
-            # Findings requiring contractual backing must have citations
-            return False
-
-        cit = finding.citation
-        if cit.text not in contract_raw_text:
-            return False
-
-        # Verify character offset alignment
-        actual_span = contract_raw_text[cit.start_char : cit.end_char]
-        return actual_span == cit.text

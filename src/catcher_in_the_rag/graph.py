@@ -133,8 +133,6 @@ def create_policy_node(policy_engine: PolicyEngine) -> NodeFn:
         abstained = state.get("bartleby_abstained", False)
         reason = state.get("bartleby_reason")
 
-        extraction_failed = state.get("llm_extraction_failed", False)
-
         decision = policy_engine.evaluate(
             package_id=pkg.package_id,
             invoice_total=pkg.invoice.total_amount,
@@ -142,19 +140,11 @@ def create_policy_node(policy_engine: PolicyEngine) -> NodeFn:
             bartleby_abstained=abstained,
             bartleby_reason=reason,
         )
-        if extraction_failed:
-            decision = decision.model_copy(
-                update={
-                    "requires_human_review": True,
-                    "justification": (
-                        f"{decision.justification} [WARNING: LLM extraction degraded to heuristics "
-                        f"due to provider error; human review mandatory.]"
-                    ),
-                }
-            )
+        # Extraction failure is decided once, in the extract node; carry it forward.
         return {
             "decision": decision,
-            "requires_human_review": decision.requires_human_review,
+            "requires_human_review": state.get("requires_human_review", False)
+            or decision.requires_human_review,
         }
 
     return policy_node

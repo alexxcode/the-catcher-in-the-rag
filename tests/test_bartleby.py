@@ -4,7 +4,6 @@ from typing import Any
 
 from catcher_in_the_rag.bartleby.guard import BartlebyGuard
 from catcher_in_the_rag.retrieve.retriever import ScoredClause
-from catcher_in_the_rag.schemas import AnomalyType, Citation, Finding
 
 
 def test_bartleby_abstains_when_no_evidence() -> None:
@@ -43,43 +42,6 @@ def test_bartleby_passes_when_evidence_exists() -> None:
     assessment = guard.evaluate_retrieval([good_clause])
     assert not assessment.abstained
     assert len(assessment.surviving_clauses) == 1
-
-
-def test_bartleby_evaluates_verbatim_finding() -> None:
-    guard = BartlebyGuard()
-    raw_text = "Section 2. All invoices payable Net 30 days."
-
-    # Correct verbatim citation
-    valid_cit = Citation(
-        document_id="CTR-01",
-        start_char=24,
-        end_char=43,
-        text="payable Net 30 days",
-    )
-    f_valid = Finding(
-        finding_id="F-1",
-        anomaly_type=AnomalyType.A04,
-        field="payment_terms",
-        description="terms mismatch",
-        citation=valid_cit,
-    )
-    assert guard.evaluate_finding(f_valid, raw_text)
-
-    # Hallucinated quote
-    fake_cit = Citation(
-        document_id="CTR-01",
-        start_char=24,
-        end_char=43,
-        text="payable Net 60 days",
-    )
-    f_fake = Finding(
-        finding_id="F-2",
-        anomaly_type=AnomalyType.A04,
-        field="payment_terms",
-        description="terms mismatch",
-        citation=fake_cit,
-    )
-    assert not guard.evaluate_finding(f_fake, raw_text)
 
 
 class MockLLMVerificationProvider:
@@ -228,7 +190,9 @@ def test_bartleby_template_heuristic_toggle() -> None:
         thresholds={"min_relevance_score": 0.5, "min_evidence_spans": 1},
         enable_template_heuristics=True,
     )
-    res_heuristic = guard_with_heuristics.evaluate_retrieval([clause], query_topic="expedited courier fee")
+    res_heuristic = guard_with_heuristics.evaluate_retrieval(
+        [clause], query_topic="expedited courier fee"
+    )
     assert res_heuristic.abstained is True
     assert "explicitly denies authorization" in res_heuristic.reason
 

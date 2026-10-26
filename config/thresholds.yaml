@@ -1,13 +1,6 @@
 bartleby:
   min_relevance_score: 0.50
-  min_bm25_score: 3.0
-  min_dense_score: 0.65
   min_evidence_spans: 1
-  top_k_to_llm: 5
-retrieval:
-  top_k_bm25: 20
-  top_k_dense: 20
-  top_k_reranked: 10
 matching:
   unit_price_tolerance_pct: 0.01
   quantity_tolerance_pct: 0.0
@@ -18,4 +11,3 @@ eval:
   - 3
   - 5
   - 10
-  trace_sample_rate: 0.1
