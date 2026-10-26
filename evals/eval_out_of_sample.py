@@ -30,6 +30,103 @@ def wilson_interval(successes: int, total: int, z: float = 1.95996) -> tuple[flo
     return (max(0.0, center - margin), min(1.0, center + margin))
 
 
+OOS_CATEGORIES = (
+    "Governing Law",
+    "Audit Rights",
+    "Termination For Convenience",
+    "Cap On Liability",
+    "Liquidated Damages",
+    "Warranty Duration",
+    "Price Restrictions",
+    "Non-Compete",
+    "Exclusivity",
+    "Anti-Assignment",
+    "Insurance",
+    "Uncapped Liability",
+)
+
+
+def run_retrieval_ablation(
+    start_contract: int = 15,
+    end_contract: int = 50,
+    embedding_provider_name: str = "vertex_ai",
+    output_path: str = "evals/reports/retrieval_ablation_oos_report.json",
+) -> dict[str, Any]:
+    """bm25 / dense / hybrid Hit@1 and Hit@5 on out-of-sample presence cases. No LLM calls.
+
+    One retrieve() per case returns bm25_score, dense_score and the hybrid score for every
+    clause; each mode is that list re-ranked by its own score (ties keep hybrid order).
+    """
+    provenance = get_provenance_metadata(
+        {"evaluation_type": "retrieval_ablation_oos", "embedding_provider": embedding_provider_name}
+    )
+    loader = CUADLoader()
+    contracts = loader.load_contracts(limit=end_contract)[start_contract:end_contract]
+    if not contracts:
+        raise RuntimeError("No out-of-sample contracts loaded.")
+
+    emb_provider = get_embedding_provider(embedding_provider_name)
+    modes = {"bm25": "bm25_score", "dense": "dense_score", "hybrid": "score"}
+    hits = {m: {"hit_at_1": 0, "hit_at_5": 0} for m in modes}
+    total = 0
+
+    for c in contracts:
+        retriever = ContractRetriever(
+            loader.to_catcher_contract(c), embedding_provider=emb_provider
+        )
+        for cat in OOS_CATEGORIES:
+            if not c.has_clause(cat):
+                continue
+            total += 1
+            gt = c.get_spans(cat)
+            scored = retriever.retrieve(
+                f"clause regarding {cat.lower()}", top_k=len(retriever.clauses)
+            )
+            for mode, attr in modes.items():
+                ranked = sorted(scored, key=lambda sc, a=attr: getattr(sc, a), reverse=True)
+                is_gold = [
+                    any(sc.start_char <= sp.end_char and sc.end_char >= sp.start_char for sp in gt)
+                    for sc in ranked[:5]
+                ]
+                hits[mode]["hit_at_1"] += int(bool(is_gold[:1] and is_gold[0]))
+                hits[mode]["hit_at_5"] += int(any(is_gold))
+
+    metrics: dict[str, Any] = {}
+    for mode, h in hits.items():
+        metrics[mode] = {
+            k: {
+                "count": v,
+                "total": total,
+                "rate": round(v / total, 4) if total else 0.0,
+                "wilson_ci95": [round(x, 4) for x in wilson_interval(v, total)],
+            }
+            for k, v in h.items()
+        }
+
+    report = {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "git_commit_sha": provenance["git_commit_sha"],
+        "git_dirty": provenance["git_dirty"],
+        "command": provenance["command"],
+        "evaluation_type": "Retrieval ablation (bm25 / dense / hybrid) on out-of-sample presence cases",
+        "contract_slice": f"CUAD-{start_contract + 1:04d} to CUAD-{end_contract:04d} ({len(contracts)} contracts)",
+        "embedding_provider": embedding_provider_name,
+        "embedding_model_id": getattr(emb_provider, "model_id", "stub"),
+        "presence_cases": total,
+        "metrics": metrics,
+    }
+    out = Path(output_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2)
+    for mode, m in metrics.items():
+        print(
+            f" {mode:<7} Hit@1 {m['hit_at_1']['count']}/{total}  Hit@5 {m['hit_at_5']['count']}/{total}",
+            flush=True,
+        )
+    return report
+
+
 def run_out_of_sample_evaluation(
     start_contract: int = 15,
     end_contract: int = 50,
@@ -57,20 +154,7 @@ def run_out_of_sample_evaluation(
     official_descriptions = loader.get_category_descriptions()
 
     if categories is None:
-        categories = [
-            "Governing Law",
-            "Audit Rights",
-            "Termination For Convenience",
-            "Cap On Liability",
-            "Liquidated Damages",
-            "Warranty Duration",
-            "Price Restrictions",
-            "Non-Compete",
-            "Exclusivity",
-            "Anti-Assignment",
-            "Insurance",
-            "Uncapped Liability",
-        ]
+        categories = list(OOS_CATEGORIES)
 
     emb_provider = get_embedding_provider(embedding_provider_name)
     llm_provider = get_llm_provider(llm_provider_name)
@@ -105,7 +189,9 @@ def run_out_of_sample_evaluation(
         flush=True,
     )
     print(f" Categories Evaluated: {len(categories)} categories", flush=True)
-    print(f" Total Queries: {len(test_cases)} ({total_pres} Present, {total_abs} Absent)", flush=True)
+    print(
+        f" Total Queries: {len(test_cases)} ({total_pres} Present, {total_abs} Absent)", flush=True
+    )
     print(" Prompt Grounding: 100% Official Atticus Dataset Definitions", flush=True)
     print("=" * 70 + "\n", flush=True)
 
@@ -278,9 +364,22 @@ if __name__ == "__main__":
     parser.add_argument("--end", type=int, default=50)
     parser.add_argument("--embedding-provider", type=str, default="stub")
     parser.add_argument("--llm-provider", type=str, default="vertex_ai")
-    parser.add_argument("--output", type=str, default="evals/reports/out_of_sample_cuad_report.json")
+    parser.add_argument(
+        "--output", type=str, default="evals/reports/out_of_sample_cuad_report.json"
+    )
     parser.add_argument("--tau", type=float, default=None)
+    parser.add_argument(
+        "--retrieval-ablation",
+        action="store_true",
+        help="bm25/dense/hybrid Hit@k on presence cases only (no LLM calls)",
+    )
     args = parser.parse_args()
+    if args.retrieval_ablation:
+        out = args.output
+        if out == "evals/reports/out_of_sample_cuad_report.json":
+            out = "evals/reports/retrieval_ablation_oos_report.json"
+        run_retrieval_ablation(args.start, args.end, args.embedding_provider, out)
+        sys.exit(0)
     run_out_of_sample_evaluation(
         start_contract=args.start,
         end_contract=args.end,
