@@ -27,6 +27,22 @@ def _safe_int(val: Any) -> int:
 _live_calls_used = 0
 
 
+def _raw_run_id(owner: Any) -> str:
+    run_id = os.getenv("RUN_ID") or getattr(owner, "run_id", None)
+    if not run_id:
+        run_id = f"run_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
+        owner.run_id = run_id
+    return run_id
+
+
+def _append_raw_record(record: dict[str, Any]) -> None:
+    """Only writer of raw call logs (RAW_LOG_DIR/<run_id>.jsonl, append-only)."""
+    raw_dir = Path(os.getenv("RAW_LOG_DIR", "evals/reports/raw"))
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    with (raw_dir / f"{record['run_id']}.jsonl").open("a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
 def _consume_live_call() -> None:
     """Hard cap on real Vertex network calls per process; MAX_LIVE_CALLS defaults to 0 (blocked)."""
     global _live_calls_used
@@ -162,15 +178,7 @@ class GeminiProvider(LLMProvider):
         latency_ms: float,
         extra: dict[str, Any],
     ) -> None:
-        run_id = os.getenv("RUN_ID") or getattr(self, "run_id", None)
-        if not run_id:
-            run_id = f"run_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
-            self.run_id = run_id
-
-        raw_dir = Path(os.getenv("RAW_LOG_DIR", "evals/reports/raw"))
-        raw_dir.mkdir(parents=True, exist_ok=True)
-        raw_file = raw_dir / f"{run_id}.jsonl"
-
+        run_id = _raw_run_id(self)
         usage = getattr(response, "usage_metadata", None)
         p_tok = _safe_int(getattr(usage, "prompt_token_count", 0)) if usage else 0
         c_tok = _safe_int(getattr(usage, "candidates_token_count", 0)) if usage else 0
@@ -205,8 +213,7 @@ class GeminiProvider(LLMProvider):
             "contract_id": extra.get("contract_id"),
             "passage_ids": extra.get("passage_ids"),
         }
-        with raw_file.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        _append_raw_record(record)
 
     def extract_structured(
         self,
@@ -510,6 +517,44 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
         except Exception:
             pass
 
+    def _log_raw_embedding(
+        self,
+        texts: list[str],
+        response: Any,
+        embeddings: list[Any],
+        latency_ms: float,
+        task_type: str,
+        query: str | None,
+    ) -> None:
+        """Same raw log as generation calls; embedding vectors are not stored."""
+        meta = getattr(response, "metadata", None)
+        billable = getattr(meta, "billable_character_count", None) if meta else None
+        stats = [getattr(e, "statistics", None) for e in embeddings]
+        tok = [getattr(st, "token_count", None) for st in stats if st is not None]
+        raw_ver = getattr(response, "model_version", None)
+        raw_id = getattr(response, "response_id", None)
+        _append_raw_record(
+            {
+                "run_id": _raw_run_id(self),
+                "timestamp_utc": datetime.now(UTC).isoformat(),
+                "call_type": "embedding",
+                "model_id": self.model_id,
+                "task_type": task_type,
+                "prompt_sha256": hashlib.sha256("\n".join(texts).encode("utf-8")).hexdigest(),
+                "input_sha256": [hashlib.sha256(t.encode("utf-8")).hexdigest() for t in texts],
+                "num_inputs": len(texts),
+                "input_chars": sum(len(t) for t in texts),
+                "billable_character_count": _safe_int(billable) if billable is not None else None,
+                "input_tokens": int(sum(tok)) if tok and None not in tok else None,
+                "response_text": None,
+                "response_id": raw_id if isinstance(raw_id, str) else None,
+                "model_version": raw_ver if isinstance(raw_ver, str) else None,
+                "embedding_dims": self.dimensionality,
+                "latency_ms": round(latency_ms, 2),
+                "query": query,
+            }
+        )
+
     def _ensure_init(self) -> None:
         if self._model is not None or self._genai_client is not None:
             return
@@ -571,6 +616,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
             for attempt in range(max_retries):
                 _consume_live_call()
                 try:
+                    t0 = time.perf_counter()
                     if self._use_genai:
                         res = self._genai_client.models.embed_content(
                             model=self.model_id,
@@ -578,6 +624,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
                             config={"output_dimensionality": self.dimensionality},
                         )
                         batch_embeddings = [list(e.values) for e in res.embeddings]
+                        resp, emb_objs = res, list(res.embeddings)
                     else:
                         from vertexai.language_models import TextEmbeddingInput
 
@@ -589,6 +636,15 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
                             inputs, output_dimensionality=self.dimensionality
                         )
                         batch_embeddings = [list(e.values) for e in embeddings]
+                        resp, emb_objs = None, list(embeddings)
+                    self._log_raw_embedding(
+                        batch_texts,
+                        resp,
+                        emb_objs,
+                        (time.perf_counter() - t0) * 1000,
+                        "RETRIEVAL_DOCUMENT",
+                        None,
+                    )
                     break
                 except Exception as err:
                     err_str = str(err).lower()
@@ -622,6 +678,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
         for attempt in range(max_retries):
             _consume_live_call()
             try:
+                t0 = time.perf_counter()
                 if self._use_genai:
                     res = self._genai_client.models.embed_content(
                         model=self.model_id,
@@ -629,6 +686,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
                         config={"output_dimensionality": self.dimensionality},
                     )
                     emb = list(res.embeddings[0].values)
+                    resp, emb_objs = res, list(res.embeddings)
                 else:
                     from vertexai.language_models import TextEmbeddingInput
 
@@ -637,6 +695,15 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
                         inputs, output_dimensionality=self.dimensionality
                     )
                     emb = list(embeddings[0].values)
+                    resp, emb_objs = None, list(embeddings)
+                self._log_raw_embedding(
+                    [query[:6000]],
+                    resp,
+                    emb_objs,
+                    (time.perf_counter() - t0) * 1000,
+                    "RETRIEVAL_QUERY",
+                    query,
+                )
 
                 self._put_cached(cache_key, emb)
                 return emb
