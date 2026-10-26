@@ -201,13 +201,14 @@ resource "google_cloud_run_v2_service" "api" {
         name  = "GOOGLE_CLOUD_REGION"
         value = var.region
       }
+      # With MAX_LIVE_CALLS=0 every Vertex call is blocked, so run fully on stub.
       env {
         name  = "LLM_PROVIDER"
-        value = "vertex_ai"
+        value = var.max_live_calls == 0 ? "stub" : "vertex_ai"
       }
       env {
         name  = "EMBEDDING_PROVIDER"
-        value = "vertex_ai"
+        value = var.max_live_calls == 0 ? "stub" : "vertex_ai"
       }
       env {
         name = "DEMO_ACCESS_PIN"

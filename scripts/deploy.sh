@@ -5,6 +5,7 @@
 set -euo pipefail
 : "${PROJECT_ID:?set PROJECT_ID (GCP project id), e.g. PROJECT_ID=my-project}"
 : "${REGION:?set REGION (GCP region), e.g. REGION=us-central1}"
+command -v docker >/dev/null || { echo "docker not found: install Docker Desktop with WSL integration (https://docs.docker.com/desktop/wsl/) or docker-ce in WSL" >&2; exit 1; }
 
 TAG="$(git rev-parse --short HEAD)"
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/catcher-images/catcher:${TAG}"
