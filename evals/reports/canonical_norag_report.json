@@ -1,7 +1,7 @@
 {
   "version": "0.4.0",
-  "timestamp": "2026-10-26T06:08:58.544487+00:00",
-  "git_commit_sha": "bf1abdc6b8f83434d8186a664d99175872d79d88",
+  "timestamp": "2026-10-26T09:49:27.125241+00:00",
+  "git_commit_sha": "33461771235a3edfe9bb92b82f64207d41c924b5",
   "command": "python -m evals.run --ablations --output evals/reports/",
   "environment": "offline_stub",
   "config_name": "no-rag",
@@ -1337,7 +1337,7 @@
     "duration_seconds": 0.01,
     "mode": "no-rag",
     "provenance": {
-      "git_commit_sha": "bf1abdc6b8f83434d8186a664d99175872d79d88",
+      "git_commit_sha": "33461771235a3edfe9bb92b82f64207d41c924b5",
       "git_branch": "main",
       "git_dirty": false,
       "command": "python -m evals.run --ablations --output evals/reports/",
