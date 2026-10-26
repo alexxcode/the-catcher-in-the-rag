@@ -143,7 +143,11 @@ def main() -> int:
         print(f"Loaded {len(dataset)} package(s). Running baseline evaluation...")
         runner = EvaluationRunner(mode="baseline")
         baseline_report = runner.run_eval(dataset)
-        report_file = save_report(baseline_report, output_dir=args.output)
+        report_file = save_report(
+            baseline_report,
+            output_dir=args.output,
+            canonical_name="canonical_baseline_report.json" if args.ablations else None,
+        )
         print_summary_table(baseline_report)
         print(f"Baseline report saved to: {report_file}")
     else:
@@ -157,7 +161,9 @@ def main() -> int:
         print("\nRunning Ablation: No-RAG (Disabling Contract Retrieval & Clause Application)...")
         no_rag_runner = EvaluationRunner(mode="no-rag")
         no_rag_report = no_rag_runner.run_eval(dataset)
-        no_rag_file = save_report(no_rag_report, output_dir=args.output)
+        no_rag_file = save_report(
+            no_rag_report, output_dir=args.output, canonical_name="canonical_norag_report.json"
+        )
         print_summary_table(no_rag_report)
         print(f"Ablation (no-RAG) report saved to: {no_rag_file}")
 

@@ -5,8 +5,15 @@ from pathlib import Path
 from evals.metrics import EvaluationReport
 
 
-def save_report(report: EvaluationReport, output_dir: Path | str = "evals/reports") -> Path:
-    """Save an evaluation report to a versioned JSON file and update latest.json."""
+def save_report(
+    report: EvaluationReport,
+    output_dir: Path | str = "evals/reports",
+    canonical_name: str | None = None,
+) -> Path:
+    """Save an evaluation report to a versioned JSON file and update latest.json.
+
+    If canonical_name is given, the same content is also written to that file.
+    """
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
@@ -20,6 +27,8 @@ def save_report(report: EvaluationReport, output_dir: Path | str = "evals/report
     # Update latest.json
     latest_file = out_path / "latest.json"
     latest_file.write_text(json_content, encoding="utf-8")
+    if canonical_name:
+        (out_path / canonical_name).write_text(json_content, encoding="utf-8")
 
     return report_file
 
