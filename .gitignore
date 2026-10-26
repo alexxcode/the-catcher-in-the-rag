@@ -103,3 +103,6 @@ desktop.ini
 *.log
 *.tmp
 *.bak
+
+# ── Claude Code (personal settings) ──
+.claude/settings.local.json
