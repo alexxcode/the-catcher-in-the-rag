@@ -116,6 +116,13 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+try:
+    _max_live_calls = int(os.getenv("MAX_LIVE_CALLS", "0") or 0)
+except ValueError:
+    _max_live_calls = 0
+if _max_live_calls <= 0:
+    st.info("Demo en modo stub; sin llamadas a Gemini (MAX_LIVE_CALLS=0).")
+
 # ── Custom CSS for High-End Typography & Visuals ──────────────────────────────
 st.markdown(
     """
@@ -295,7 +302,10 @@ def load_evaluation_reports(
     reports = []
     canonical = path / "canonical_baseline_report.json"
     if canonical.exists():
-        reports.append(("canonical_baseline_report.json (300 Packages)", canonical))
+        n_pkgs = json.loads(canonical.read_text(encoding="utf-8")).get("total_packages", "?")
+        reports.append(
+            (f"canonical_baseline_report.json ({n_pkgs} paquetes sintéticos)", canonical)
+        )
     for report_file in sorted(path.glob("eval_report_*.json"), reverse=True):
         reports.append((report_file.name, report_file))
     return reports
@@ -1273,7 +1283,7 @@ elif selected_screen == "📊 Evaluation Dashboard":
     eval_mode = st.radio(
         "Select Benchmark Track",
         [
-            "📦 Synthetic 300-Package Baseline (A01–A10)",
+            "📦 Synthetic Baseline (A01–A10, no es evidencia)",
             "📜 Real-World CUAD Contract Benchmark (SEC Edgar)",
             "⚡ Vertex AI Model Bake-Off (Gemini Flash vs Pro vs Rules)",
         ],
@@ -1282,7 +1292,7 @@ elif selected_screen == "📊 Evaluation Dashboard":
 
     st.divider()
 
-    if eval_mode == "📦 Synthetic 300-Package Baseline (A01–A10)":
+    if eval_mode == "📦 Synthetic Baseline (A01–A10, no es evidencia)":
         reports = load_evaluation_reports()
 
         if not reports:
@@ -1318,21 +1328,26 @@ elif selected_screen == "📊 Evaluation Dashboard":
             st.divider()
 
             # ── Ablation Comparison Section ───────────────────────────────────────
-            st.markdown("### 🔬 Ablation Analysis: The Value of Contract RAG")
-            st.markdown(
-                "Comparing baseline full RAG against the **no-RAG ablation** (where contract retrieval is disabled and only invoice-PO 3-way matching occurs)."
+            st.markdown("### 🔬 Ablación sintética: con vs. sin evaluador de cláusulas")
+            st.caption(
+                "Leído de canonical_baseline_report.json y canonical_norag_report.json "
+                "(plantillas sintéticas; no es evidencia empírica)."
             )
-
-            col_ab1, col_ab2, col_ab3 = st.columns([1, 1, 2])
-            col_ab1.metric("Baseline Accuracy (with RAG)", "91.7%", "Governing terms checked")
-            col_ab2.metric("No-RAG Accuracy", "47.7%", "-44.0% drop")
-            col_ab3.metric(
-                "Contract RAG Value-Add", "+44.0%", "Critical for detecting A04, A05, A06, A09"
-            )
-
-            st.bar_chart(
-                data={"Baseline RAG": [91.7, 100.0, 100.0], "No-RAG": [47.7, 100.0, 0.0]},
-            )
+            reports_dir = Path("evals/reports")
+            base_p = reports_dir / "canonical_baseline_report.json"
+            norag_p = reports_dir / "canonical_norag_report.json"
+            if base_p.exists() and norag_p.exists():
+                base_acc = json.loads(base_p.read_text(encoding="utf-8"))["decision_accuracy"]
+                norag_acc = json.loads(norag_p.read_text(encoding="utf-8"))["decision_accuracy"]
+                col_ab1, col_ab2 = st.columns(2)
+                col_ab1.metric("Exactitud con cláusulas", f"{base_acc * 100:.1f}%")
+                col_ab2.metric(
+                    "Exactitud sin cláusulas",
+                    f"{norag_acc * 100:.1f}%",
+                    f"{(norag_acc - base_acc) * 100:+.1f} pts",
+                )
+            else:
+                st.warning("Faltan los reportes canónicos; corre `make eval-ablations`.")
 
             st.divider()
 
