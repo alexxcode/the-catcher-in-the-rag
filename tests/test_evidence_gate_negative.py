@@ -10,6 +10,7 @@ Verifies:
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -48,7 +49,7 @@ def test_fails_on_hand_edited_number_in_gen_block() -> None:
     actual_table = gen_func()
 
     # Create a hand-edited version where a number was artificially altered
-    tampered_table = actual_table.replace("26.9%", "99.9%")
+    tampered_table = re.sub(r"\d+\.\d%", "99.99%", actual_table, count=1)
     assert tampered_table != actual_table
 
     # A sync check asserting equality must fail
