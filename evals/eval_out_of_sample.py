@@ -55,7 +55,8 @@ def run_retrieval_ablation(
     """bm25 / dense / hybrid Hit@1 and Hit@5 on out-of-sample presence cases. No LLM calls.
 
     One retrieve() per case returns bm25_score, dense_score and the hybrid score for every
-    clause; each mode is that list re-ranked by its own score (ties keep hybrid order).
+    clause; each mode is that list re-ranked by its own score only. Ties are broken by
+    order of appearance in the document (start_char), never by another mode's score.
     """
     provenance = get_provenance_metadata(
         {"evaluation_type": "retrieval_ablation_oos", "embedding_provider": embedding_provider_name}
@@ -83,7 +84,7 @@ def run_retrieval_ablation(
                 f"clause regarding {cat.lower()}", top_k=len(retriever.clauses)
             )
             for mode, attr in modes.items():
-                ranked = sorted(scored, key=lambda sc, a=attr: getattr(sc, a), reverse=True)
+                ranked = sorted(scored, key=lambda sc, a=attr: (-getattr(sc, a), sc.start_char))
                 is_gold = [
                     any(sc.start_char <= sp.end_char and sc.end_char >= sp.start_char for sp in gt)
                     for sc in ranked[:5]
