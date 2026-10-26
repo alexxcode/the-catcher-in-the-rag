@@ -9,7 +9,7 @@ Auditor determinista de compras corporativas (procurement) con verificación con
 
 ## Limitaciones
 - La Regla 3a es una heurística de plantilla sintética; los datos sintéticos no son evidencia empírica.
-- `config/thresholds.yaml` usa el τ calibrado en CUAD (sección 4). Con ese τ y embeddings stub, los paquetes sintéticos A06 pasan de REJECT a REVIEW (hallazgo NOT_VERIFIABLE); los tests sintéticos fijan el τ de su propia calibración.
+- `config/thresholds.yaml` usa el τ calibrado en CUAD (sección 4). Con ese τ y embeddings stub, los paquetes sintéticos A06 pasan de REJECT a REVIEW (hallazgo NOT_VERIFIABLE); los tests sintéticos fijan el τ de su propia calibración. La sección 5 refleja ese cambio.
 - **NOT MEASURED:** abstención con LLM y `text-embedding-005` fuera de muestra, costo de la revisión humana, latencia en red distribuida.
 - **Reranker:** no medido, desactivado.
 
@@ -84,14 +84,14 @@ Medido con τ fijo en el eval y los embeddings del entorno de esa corrida (el re
 <!-- /GEN -->
 
 ### 5. Control sintético — no es evidencia (`make eval-ablations` -> `evals/reports/canonical_baseline_report.json`)
-Plantillas generadas por `datagen/`; medido antes del cambio de τ en `config/thresholds.yaml`.
+Plantillas generadas por `datagen/`; medido con el τ de `config/thresholds.yaml` (`LLM_PROVIDER=stub EMBEDDING_PROVIDER=stub MAX_LIVE_CALLS=0 make eval-ablations`).
 <!-- GEN:synthetic_ablation_table -->
 | Métrica de Evaluación | Con Términos Contractuales (Baseline) | Sin Términos (Solo Cotejo 3-Way) | Impacto / Delta |
 |---|:---:|:---:|:---:|
-| **Exactitud Global de Decisión** | **100.0%** (300/300) | **60.0%** (180/300) | **ablación: sin evaluador de cláusulas (+40.0% degradación)** |
-| **Validez de Citas Verbatim** | **100.0%** (120/120) [plantillas sintéticas] | N/A | Cero citas sintéticas inválidas |
+| **Exactitud Global de Decisión** | **91.3%** (274/300) | **60.0%** (180/300) | **ablación: sin evaluador de cláusulas (+31.3% degradación)** |
+| **Validez de Citas Verbatim** | **100.0%** (64/64) [plantillas sintéticas] | N/A | Cero citas sintéticas inválidas |
 | **Abstención Correcta de Bartleby** | **100.0%** (30/30 en A09*) | 0.0% (0/30 en A09) | Detección de silencios (vía heurística de plantilla 3a*) |
 | **Tasa de Falsos Positivos (A10)** | **0.0%** (0/30) | 0.0% (0/30) | Paquetes limpios aprobados sin fricción |
 | **Recall@5 de Recuperación** | **100.0%** [plantillas sintéticas] | N/A | Recuperación en plantillas sintéticas |
-| **Latencia Media por Paquete** | **16.7 ms** | 0.0 ms | Ejecución determinista local |
+| **Latencia Media por Paquete** | **16.6 ms** | 0.0 ms | Ejecución determinista local |
 <!-- /GEN -->
