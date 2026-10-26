@@ -40,6 +40,7 @@ class AuditState(TypedDict, total=False):
     decision: Decision
     requires_human_review: bool
     llm_extraction_failed: bool
+    trace_id: str | None
 
 
 NodeFn = Callable[[AuditState], dict[str, Any]]
@@ -251,7 +252,7 @@ def audit_pipeline(
     findings = final_state.get("validated_findings", [])
     tracer = get_tracer()
 
-    tracer.trace_execution(
+    final_state["trace_id"] = tracer.trace_execution(
         name="audit_pipeline",
         input_data={
             "package_id": final_state.get("package_id"),

@@ -28,8 +28,8 @@ class BaseTracer(ABC):
         metadata: dict[str, Any] | None = None,
         tags: list[str] | None = None,
         latency_ms: float | None = None,
-    ) -> None:
-        """Record an execution trace (e.g. audit graph, extraction, retrieval)."""
+    ) -> str | None:
+        """Record an execution trace; return the SDK trace id, or None."""
         ...
 
     @abstractmethod
@@ -63,8 +63,8 @@ class NoOpTracer(BaseTracer):
         metadata: dict[str, Any] | None = None,
         tags: list[str] | None = None,
         latency_ms: float | None = None,
-    ) -> None:
-        pass
+    ) -> str | None:
+        return None
 
     def trace_generation(
         self,
@@ -123,10 +123,10 @@ class LangfuseTracer(BaseTracer):
         metadata: dict[str, Any] | None = None,
         tags: list[str] | None = None,
         latency_ms: float | None = None,
-    ) -> None:
+    ) -> str | None:
         client = self._ensure_client()
         if not client:
-            return
+            return None
         with contextlib.suppress(Exception):
             meta = dict(metadata or {})
             if latency_ms is not None:
@@ -134,28 +134,16 @@ class LangfuseTracer(BaseTracer):
             if tags:
                 meta["tags"] = tags
 
-            # Langfuse v5+ OpenTelemetry observation API
-            if hasattr(client, "start_observation"):
-                obs = client.start_observation(
-                    name=name,
-                    as_type="span",
-                    input=input_data,
-                    output=output_data,
-                    metadata=meta,
-                )
-                if obs and hasattr(obs, "end"):
-                    obs.end()
-            # Langfuse v2/v3 legacy API
-            elif hasattr(client, "trace"):
-                trace = client.trace(
-                    name=name,
-                    input=input_data,
-                    output=output_data,
-                    metadata=meta,
-                    tags=tags or ["the-catcher-in-the-rag"],
-                )
-                if latency_ms is not None and hasattr(trace, "update"):
-                    trace.update(metadata={"latency_ms": latency_ms})
+            obs = client.start_observation(
+                name=name,
+                as_type="span",
+                input=input_data,
+                output=output_data,
+                metadata=meta,
+            )
+            obs.end()
+            return getattr(obs, "trace_id", None)
+        return None
 
     def trace_generation(
         self,
@@ -175,30 +163,16 @@ class LangfuseTracer(BaseTracer):
             if latency_ms is not None:
                 meta["latency_ms"] = latency_ms
 
-            # Langfuse v5+ OpenTelemetry generation API
-            if hasattr(client, "start_observation"):
-                gen = client.start_observation(
-                    name=name,
-                    as_type="generation",
-                    model=model,
-                    input=prompt,
-                    output=completion,
-                    usage_details=usage,
-                    metadata=meta,
-                )
-                if gen and hasattr(gen, "end"):
-                    gen.end()
-            # Langfuse v2/v3 legacy API
-            elif hasattr(client, "trace"):
-                trace = client.trace(name=f"trace-{name}", tags=["llm-generation"])
-                trace.generation(
-                    name=name,
-                    model=model,
-                    input=prompt,
-                    output=completion,
-                    usage=usage,
-                    metadata=meta,
-                )
+            gen = client.start_observation(
+                name=name,
+                as_type="generation",
+                model=model,
+                input=prompt,
+                output=completion,
+                usage_details=usage,
+                metadata=meta,
+            )
+            gen.end()
 
     def flush(self) -> None:
         client = self._ensure_client()

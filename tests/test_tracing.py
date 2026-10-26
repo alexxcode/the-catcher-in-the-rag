@@ -75,20 +75,3 @@ def test_langfuse_tracer_v5_observation_api() -> None:
     mock_client.start_observation.assert_called_once()
     tracer.flush()
     mock_client.flush.assert_called_once()
-
-
-def test_langfuse_tracer_v2_legacy_api() -> None:
-    tracer = LangfuseTracer(public_key="pk-dummy", secret_key="sk-dummy")
-    # Simulate older client without start_observation
-    mock_client = MagicMock(spec=["trace", "flush"])
-    mock_trace = MagicMock()
-    mock_client.trace.return_value = mock_trace
-    tracer._client = mock_client
-
-    tracer.trace_execution("legacy_step", {"a": 1}, latency_ms=15.0)
-    mock_client.trace.assert_called_once()
-
-    tracer.trace_generation("legacy_gen", "model-y", "p", "c")
-    mock_client.trace.assert_called()
-    tracer.flush()
-    mock_client.flush.assert_called_once()
