@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-10-26T05:16:39.432403+00:00",
-  "git_commit_sha": "c03ae184ff560bf0ad3451f3e580671c7b1c6594",
+  "timestamp": "2026-10-26T09:49:11.694627+00:00",
+  "git_commit_sha": "c794e57adf2e65317b2245b70ad3b912faeaebc9",
   "git_dirty": false,
   "command": "calibrate_cuad.py --embedding-provider vertex_ai",
   "total_contracts": 15,
