@@ -10,8 +10,12 @@ from catcher_in_the_rag.retrieve.retriever import ScoredClause
 from catcher_in_the_rag.schemas import Finding
 
 
-def load_bartleby_thresholds() -> dict[str, Any]:
-    """Load bartleby abstention thresholds from config/thresholds.yaml."""
+def load_bartleby_thresholds(tau: float | None = None) -> dict[str, Any]:
+    """Single loader for Bartleby thresholds (tau and evidence minimum).
+
+    Reads the ``bartleby`` block of config/thresholds.yaml. If ``tau`` is given it
+    overrides ``min_relevance_score``.
+    """
     cfg_file = Path("config/thresholds.yaml")
     if not cfg_file.exists():
         for parent in Path.cwd().parents:
@@ -19,11 +23,14 @@ def load_bartleby_thresholds() -> dict[str, Any]:
             if candidate.exists():
                 cfg_file = candidate
                 break
+    data: dict[str, Any] = {}
     if cfg_file.exists():
         with cfg_file.open("r", encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
-            return data.get("bartleby", {})
-    return {}
+            data = (yaml.safe_load(f) or {}).get("bartleby", {})
+    return {
+        "min_relevance_score": float(tau if tau is not None else data.get("min_relevance_score", 0.5)),
+        "min_evidence_spans": int(data.get("min_evidence_spans", 1)),
+    }
 
 
 class BartlebyAssessment(BaseModel):

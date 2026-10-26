@@ -12,7 +12,7 @@ repo_root = Path(__file__).resolve().parent.parent
 if str(repo_root) not in sys.path:
     sys.path.insert(0, str(repo_root))
 
-from catcher_in_the_rag.bartleby.guard import BartlebyGuard  # noqa: E402
+from catcher_in_the_rag.bartleby.guard import BartlebyGuard, load_bartleby_thresholds  # noqa: E402
 from catcher_in_the_rag.ingest.cuad_loader import CUADLoader  # noqa: E402
 from catcher_in_the_rag.providers.factory import get_embedding_provider, get_llm_provider  # noqa: E402
 from catcher_in_the_rag.retrieve.retriever import ContractRetriever  # noqa: E402
@@ -37,6 +37,7 @@ def run_out_of_sample_evaluation(
     output_path: str = "evals/reports/out_of_sample_cuad_report.json",
     embedding_provider_name: str = "stub",
     llm_provider_name: str = "vertex_ai",
+    tau: float | None = None,
 ) -> dict[str, Any]:
     initial_provenance = get_provenance_metadata(
         {
@@ -109,7 +110,7 @@ def run_out_of_sample_evaluation(
     print("=" * 70 + "\n", flush=True)
 
     guard = BartlebyGuard(
-        thresholds={"min_relevance_score": 0.50, "min_evidence_spans": 1},
+        thresholds=load_bartleby_thresholds(tau=tau),
         max_verification_candidates=5,
         category_descriptions=official_descriptions,
     )
@@ -195,6 +196,7 @@ def run_out_of_sample_evaluation(
         "git_commit_sha": provenance["git_commit_sha"],
         "git_dirty": provenance["git_dirty"],
         "command": provenance["command"],
+        "tau_override": tau,
         "evaluation_type": "Out-of-sample held-out evaluation with frozen prompt and official Atticus category definitions",
         "contract_slice": f"CUAD-{start_contract + 1:04d} to CUAD-{end_contract:04d} ({len(out_of_sample_contracts)} contracts)",
         "num_contracts": len(out_of_sample_contracts),
@@ -277,6 +279,7 @@ if __name__ == "__main__":
     parser.add_argument("--embedding-provider", type=str, default="stub")
     parser.add_argument("--llm-provider", type=str, default="vertex_ai")
     parser.add_argument("--output", type=str, default="evals/reports/out_of_sample_cuad_report.json")
+    parser.add_argument("--tau", type=float, default=None)
     args = parser.parse_args()
     run_out_of_sample_evaluation(
         start_contract=args.start,
@@ -284,4 +287,5 @@ if __name__ == "__main__":
         embedding_provider_name=args.embedding_provider,
         llm_provider_name=args.llm_provider,
         output_path=args.output,
+        tau=args.tau,
     )

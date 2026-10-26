@@ -5,13 +5,13 @@ import statistics
 import time
 from pathlib import Path
 
-from catcher_in_the_rag.bartleby.guard import BartlebyGuard
+from catcher_in_the_rag.bartleby.guard import BartlebyGuard, load_bartleby_thresholds
 from catcher_in_the_rag.ingest.cuad_loader import CUADLoader
 from catcher_in_the_rag.providers.factory import get_embedding_provider, get_llm_provider
 from catcher_in_the_rag.retrieve.retriever import ContractRetriever
 
 
-def run_mode3_repetition(num_runs: int = 3, sample_size: int = 15) -> None:
+def run_mode3_repetition(num_runs: int = 3, sample_size: int = 15, tau: float | None = None) -> None:
     loader = CUADLoader()
     contracts = loader.load_contracts(limit=sample_size)
     categories = [
@@ -54,7 +54,7 @@ def run_mode3_repetition(num_runs: int = 3, sample_size: int = 15) -> None:
     for run_idx in range(1, num_runs + 1):
         print(f"\n--- Starting Run {run_idx}/{num_runs} ---", flush=True)
         guard = BartlebyGuard(
-            thresholds={"min_relevance_score": 0.50, "min_evidence_spans": 1},
+            thresholds=load_bartleby_thresholds(tau=tau),
             max_verification_candidates=5,
         )
 
@@ -147,6 +147,7 @@ def run_mode3_repetition(num_runs: int = 3, sample_size: int = 15) -> None:
     lats = [r["mean_latency_ms"] for r in runs_data]
 
     summary = {
+        "tau_override": tau,
         "runs": runs_data,
         "metrics_summary": {
             "macro_f1": {
@@ -179,4 +180,9 @@ def run_mode3_repetition(num_runs: int = 3, sample_size: int = 15) -> None:
     print(f"\nVariance report saved to {out_path}", flush=True)
 
 if __name__ == "__main__":
-    run_mode3_repetition(num_runs=3, sample_size=15)
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--tau", type=float, default=None)
+    args = parser.parse_args()
+    run_mode3_repetition(num_runs=3, sample_size=15, tau=args.tau)

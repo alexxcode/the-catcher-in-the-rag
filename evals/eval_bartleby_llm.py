@@ -25,7 +25,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path.cwd()))
 
-from catcher_in_the_rag.bartleby.guard import BartlebyGuard
+from catcher_in_the_rag.bartleby.guard import BartlebyGuard, load_bartleby_thresholds
 from catcher_in_the_rag.ingest.cuad_loader import CUADLoader
 from catcher_in_the_rag.pricing import calculate_cost_usd, get_model_rates
 from catcher_in_the_rag.providers.factory import get_embedding_provider, get_llm_provider
@@ -72,6 +72,7 @@ class BartlebyLLMVerificationReport:
     llm_provider_used: str
     modes: list[GuardEvaluationModeResult]
     findings_summary: str
+    tau_override: float | None = None
 
 
 def run_bartleby_llm_eval(
@@ -79,6 +80,7 @@ def run_bartleby_llm_eval(
     output_path: str = "evals/reports/bartleby_llm_verification_report.json",
     llm_provider_type: str = "vertex_ai",
     allow_stub: bool = False,
+    tau: float | None = None,
 ) -> BartlebyLLMVerificationReport:
     initial_provenance = get_provenance_metadata({"eval": "Bartleby LLM Verification"})
     # Fail fast if attempting to measure LLM verification with stub without explicit override
@@ -136,23 +138,26 @@ def run_bartleby_llm_eval(
         f"({len(test_cases)} query evaluations, LLM: {llm_provider_type})"
     )
 
+    base_cfg = load_bartleby_thresholds(tau=tau)
+    recal_cfg = load_bartleby_thresholds(tau=0.70)
+    t_base = base_cfg["min_relevance_score"]
     modes_to_test = [
         {
-            "name": "Pure Vector Hybrid (tau=0.50)",
-            "description": "Baseline transfer: hybrid retrieval thresholded at synthetic tau=0.50 without LLM",
-            "threshold": 0.50,
+            "name": f"Pure Vector Hybrid (tau={t_base:.2f})",
+            "description": f"Baseline transfer: hybrid retrieval thresholded at tau={t_base:.2f} without LLM",
+            "thresholds": base_cfg,
             "use_llm": False,
         },
         {
             "name": "Pure Vector Hybrid (tau=0.70)",
             "description": "Recalibrated vector: hybrid retrieval thresholded at tau=0.70 without LLM",
-            "threshold": 0.70,
+            "thresholds": recal_cfg,
             "use_llm": False,
         },
         {
-            "name": "Bartleby Condition 3 (tau=0.50 + LLM Verification)",
-            "description": "Hybrid retrieval with tau=0.50 passed to Condition 3 LLM Semantic Verification",
-            "threshold": 0.50,
+            "name": f"Bartleby Condition 3 (tau={t_base:.2f} + LLM Verification)",
+            "description": f"Hybrid retrieval with tau={t_base:.2f} passed to Condition 3 LLM Semantic Verification",
+            "thresholds": base_cfg,
             "use_llm": True,
         },
     ]
@@ -161,7 +166,7 @@ def run_bartleby_llm_eval(
 
     for mode in modes_to_test:
         guard = BartlebyGuard(
-            thresholds={"min_relevance_score": mode["threshold"], "min_evidence_spans": 1},
+            thresholds=mode["thresholds"],
             max_verification_candidates=5,
         )
         t_start = time.perf_counter()
@@ -271,7 +276,7 @@ def run_bartleby_llm_eval(
             GuardEvaluationModeResult(
                 mode_name=mode["name"],
                 description=mode["description"],
-                relevance_threshold=mode["threshold"],
+                relevance_threshold=mode["thresholds"]["min_relevance_score"],
                 use_llm_verification=mode["use_llm"],
                 total_queries=len(test_cases),
                 total_absences=tot_abs,
@@ -334,6 +339,7 @@ def run_bartleby_llm_eval(
         llm_provider_used=llm_provider_type,
         modes=mode_results,
         findings_summary=summary,
+        tau_override=tau,
     )
 
     out = Path(output_path)
@@ -377,10 +383,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output", type=str, default="evals/reports/bartleby_llm_verification_report.json"
     )
+    parser.add_argument(
+        "--tau", type=float, default=None, help="Override tau from config/thresholds.yaml"
+    )
     args = parser.parse_args()
     run_bartleby_llm_eval(
         sample_size=args.sample_size,
         output_path=args.output,
         llm_provider_type=args.llm_provider,
         allow_stub=args.allow_stub,
+        tau=args.tau,
     )
