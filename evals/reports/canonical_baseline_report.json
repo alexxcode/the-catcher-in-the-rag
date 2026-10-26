@@ -1,11 +1,13 @@
 {
   "version": "0.4.0",
-  "timestamp": "2026-10-22T04:45:39.742500+00:00",
+  "timestamp": "2026-10-26T06:08:58.529368+00:00",
+  "git_commit_sha": "bf1abdc6b8f83434d8186a664d99175872d79d88",
+  "command": "python -m evals.run --ablations --output evals/reports/",
   "environment": "offline_stub",
   "config_name": "baseline",
   "total_packages": 300,
-  "mean_latency_ms": 16.74,
-  "decision_accuracy": 1.0,
+  "mean_latency_ms": 16.58,
+  "decision_accuracy": 0.9133,
   "false_positive_rate_a10": 0.0,
   "per_class": {
     "A01": {
@@ -125,13 +127,334 @@
     "over_abstention_rate": 0.0
   },
   "citations": {
-    "total_citations": 120,
-    "valid_citations": 120,
+    "total_citations": 64,
+    "valid_citations": 64,
     "citation_validity_rate": 1.0
   },
-  "failure_cases": [],
+  "failure_cases": [
+    {
+      "package_id": "PKG-0151",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0152",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0153",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0155",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0156",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0157",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0158",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0159",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0160",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0161",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0162",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0164",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0165",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0166",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0167",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0168",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0169",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0170",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0171",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0172",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0173",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0175",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0176",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0178",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0179",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    },
+    {
+      "package_id": "PKG-0180",
+      "expected_decision": "REJECT",
+      "actual_decision": "REVIEW",
+      "expected_anomalies": [
+        "A06"
+      ],
+      "detected_anomalies": [
+        "A06"
+      ],
+      "justification": "Requires Human Review: 1 finding(s) require review (A06)."
+    }
+  ],
   "metadata": {
-    "duration_seconds": 5.03,
-    "mode": "baseline"
+    "duration_seconds": 4.98,
+    "mode": "baseline",
+    "provenance": {
+      "git_commit_sha": "bf1abdc6b8f83434d8186a664d99175872d79d88",
+      "git_branch": "main",
+      "git_dirty": false,
+      "command": "python -m evals.run --ablations --output evals/reports/",
+      "python_version": "3.13.16",
+      "mode": "baseline"
+    }
   }
 }
