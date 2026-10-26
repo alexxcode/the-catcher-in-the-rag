@@ -113,7 +113,7 @@ def generate_domain_calibration_table() -> str:
 
     table = f"""| Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\\tau$) | Macro F1 Validación | AUC-ROC Separabilidad | Desempeño Empírico en Transferencia |
 |---|---|:---:|:---:|:---:|---|
-| **Plantillas Sintéticas (+ Heurística 3a*)** | Datagen M1 (300 paquetes) | **{synth_t:.2f}** | **{synth_f1:.4f}** | **{synth_auc:.4f}** | F1 1.0000 debido a regex de denegación 3a ("under no circumstances"). Score puro sin 3a da F1 {pure_f1:.4f} (abstención {pure_abs:.1f}%). |
+| **Plantillas Sintéticas (+ Heurística 3a*)** | Datagen M1 ({synth_data["total_packages"]} paquetes; no es evidencia) | **{synth_t:.2f}** | **{synth_f1:.4f}** | **{synth_auc:.4f}** | F1 con regex de denegación 3a: {synth_data["heuristic_3a_val_macro_f1"]:.4f}. Score puro sin 3a: F1 {pure_f1:.4f} (abstención {pure_abs:.1f}%). |
 | **Contratos SEC Reales (Transfer)** | CUAD v1, contratos 1–{cuad_data["total_contracts"]}, Train/Val 60/40 | **{synth_t:.2f}** (fijado) | **{val_synth:.4f}** | **{auc_val:.4f}** | Abstención correcta en ausencias {val_c_synth:.1f}% ({100 - val_c_synth:.1f}% pasan). |
 | **Contratos SEC Reales (Recalibrado)** | CUAD v1, contratos 1–{cuad_data["total_contracts"]}, Train/Val 60/40 | **{cuad_t:.2f}** (recalibrado, no aplicado) | **{val_cuad:.4f}** | **{auc_val:.4f}** | Abstención correcta {val_c_opt:.1f}%, falsas abstenciones {val_f_opt:.1f}% (Siempre Abstenerse: {always_f1:.4f}). |"""
     return table
@@ -206,33 +206,94 @@ def generate_retrieval_table() -> str:
     return "\n".join([header, "", *rows, "", *(f"- {n}" for n in notes)])
 
 
+def _load(path: str) -> dict:
+    p = Path(path)
+    if not p.exists():
+        raise FileNotFoundError(f"Required report {p} not found.")
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def _rate(count: int, total: int, ci: list[float]) -> str:
+    return (
+        f"{count}/{total} = {count / total * 100:.1f}% [IC95 {ci[0] * 100:.1f}–{ci[1] * 100:.1f}]"
+    )
+
+
+def _oos_rows() -> list[tuple[str, str, dict]]:
+    rows = []
+    for path, label in (
+        ("evals/reports/out_of_sample_cuad_stub_tau0.50_report.json", "Sin LLM, solo score"),
+        ("evals/reports/out_of_sample_cuad_stub_tau0.80_report.json", "Sin LLM, solo score"),
+        ("evals/reports/out_of_sample_cuad_report.json", "Con verificación LLM (3b)"),
+    ):
+        d = _load(path)
+        rows.append((path, label, d))
+    return rows
+
+
 def generate_mode3_diagnosis() -> str:
-    path = Path("evals/reports/bartleby_llm_verification_report.json")
-    if not path.exists():
-        raise FileNotFoundError(f"Required report {path} not found.")
+    """Three Bartleby claims, every number read from report JSONs."""
+    cal = _load("evals/reports/calibration_cuad_report.json")
+    llm = _load("evals/reports/bartleby_llm_verification_report.json")
+    oos_llm = _load("evals/reports/out_of_sample_cuad_report.json")
 
-    with path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
+    auc, ci = cal["auc_roc_val"], cal["auc_roc_val_ci95"]
+    includes_half = ci[0] <= 0.5 <= ci[1]
+    m1, m3 = llm["modes"][0], llm["modes"][2]
+    fa = oos_llm["metrics"]["false_abstention_on_positives"]
+    total_q = oos_llm["total_queries_evaluated"]
 
-    m3 = data["modes"][2]
-    hit_acc = m3["llm_accepted_on_hit"]
-    miss_rej = m3["llm_rejected_on_miss"]
-    c_abs_rate = m3["correct_abstention_rate"] * 100
-    c_abs_count = m3["correct_abstentions"]
-    tot_abs = m3["total_absences"]
-    f_abs_rate = m3["false_abstention_rate"] * 100
-    f_abs_count = m3["false_abstentions"]
-    tot_pres = m3["total_presences"]
-    f1 = m3["macro_f1"]
-    lat_ms = m3["mean_latency_ms"]
-    cost_1k = m3["estimated_cost_usd_per_1k"]
+    a = (
+        f"(a) **El score de recuperación solo es una señal débil.** AUC-ROC de validación "
+        f"{auc:.4f} [IC95 {ci[0]:.4f}–{ci[1]:.4f}] con `{cal['embedding_provider']}` "
+        f"(CUAD, contratos 1–{cal['total_contracts']}, `calibration_cuad_report.json`); "
+        + ("el intervalo incluye 0.50." if includes_half else "el intervalo excluye 0.50.")
+    )
+    b = (
+        f"(b) **La verificación con LLM aporta la abstención.** Con los mismos embeddings y "
+        f"$\\tau$ = {m1['relevance_threshold']:.2f} (`bartleby_llm_verification_report.json`), la "
+        f"abstención correcta en ausencias pasa de {m1['correct_abstentions']}/{m1['total_absences']} "
+        f"({m1['correct_abstention_rate'] * 100:.1f}%) sin LLM a {m3['correct_abstentions']}/"
+        f"{m3['total_absences']} ({m3['correct_abstention_rate'] * 100:.1f}%) con LLM."
+    )
+    c = (
+        f"(c) **Las falsas abstenciones siguen altas.** Con LLM, fuera de muestra: "
+        f"{_rate(fa['count'], fa['total'], fa['wilson_ci95'])} de las cláusulas presentes "
+        f"(`out_of_sample_cuad_report.json`). Cada falsa abstención es una revisión humana "
+        f"innecesaria: {fa['count']} en {total_q} consultas "
+        f"({fa['count'] / total_q * 100:.1f} por cada 100). Tiempo o costo por revisión: NOT MEASURED."
+    )
+    return "\n".join(
+        ["> **Bartleby: tres afirmaciones medidas**", f"> {a}", ">", f"> {b}", ">", f"> {c}"]
+    )
 
-    text = f"""> **Diagnóstico Empírico: Rendimiento Condicionado del Verificador y Cuello de Botella de Recuperación**
-> 1. **Inspección de Casos Condicionados a Recuperación:** En los {tot_pres} casos con cláusula presente ([`evals/reports/bartleby_llm_verification_report.json`](evals/reports/bartleby_llm_verification_report.json)), cuando la recuperación ubicó la cláusula correcta dentro del top-5 (16 casos), el verificador LLM confirmó **{hit_acc} de 16 casos ({hit_acc / 16 * 100:.1f}%)**. Cuando la recuperación fracasó por completo trayendo únicamente fragmentos irrelevantes (10 casos), el verificador **rechazó correctamente {miss_rej} de los 10 pasajes ({miss_rej / 10 * 100:.1f}%)**, actuando como filtro de distractores espurios.
-> 2. **Desglose de las {f_abs_count} Falsas Abstenciones y Cuello de Botella:** De las {f_abs_count} falsas abstenciones totales ({f_abs_rate:.1f}%, {f_abs_count}/{tot_pres}), **{miss_rej} provienen de recuperación fallida** donde el verificador rechazó adecuadamente pasajes distractores ante la ausencia de la cláusula en el top-5 ({miss_rej} de 10 ausencias en top-5), y **{16 - hit_acc} provienen de rechazos del verificador** a pesar de que la cláusula correcta sí estaba en el top-5 (16 aciertos menos {hit_acc} aceptados = {16 - hit_acc}). Así, 8 + 4 = 12 falsas abstenciones. En los {tot_pres} casos presentes, la búsqueda léxica/hash ubica la cláusula en el rango #1 solo en el **26.9%** (7/{tot_pres}) y en el top-5 en el **61.5%** (16/{tot_pres}).
-> 3. **Ganancia Neta en Discriminación:** El filtro semántico eleva la abstención correcta ante ausencias reales del 27.9% al **{c_abs_rate:.1f}%** ({c_abs_count}/{tot_abs}), reduciendo la falsa abstención al **{f_abs_rate:.1f}%** ({f_abs_count}/{tot_pres} frente a 17/26 en la corrida inicial sin enriquecimiento de categorías) y alcanzando el Macro F1 más alto de todas las arquitecturas evaluadas (**{f1:.4f}**).
-> 4. **Trade-off Operativo:** Añade ~{lat_ms / 1000:.1f} segundos de latencia media por consulta y un costo proyectado de ~${cost_1k:.2f} por cada 1,000 consultas auditadas en Gemini 3.5 Flash (~$0.88 en Gemini 3.8 Flash). Fijar `thinking_budget: 0` reduce la latencia de 5,153 ms a {lat_ms:.0f} ms (una mejora del 12.5%), suprimiendo tokens de pensamiento redundantes en clasificación binaria."""
-    return text
+
+def generate_oos_bartleby_table() -> str:
+    """Out-of-sample (contracts 16-50) abstention per configuration plus Always-Abstain."""
+    rows = [
+        "| Configuración | $\\tau$ | Embeddings | Abstención correcta (ausencias) | Falsa abstención (presencias) | Macro F1 | Reporte |",
+        "|---|:---:|---|:---:|:---:|:---:|---|",
+    ]
+    for path, label, d in _oos_rows():
+        m = d["metrics"]
+        ca, fa = m["correct_abstention_on_negatives"], m["false_abstention_on_positives"]
+        tau = d.get("tau_override")
+        tau_txt = f"{tau:.2f}" if tau is not None else "0.50 (fijo en el eval)"
+        emb = d.get("embedding_provider") or "stub (valor por defecto del comando)"
+        dirty = " (git_dirty)" if d.get("git_dirty") else ""
+        rows.append(
+            f"| {label} | {tau_txt} | `{emb}` | {_rate(ca['count'], ca['total'], ca['wilson_ci95'])} | "
+            f"{_rate(fa['count'], fa['total'], fa['wilson_ci95'])} | {m['macro_f1']:.4f} | `{Path(path).name}`{dirty} |"
+        )
+    d0 = _oos_rows()[0][2]
+    n_abs, n_pres = d0["absence_cases"], d0["presence_cases"]
+    p_abs = n_abs / (n_abs + n_pres)
+    f1_always = round((2 * p_abs / (p_abs + 1.0)) / 2.0, 4)
+    rows.append(
+        f"| Siempre abstenerse (trivial) | — | — | {n_abs}/{n_abs} = 100.0% | {n_pres}/{n_pres} = 100.0% | "
+        f"{f1_always:.4f} | calculado de los conteos |"
+    )
+    return "\n".join(rows)
 
 
 def generate_synthetic_ablation_table() -> str:
@@ -381,6 +442,7 @@ GENERATORS = {
     "llm_verification_table": generate_llm_verification_table,
     "llm_verification_footnote": generate_llm_verification_footnote,
     "mode3_diagnosis": generate_mode3_diagnosis,
+    "oos_bartleby_table": generate_oos_bartleby_table,
     "retrieval_table": generate_retrieval_table,
     "bakeoff_table": generate_bakeoff_table,
     "bakeoff_diagnosis": generate_bakeoff_diagnosis,

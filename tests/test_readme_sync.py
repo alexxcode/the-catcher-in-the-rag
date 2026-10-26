@@ -178,12 +178,6 @@ def test_readme_prose_verification_metrics_in_sync() -> None:
     rep_data = json.loads(rep_path.read_text(encoding="utf-8"))
     m3 = rep_data["modes"][2]
 
-    # Check that prose cites the exact count of accepted hits (12 de 16) and rejected misses (8 de los 10)
-    expected_hit = f"{m3['llm_accepted_on_hit']} de 16"
-    expected_miss = f"{m3['llm_rejected_on_miss']} de los 10"
-    assert expected_hit in content, f"Expected '{expected_hit}' in README prose."
-    assert expected_miss in content, f"Expected '{expected_miss}' in README prose."
-
     # Check that prose cites the exact rates
     assert f"{m3['correct_abstention_rate'] * 100:.1f}%" in content
     assert f"{m3['false_abstention_rate'] * 100:.1f}%" in content

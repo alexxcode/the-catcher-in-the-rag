@@ -31,7 +31,7 @@ Auditor determinista de compras corporativas (procurement) con verificación con
 <!-- GEN:domain_calibration_table -->
 | Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\tau$) | Macro F1 Validación | AUC-ROC Separabilidad | Desempeño Empírico en Transferencia |
 |---|---|:---:|:---:|:---:|---|
-| **Plantillas Sintéticas (+ Heurística 3a*)** | Datagen M1 (300 paquetes) | **0.50** | **1.0000** | **0.1204** | F1 1.0000 debido a regex de denegación 3a ("under no circumstances"). Score puro sin 3a da F1 0.4737 (abstención 0.0%). |
+| **Plantillas Sintéticas (+ Heurística 3a*)** | Datagen M1 (300 paquetes; no es evidencia) | **0.50** | **1.0000** | **0.1204** | F1 con regex de denegación 3a: 1.0000. Score puro sin 3a: F1 0.4737 (abstención 0.0%). |
 | **Contratos SEC Reales (Transfer)** | CUAD v1, contratos 1–15, Train/Val 60/40 | **0.50** (fijado) | **0.4496** | **0.5909** | Abstención correcta en ausencias 25.8% (74.2% pasan). |
 | **Contratos SEC Reales (Recalibrado)** | CUAD v1, contratos 1–15, Train/Val 60/40 | **0.80** (recalibrado, no aplicado) | **0.5457** | **0.5909** | Abstención correcta 54.8%, falsas abstenciones 36.4% (Siempre Abstenerse: 0.4247). |
 <!-- /GEN -->
@@ -56,15 +56,24 @@ Auditor determinista de compras corporativas (procurement) con verificación con
 *\*Costo estimado a partir de tokens medidos (98,140 prompt / 10,905 candidate, incluyendo tokens de pensamiento contabilizados como salida) y tarifas pay-as-you-go oficiales en Vertex AI ($1.50 / $9.00 por millón de tokens para Gemini 3.5 Flash según [`config/pricing.yaml`](config/pricing.yaml)). Con Gemini 3.8 Flash, el costo estimado resulta en ~$0.88/1k con la tarifa introductoria vigente ($0.75 / $3.75 hasta el 31 de diciembre de 2026) y en ~$1.77/1k con la tarifa estándar ($1.50 / $7.50 a partir del 1 de enero de 2027).*
 <!-- /GEN -->
 <!-- GEN:mode3_diagnosis -->
-> **Diagnóstico Empírico: Rendimiento Condicionado del Verificador y Cuello de Botella de Recuperación**
-> 1. **Inspección de Casos Condicionados a Recuperación:** En los 26 casos con cláusula presente ([`evals/reports/bartleby_llm_verification_report.json`](evals/reports/bartleby_llm_verification_report.json)), cuando la recuperación ubicó la cláusula correcta dentro del top-5 (16 casos), el verificador LLM confirmó **12 de 16 casos (75.0%)**. Cuando la recuperación fracasó por completo trayendo únicamente fragmentos irrelevantes (10 casos), el verificador **rechazó correctamente 7 de los 10 pasajes (70.0%)**, actuando como filtro de distractores espurios.
-> 2. **Desglose de las 11 Falsas Abstenciones y Cuello de Botella:** De las 11 falsas abstenciones totales (42.3%, 11/26), **7 provienen de recuperación fallida** donde el verificador rechazó adecuadamente pasajes distractores ante la ausencia de la cláusula en el top-5 (7 de 10 ausencias en top-5), y **4 provienen de rechazos del verificador** a pesar de que la cláusula correcta sí estaba en el top-5 (16 aciertos menos 12 aceptados = 4). Así, 8 + 4 = 12 falsas abstenciones. En los 26 casos presentes, la búsqueda léxica/hash ubica la cláusula en el rango #1 solo en el **26.9%** (7/26) y en el top-5 en el **61.5%** (16/26).
-> 3. **Ganancia Neta en Discriminación:** El filtro semántico eleva la abstención correcta ante ausencias reales del 27.9% al **63.3%** (50/79), reduciendo la falsa abstención al **42.3%** (11/26 frente a 17/26 en la corrida inicial sin enriquecimiento de categorías) y alcanzando el Macro F1 más alto de todas las arquitecturas evaluadas (**0.5714**).
-> 4. **Trade-off Operativo:** Añade ~3.3 segundos de latencia media por consulta y un costo proyectado de ~$2.34 por cada 1,000 consultas auditadas en Gemini 3.5 Flash (~$0.88 en Gemini 3.8 Flash). Fijar `thinking_budget: 0` reduce la latencia de 5,153 ms a 3304 ms (una mejora del 12.5%), suprimiendo tokens de pensamiento redundantes en clasificación binaria.
+> **Bartleby: tres afirmaciones medidas**
+> (a) **El score de recuperación solo es una señal débil.** AUC-ROC de validación 0.5909 [IC95 0.3885–0.7933] con `text-embedding-005` (CUAD, contratos 1–15, `calibration_cuad_report.json`); el intervalo incluye 0.50.
+>
+> (b) **La verificación con LLM aporta la abstención.** Con los mismos embeddings y $\tau$ = 0.50 (`bartleby_llm_verification_report.json`), la abstención correcta en ausencias pasa de 22/79 (27.9%) sin LLM a 50/79 (63.3%) con LLM.
+>
+> (c) **Las falsas abstenciones siguen altas.** Con LLM, fuera de muestra: 74/156 = 47.4% [IC95 39.8–55.2] de las cláusulas presentes (`out_of_sample_cuad_report.json`). Cada falsa abstención es una revisión humana innecesaria: 74 en 420 consultas (17.6 por cada 100). Tiempo o costo por revisión: NOT MEASURED.
 <!-- /GEN -->
 
 ### 3b. Evaluación Fuera de Muestra (`uv run python evals/eval_out_of_sample.py --start 15 --end 50 --llm-provider vertex_ai` -> `evals/reports/out_of_sample_cuad_report.json`)
 Reportado con `git_dirty: true`. Según el operador, solo estaba sin commitear el reporte hermano de Bartleby; git no registra qué archivos estaban modificados. El registro crudo (`evals/reports/raw/out_of_sample_cuad.jsonl`) no trae `query` ni `contract_id` por llamada y su número de líneas no coincide con el número de consultas del reporte, así que los conteos no se pueden cruzar consulta por consulta. No se repitió por costo.
+<!-- GEN:oos_bartleby_table -->
+| Configuración | $\tau$ | Embeddings | Abstención correcta (ausencias) | Falsa abstención (presencias) | Macro F1 | Reporte |
+|---|:---:|---|:---:|:---:|:---:|---|
+| Sin LLM, solo score | 0.50 | `vertex_ai` | 63/264 = 23.9% [IC95 19.1–29.4] | 8/156 = 5.1% [IC95 2.6–9.8] | 0.4811 | `out_of_sample_cuad_stub_tau0.50_report.json` |
+| Sin LLM, solo score | 0.80 | `vertex_ai` | 221/264 = 83.7% [IC95 78.8–87.7] | 72/156 = 46.2% [IC95 38.5–54.0] | 0.6936 | `out_of_sample_cuad_stub_tau0.80_report.json` |
+| Con verificación LLM (3b) | 0.50 (fijo en el eval) | `stub (valor por defecto del comando)` | 248/264 = 93.9% [IC95 90.4–96.2] | 74/156 = 47.4% [IC95 39.8–55.2] | 0.7460 | `out_of_sample_cuad_report.json` (git_dirty) |
+| Siempre abstenerse (trivial) | — | — | 264/264 = 100.0% | 156/156 = 100.0% | 0.3860 | calculado de los conteos |
+<!-- /GEN -->
 
 ### 4. Recuperación fuera de muestra (`MAX_LIVE_CALLS=20 uv run python evals/eval_out_of_sample.py --retrieval-ablation --embedding-provider vertex_ai --start 15 --end 50` -> `evals/reports/retrieval_ablation_oos_report.json`)
 <!-- GEN:retrieval_table -->
