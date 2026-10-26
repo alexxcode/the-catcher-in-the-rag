@@ -9,7 +9,6 @@
 # - extraction_llm: gemini-3.5-flash (Active GA, retirement: May 19, 2027 or later, available in us-central1)
 # - alternative_llm: gemini-3.8-flash (Active GA, retirement: September 2, 2027 or later, regions: global, us, eu)
 # - embeddings: text-embedding-005 (Active GA, 768 dims, available in us-central1)
-# - reranker: flashrank (ms-marco-TinyBERT-L-2-v2, fast CPU-only local reranker)
 # - datagen_llm: gemini-3.5-flash (Active GA, temperature 0.7 for synthetic diversity)
 
 project: the-catcher-in-the-rag   # overridden by env var GOOGLE_CLOUD_PROJECT
@@ -45,11 +44,6 @@ embeddings:
   model_id: "text-embedding-005"
   output_dimensionality: 768   # reduced from 3072 for storage efficiency
   task_type: "RETRIEVAL_DOCUMENT"   # for indexing; use RETRIEVAL_QUERY at query time
-
-# ── Reranker ──────────────────────────────────────────────────────────────────
-reranker:
-  provider: "flashrank"
-  model_id: "ms-marco-TinyBERT-L-2-v2"
 
 # ── Generation rules ──────────────────────────────────────────────────────────
 # Only GA models for synthetic dataset generation and published results.

@@ -185,7 +185,7 @@ class CUADLoader:
                     effective_date = date(int(match.group(1)), 1, 1)
 
         exp_spans = cuad.get_spans("Expiration Date")
-        expiration_date = date(2026, 12, 31)
+        expiration_date: date | None = None
         if exp_spans:
             match = re.search(r"\b(19\d\d|20\d\d)\b", exp_spans[0].text)
             if match:
