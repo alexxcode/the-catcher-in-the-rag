@@ -136,7 +136,11 @@ def generate_llm_verification_table() -> str:
         f_abs = f"{m['false_abstention_rate'] * 100:.1f}% ({m['false_abstentions']}/{m['total_presences']})"
         f1 = f"{m['macro_f1']:.4f}"
         lat = f"{m['mean_latency_ms']:.1f} ms"
-        cost = f"${m['estimated_cost_usd_per_1k']:.4f}" if m["estimated_cost_usd_per_1k"] > 0 else "$0.0000"
+        cost = (
+            f"${m['estimated_cost_usd_per_1k']:.4f}"
+            if m["estimated_cost_usd_per_1k"] > 0
+            else "$0.0000"
+        )
         rows.append(
             f"| **{name}** | **{tau}** | `{llm}` | **{c_abs}** | **{f_abs}** | **{f1}** | {lat} | {cost} |"
         )
@@ -147,11 +151,59 @@ def generate_llm_verification_table() -> str:
 
 
 def generate_retrieval_table() -> str:
-    table = """| Arquitectura de Recuperación | Modelo de Embedding | Fusión | Hit@1 (Top-1) | Hit@5 (Top-5) | Impacto Práctico |
-|---|---|---|:---:|:---:|---|
-| **Léxico Basal (CI / Offline)** | `stub-hash-768d` | Ninguno (Híbrido Lineal) | 26.9% (7/26) | 61.5% (16/26) | Línea de base determinista offline. |
-| **Embeddings Densos Reales** | `bge-small-en-v1.5` | Similitud Coseno Densa | NOT MEASURED | NOT MEASURED | Pendiente de reporte en Fase 1 (`evals/eval_retrieval.py`). |"""
-    return table
+    path = Path("evals/reports/retrieval_ablation_oos_report.json")
+    if not path.exists():
+        return "NOT MEASURED (`evals/reports/retrieval_ablation_oos_report.json` missing)."
+    data = json.loads(path.read_text(encoding="utf-8"))
+    metrics = data["metrics"]
+    labels = {"bm25": "BM25", "dense": "Denso", "hybrid": "Híbrido (50/50)"}
+
+    def cell(e: dict) -> str:
+        lo, hi = e["wilson_ci95"]
+        return f"{e['rate'] * 100:.1f}% ({e['count']}/{e['total']}) [IC95 {lo * 100:.1f}–{hi * 100:.1f}]"
+
+    rows = [
+        "| Método | Hit@1 | Hit@5 |",
+        "|---|:---:|:---:|",
+    ]
+    for mode, label in labels.items():
+        m = metrics[mode]
+        rows.append(f"| **{label}** | {cell(m['hit_at_1'])} | {cell(m['hit_at_5'])} |")
+
+    notes = []
+    for k, name in (("hit_at_1", "Hit@1"), ("hit_at_5", "Hit@5")):
+        cis = {mode: metrics[mode][k]["wilson_ci95"] for mode in labels}
+        overlap = all(
+            cis[a][0] <= cis[b][1] and cis[b][0] <= cis[a][1] for a in cis for b in cis if a < b
+        )
+        if overlap:
+            notes.append(
+                f"{name}: los tres métodos son estadísticamente indistinguibles en esta muestra."
+            )
+        else:
+            apart = [
+                labels[a]
+                for a in cis
+                if all(cis[a][1] < cis[b][0] or cis[b][1] < cis[a][0] for b in cis if b != a)
+            ]
+            who = ", ".join(apart) if apart else "algún par"
+            same = [
+                f"{labels[a]} y {labels[b]}"
+                for a in cis
+                for b in cis
+                if a < b and cis[a][0] <= cis[b][1] and cis[b][0] <= cis[a][1]
+            ]
+            same_txt = f" {'; '.join(same)}: indistinguibles en esta muestra." if same else ""
+            notes.append(
+                f"{name}: el intervalo de Wilson de {who} no se solapa con los demás; los tres "
+                f"métodos no son indistinguibles en esta muestra.{same_txt}"
+            )
+    header = (
+        f"{data['presence_cases']} casos de presencia, {data['contract_slice']}, "
+        f"embeddings `{data['embedding_model_id']}`, commit `{data['git_commit_sha'][:7]}`. "
+        "Empates resueltos por orden de aparición en el contrato."
+    )
+    return "\n".join([header, "", *rows, "", *(f"- {n}" for n in notes)])
 
 
 def generate_mode3_diagnosis() -> str:
@@ -323,9 +375,7 @@ def sync_readme(readme_path: Path = Path("README.md")) -> None:
 
     content = readme_path.read_text(encoding="utf-8")
     for name, gen_fn in GENERATORS.items():
-        pattern = re.compile(
-            rf"(<!--\s*GEN:{name}\s*-->)([\s\S]*?)(<!--\s*/GEN\s*-->)"
-        )
+        pattern = re.compile(rf"(<!--\s*GEN:{name}\s*-->)([\s\S]*?)(<!--\s*/GEN\s*-->)")
         new_block = gen_fn().strip()
         content, count = pattern.subn(
             lambda m, nb=new_block: f"{m.group(1)}\n{nb}\n{m.group(3)}",

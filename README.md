@@ -8,8 +8,8 @@ Auditor determinista de compras corporativas (procurement) con verificación con
 - **Ejecución:** Pruebas offline con `make test`, puerta completa con `make verify`, UI en `make run-ui` (puerto 8501) y API en `make run-api` (puerto 8000).
 
 ## Limitaciones
-- Embeddings stub (`stub-hash-768d`) en las mediciones offline de CUAD; la Regla 3a es una heurística de plantilla sintética; los datos sintéticos no constituyen evidencia empírica de producción.
-- **NOT MEASURED:** Recuperación con embeddings densos reales (`bge-small-en-v1.5`) y latencia en red distribuida.
+- Embeddings stub (`stub-hash-768d`) en las mediciones de CUAD salvo la sección 4 (`text-embedding-005`); la Regla 3a es una heurística de plantilla sintética; los datos sintéticos no constituyen evidencia empírica de producción.
+- **NOT MEASURED:** Bartleby recalibrado con embeddings reales y latencia en red distribuida.
 - **Reranker:** no medido, desactivado.
 
 ## Resultados Medidos
@@ -67,12 +67,18 @@ Auditor determinista de compras corporativas (procurement) con verificación con
 ### 3b. Evaluación Fuera de Muestra (`uv run python evals/eval_out_of_sample.py --start 15 --end 50 --llm-provider vertex_ai` -> `evals/reports/out_of_sample_cuad_report.json`)
 Reportado con `git_dirty: true`. Según el operador, solo estaba sin commitear el reporte hermano de Bartleby; git no registra qué archivos estaban modificados. El registro crudo (`evals/reports/raw/out_of_sample_cuad.jsonl`) no trae `query` ni `contract_id` por llamada y su número de líneas no coincide con el número de consultas del reporte, así que los conteos no se pueden cruzar consulta por consulta. No se repitió por costo.
 
-### 4. Arquitectura de Recuperación (`evals/reports/cuad_benchmark_latest.json`)
+### 4. Recuperación fuera de muestra (`MAX_LIVE_CALLS=20 uv run python evals/eval_out_of_sample.py --retrieval-ablation --embedding-provider vertex_ai --start 15 --end 50` -> `evals/reports/retrieval_ablation_oos_report.json`)
 <!-- GEN:retrieval_table -->
-| Arquitectura de Recuperación | Modelo de Embedding | Fusión | Hit@1 (Top-1) | Hit@5 (Top-5) | Impacto Práctico |
-|---|---|---|:---:|:---:|---|
-| **Léxico Basal (CI / Offline)** | `stub-hash-768d` | Ninguno (Híbrido Lineal) | 26.9% (7/26) | 61.5% (16/26) | Línea de base determinista offline. |
-| **Embeddings Densos Reales** | `bge-small-en-v1.5` | Similitud Coseno Densa | NOT MEASURED | NOT MEASURED | Pendiente de reporte en Fase 1 (`evals/eval_retrieval.py`). |
+156 casos de presencia, CUAD-0016 to CUAD-0050 (35 contracts), embeddings `text-embedding-005`, commit `3cdff0d`. Empates resueltos por orden de aparición en el contrato.
+
+| Método | Hit@1 | Hit@5 |
+|---|:---:|:---:|
+| **BM25** | 30.1% (47/156) [IC95 23.5–37.7] | 68.6% (107/156) [IC95 60.9–75.3] |
+| **Denso** | 55.8% (87/156) [IC95 47.9–63.3] | 85.9% (134/156) [IC95 79.6–90.5] |
+| **Híbrido (50/50)** | 55.1% (86/156) [IC95 47.3–62.7] | 84.6% (132/156) [IC95 78.1–89.4] |
+
+- Hit@1: el intervalo de Wilson de BM25 no se solapa con los demás; los tres métodos no son indistinguibles en esta muestra. Denso y Híbrido (50/50): indistinguibles en esta muestra.
+- Hit@5: el intervalo de Wilson de BM25 no se solapa con los demás; los tres métodos no son indistinguibles en esta muestra. Denso y Híbrido (50/50): indistinguibles en esta muestra.
 <!-- /GEN -->
 
 ### 5. Bake-Off de Modelos (`evals/bakeoff.py` -> `evals/reports/bakeoff_latest.json`)
