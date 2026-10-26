@@ -283,6 +283,34 @@ def check_canonical_report(report_path: Path) -> list[str]:
     return errors
 
 
+def check_retrieval_ablation_report(report_path: Path) -> list[str]:
+    """Arithmetic coherence only: counts <= totals, rates and Wilson CIs recomputed."""
+    with report_path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    errors: list[str] = []
+    pres = data.get("presence_cases", 0)
+    metrics = data.get("metrics", {})
+    if set(metrics) != {"bm25", "dense", "hybrid"}:
+        errors.append(f"Ablation modes mismatch: {sorted(metrics)}")
+    for mode, m in metrics.items():
+        h1 = m.get("hit_at_1", {}).get("count", 0)
+        h5 = m.get("hit_at_5", {}).get("count", 0)
+        if h1 > h5:
+            errors.append(f"Ablation {mode}: hit_at_1 {h1} > hit_at_5 {h5}")
+        for k in ("hit_at_1", "hit_at_5"):
+            e = m.get(k, {})
+            c, t = e.get("count", 0), e.get("total", 0)
+            if t != pres or c > t:
+                errors.append(f"Ablation {mode}.{k}: count/total {c}/{t} vs presence {pres}")
+            exp_rate = round(c / t, 4) if t > 0 else 0.0
+            if abs(e.get("rate", 0.0) - exp_rate) > 1e-3:
+                errors.append(f"Ablation {mode}.{k} rate mismatch: {e.get('rate')} vs {exp_rate}")
+            ci, exp_ci = e.get("wilson_ci95") or [], _wilson_interval(c, t)
+            if len(ci) != 2 or any(abs(x - y) > 1e-4 for x, y in zip(ci, exp_ci, strict=True)):
+                errors.append(f"Ablation {mode}.{k} CI mismatch: {e.get('wilson_ci95')}")
+    return errors
+
+
 def run_all_checks() -> int:
     pricing_path = Path("config/pricing.yaml")
     reports_dir = Path("evals/reports")
@@ -305,6 +333,7 @@ def run_all_checks() -> int:
         "audit_rejected_cases_report.json": check_canonical_report,
         "cuad_benchmark_latest.json": check_canonical_report,
         "latest.json": check_canonical_report,
+        "retrieval_ablation_oos_report.json": check_retrieval_ablation_report,
     }
 
 
