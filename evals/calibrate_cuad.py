@@ -2,13 +2,14 @@
 
 Evaluates domain transfer of Bartleby abstention guard from synthetic templates to
 authentic commercial SEC contracts:
-- Shuffled, reproducible 60/40 Train/Val split on CUAD contracts (seed=42)
+- Only CUAD contracts 1-15 (CALIBRATION_MAX_CONTRACTS); 16-50 are held out for evaluation
+- Shuffled, reproducible 60/40 Train/Val split within them (seed=42)
 - Sweeps relevance thresholds [0.20, 0.30, 0.40, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90]
 - Computes 95% Wilson score confidence intervals for correct and false abstentions
 - Measures threshold-free AUC-ROC of retrieval score separating presence from absence
 - Evaluates Macro F1 against both trivial baselines (Always Abstain vs Never Abstain)
-- Documents the domain discrepancy: vector similarity alone under-abstains at low thresholds
-  and over-abstains at high thresholds, justifying Condition 3 LLM verification.
+- Reports abstention rates at the synthetic and the calibrated threshold (no conclusions
+  are written into the report; numbers only).
 """
 
 from __future__ import annotations
@@ -45,6 +46,22 @@ def _wilson_interval(successes: int, total: int, z: float = 1.96) -> list[float]
         (p_hat * (1.0 - p_hat) / total) + (z * z) / (4.0 * total * total)
     )
     return [round(max(0.0, center - margin), 4), round(min(1.0, center + margin), 4)]
+
+
+CALIBRATION_MAX_CONTRACTS = 15  # contracts 16-50 are the out-of-sample slice; never used here
+
+
+def _auc_ci95(auc: float, n_pos: int, n_neg: int) -> list[float]:
+    """95% CI for AUC-ROC via the Hanley-McNeil (1982) standard error."""
+    if n_pos == 0 or n_neg == 0:
+        return [0.0, 1.0]
+    q1 = auc / (2 - auc)
+    q2 = 2 * auc * auc / (1 + auc)
+    var = (auc * (1 - auc) + (n_pos - 1) * (q1 - auc * auc) + (n_neg - 1) * (q2 - auc * auc)) / (
+        n_pos * n_neg
+    )
+    se = math.sqrt(max(var, 0.0))
+    return [round(max(0.0, auc - 1.96 * se), 4), round(min(1.0, auc + 1.96 * se), 4)]
 
 
 def _calculate_auc_roc(presence_scores: list[float], absence_scores: list[float]) -> float:
@@ -154,15 +171,22 @@ class CUADCalibrationReport:
     baseline_never_abstain: dict[str, Any]
     domain_gap_analysis: str
     candidates: list[ThresholdCandidate]
+    auc_roc_train_ci95: list[float] | None = None
+    auc_roc_val_ci95: list[float] | None = None
 
 
 def run_cuad_calibration(
-    sample_size: int = 50,
+    sample_size: int = CALIBRATION_MAX_CONTRACTS,
     train_ratio: float = 0.60,
     output_path: str = "evals/reports/calibration_cuad_report.json",
     seed: int = 42,
     embedding_provider_type: str | None = None,
 ) -> CUADCalibrationReport:
+    if sample_size > CALIBRATION_MAX_CONTRACTS:
+        raise ValueError(
+            f"sample_size={sample_size} would use held-out contracts; "
+            f"max is {CALIBRATION_MAX_CONTRACTS} (contracts 16-50 are out-of-sample)"
+        )
     loader = CUADLoader()
     contracts = loader.load_contracts(limit=sample_size)
     if not contracts:
@@ -334,15 +358,16 @@ def run_cuad_calibration(
         val_absence_scores, val_presence_scores, 0.50
     )
 
+    auc_train_ci = _auc_ci95(auc_train, len(train_presence_scores), len(train_absence_scores))
+    auc_val_ci = _auc_ci95(auc_val, len(val_presence_scores), len(val_absence_scores))
     domain_gap_analysis = (
-        f"At synthetic threshold tau=0.50, Bartleby under-abstains on absent clauses: "
-        f"it correctly abstains on only {val_c_synth * 100:.1f}% of absences in validation, leaving through "
-        f"{(1 - val_c_synth) * 100:.1f}% of missing clauses (hallucination vulnerability). "
-        f"Raising threshold to tau={optimal_thresh:.2f} increases validation correct abstention to {val_c_opt * 100:.1f}%, "
-        f"but incurs {val_f_opt * 100:.1f}% false abstentions on present clauses. "
-        f"AUC-ROC is {auc_val:.4f} (near-uninformative separability), and optimal Macro F1 ({val_f1_optimal:.4f}) "
-        f"exceeds the trivial Always-Abstain baseline ({baselines_val['always_abstain']['macro_f1']:.4f}) by only marginal gap. "
-        f"Vector similarity alone cannot reliably guard real contracts, proving the necessity of Condition 3 LLM verification."
+        f"At synthetic threshold tau=0.50, validation correct abstention on absent clauses is "
+        f"{val_c_synth * 100:.1f}% ({(1 - val_c_synth) * 100:.1f}% of absences pass). "
+        f"At calibrated tau={optimal_thresh:.2f}, validation correct abstention is {val_c_opt * 100:.1f}% "
+        f"with {val_f_opt * 100:.1f}% false abstentions on present clauses. "
+        f"Validation AUC-ROC is {auc_val:.4f} (95% CI {auc_val_ci[0]:.4f}-{auc_val_ci[1]:.4f}); "
+        f"optimal Macro F1 is {val_f1_optimal:.4f} vs Always-Abstain baseline "
+        f"{baselines_val['always_abstain']['macro_f1']:.4f}."
     )
 
     provenance = get_provenance_metadata({"domain": "CUAD Real SEC Contracts (Calibrated)"})
@@ -372,6 +397,8 @@ def run_cuad_calibration(
         baseline_never_abstain=baselines_val["never_abstain"],
         domain_gap_analysis=domain_gap_analysis,
         candidates=candidates,
+        auc_roc_train_ci95=auc_train_ci,
+        auc_roc_val_ci95=auc_val_ci,
     )
 
     out = Path(output_path)
@@ -383,7 +410,9 @@ def run_cuad_calibration(
     print(" BARTLEBY CUAD REAL-WORLD CALIBRATION REPORT (GRID 0.20 -> 0.90)")
     print(f" Train Contracts: {len(train_contracts)} | Val Contracts: {len(val_contracts)}")
     print(f" Embedding Provider: {emb_model_id}")
-    print(f" AUC-ROC Separability: Train={auc_train:.4f} | Val={auc_val:.4f}")
+    print(
+        f" AUC-ROC Separability: Train={auc_train:.4f} {auc_train_ci} | Val={auc_val:.4f} {auc_val_ci}"
+    )
     print(
         f" Synthetic Threshold (tau=0.50): Val Macro F1={val_f1_synthetic:.4f} "
         f"(Correct Abs: {val_c_synth * 100:.1f}%, False Abs: {val_f_synth * 100:.1f}%)"
@@ -413,7 +442,12 @@ def run_cuad_calibration(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Calibrate Bartleby on CUAD")
-    parser.add_argument("--sample-size", type=int, default=50, help="Number of contracts")
+    parser.add_argument(
+        "--sample-size",
+        type=int,
+        default=CALIBRATION_MAX_CONTRACTS,
+        help=f"Number of contracts (max {CALIBRATION_MAX_CONTRACTS}; 16-50 are held out)",
+    )
     parser.add_argument(
         "--embedding-provider",
         type=str,
