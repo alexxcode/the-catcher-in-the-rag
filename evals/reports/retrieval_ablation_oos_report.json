@@ -1,0 +1,73 @@
+{
+  "timestamp": "2026-10-26T04:25:15.438352+00:00",
+  "git_commit_sha": "d165e65e22e2eedc849b652e180215fafc01c42e",
+  "git_dirty": false,
+  "command": "eval_out_of_sample.py --retrieval-ablation --embedding-provider vertex_ai --start 15 --end 50",
+  "evaluation_type": "Retrieval ablation (bm25 / dense / hybrid) on out-of-sample presence cases",
+  "contract_slice": "CUAD-0016 to CUAD-0050 (35 contracts)",
+  "embedding_provider": "vertex_ai",
+  "embedding_model_id": "text-embedding-005",
+  "presence_cases": 156,
+  "metrics": {
+    "bm25": {
+      "hit_at_1": {
+        "count": 83,
+        "total": 156,
+        "rate": 0.5321,
+        "wilson_ci95": [
+          0.4539,
+          0.6086
+        ]
+      },
+      "hit_at_5": {
+        "count": 131,
+        "total": 156,
+        "rate": 0.8397,
+        "wilson_ci95": [
+          0.7741,
+          0.889
+        ]
+      }
+    },
+    "dense": {
+      "hit_at_1": {
+        "count": 87,
+        "total": 156,
+        "rate": 0.5577,
+        "wilson_ci95": [
+          0.4793,
+          0.6333
+        ]
+      },
+      "hit_at_5": {
+        "count": 134,
+        "total": 156,
+        "rate": 0.859,
+        "wilson_ci95": [
+          0.7957,
+          0.905
+        ]
+      }
+    },
+    "hybrid": {
+      "hit_at_1": {
+        "count": 86,
+        "total": 156,
+        "rate": 0.5513,
+        "wilson_ci95": [
+          0.4729,
+          0.6272
+        ]
+      },
+      "hit_at_5": {
+        "count": 132,
+        "total": 156,
+        "rate": 0.8462,
+        "wilson_ci95": [
+          0.7813,
+          0.8944
+        ]
+      }
+    }
+  }
+}
