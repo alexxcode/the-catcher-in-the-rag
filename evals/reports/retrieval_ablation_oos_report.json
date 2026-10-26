@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-10-26T04:43:10.257501+00:00",
-  "git_commit_sha": "3cdff0dcf27d70d113630b88b207e7a0304046df",
+  "timestamp": "2026-10-26T09:48:36.168204+00:00",
+  "git_commit_sha": "8a68fe25770f42dbe85721dfd2b8204620be4b38",
   "git_dirty": false,
   "command": "eval_out_of_sample.py --retrieval-ablation --embedding-provider vertex_ai --start 15 --end 50",
   "evaluation_type": "Retrieval ablation (bm25 / dense / hybrid) on out-of-sample presence cases",
