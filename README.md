@@ -9,7 +9,8 @@ Auditor determinista de compras corporativas (procurement) con verificación con
 
 ## Limitaciones
 - Embeddings stub (`stub-hash-768d`) en las mediciones offline de CUAD; la Regla 3a es una heurística de plantilla sintética; los datos sintéticos no constituyen evidencia empírica de producción.
-- **NOT MEASURED:** Recuperación con embeddings densos reales (`bge-small-en-v1.5`), reranker en contratos reales fuera de muestra y latencia en red distribuida.
+- **NOT MEASURED:** Recuperación con embeddings densos reales (`bge-small-en-v1.5`) y latencia en red distribuida.
+- **Reranker:** no medido, desactivado.
 
 ## Resultados Medidos
 
@@ -68,11 +69,10 @@ Reportado con `git_dirty: true`. Según el operador, solo estaba sin commitear e
 
 ### 4. Arquitectura de Recuperación (`evals/reports/cuad_benchmark_latest.json`)
 <!-- GEN:retrieval_table -->
-| Arquitectura de Recuperación | Modelo de Embedding | Reranker / Fusión | Hit@1 (Top-1) | Hit@5 (Top-5) | Impacto Práctico |
+| Arquitectura de Recuperación | Modelo de Embedding | Fusión | Hit@1 (Top-1) | Hit@5 (Top-5) | Impacto Práctico |
 |---|---|---|:---:|:---:|---|
 | **Léxico Basal (CI / Offline)** | `stub-hash-768d` | Ninguno (Híbrido Lineal) | 26.9% (7/26) | 61.5% (16/26) | Línea de base determinista offline. |
 | **Embeddings Densos Reales** | `bge-small-en-v1.5` | Similitud Coseno Densa | NOT MEASURED | NOT MEASURED | Pendiente de reporte en Fase 1 (`evals/eval_retrieval.py`). |
-| **Híbrido Denso + Reranker** | `bge-small-en-v1.5` | `ms-marco-TinyBERT-L-2-v2` | NOT MEASURED | NOT MEASURED | Pendiente de reporte en Fase 1 (`evals/eval_retrieval.py`). |
 <!-- /GEN -->
 
 ### 5. Bake-Off de Modelos (`evals/bakeoff.py` -> `evals/reports/bakeoff_latest.json`)

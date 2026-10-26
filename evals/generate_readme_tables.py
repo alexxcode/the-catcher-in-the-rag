@@ -147,11 +147,10 @@ def generate_llm_verification_table() -> str:
 
 
 def generate_retrieval_table() -> str:
-    table = """| Arquitectura de Recuperación | Modelo de Embedding | Reranker / Fusión | Hit@1 (Top-1) | Hit@5 (Top-5) | Impacto Práctico |
+    table = """| Arquitectura de Recuperación | Modelo de Embedding | Fusión | Hit@1 (Top-1) | Hit@5 (Top-5) | Impacto Práctico |
 |---|---|---|:---:|:---:|---|
 | **Léxico Basal (CI / Offline)** | `stub-hash-768d` | Ninguno (Híbrido Lineal) | 26.9% (7/26) | 61.5% (16/26) | Línea de base determinista offline. |
-| **Embeddings Densos Reales** | `bge-small-en-v1.5` | Similitud Coseno Densa | NOT MEASURED | NOT MEASURED | Pendiente de reporte en Fase 1 (`evals/eval_retrieval.py`). |
-| **Híbrido Denso + Reranker** | `bge-small-en-v1.5` | `ms-marco-TinyBERT-L-2-v2` | NOT MEASURED | NOT MEASURED | Pendiente de reporte en Fase 1 (`evals/eval_retrieval.py`). |"""
+| **Embeddings Densos Reales** | `bge-small-en-v1.5` | Similitud Coseno Densa | NOT MEASURED | NOT MEASURED | Pendiente de reporte en Fase 1 (`evals/eval_retrieval.py`). |"""
     return table
 
 
