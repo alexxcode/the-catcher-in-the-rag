@@ -27,7 +27,7 @@
 /* ── Layout & typography ─────────────────────────────────────────────────── */
 .block-container {
   max-width: 1200px;
-  padding-top: 2.5rem;
+  padding-top: 5rem; /* clears Streamlit's fixed top bar */
   padding-bottom: 4rem;
 }
 h1, h2, h3, h4, h5 {
@@ -151,6 +151,29 @@ div[data-testid="stMetricLabel"] p {
   word-break: break-word;
   background: transparent;
   font-size: 0.92rem;
+}
+
+/* ── Findings ────────────────────────────────────────────────────────────── */
+.finding-line {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--text-primary);
+}
+.finding-line strong {
+  font-weight: 600;
+}
+.rule-chip {
+  display: inline-block;
+  margin-right: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  border: 1px solid var(--hairline);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: 1px;
 }
 
 /* ── Badges & meters ─────────────────────────────────────────────────────── */

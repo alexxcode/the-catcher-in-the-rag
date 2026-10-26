@@ -1,3 +1,4 @@
+import html
 import json
 import os
 import re
@@ -131,6 +132,36 @@ _EMOJI_RE = re.compile("[\U0001f300-\U0001faff\u2139\u2600-\u27bf\ufe0f]+\\s*")
 def _plain_label(option: str) -> str:
     """Display-only label without decorative emoji (the option value is unchanged)."""
     return _EMOJI_RE.sub("", option).strip()
+
+
+def _render_audit_status(last_mode_slot: Any, citas_slot: Any) -> None:
+    """Sidebar audit status, drawn after the audit of the current interaction has run."""
+    last = st.session_state.get("audit_results")
+    if not last:
+        citas_slot.markdown("**Citas:** sin auditoría en esta sesión")
+        return
+    if last.get("execution_mode"):
+        last_mode_slot.caption(f"Última auditoría: {last['execution_mode']}")
+    fs = last.get("validated_findings", [])
+    nv = sum(1 for f in fs if f.verification_status == "NOT_VERIFIABLE")
+    citas_slot.markdown(
+        f"**Citas (última auditoría):** {len(fs) - nv} con cita validada, {nv} NOT_VERIFIABLE"
+    )
+
+
+_NUMBER_RE = re.compile(r"\$?\d(?:[\d,\-]|\.(?=\d))*%?")
+
+
+def _finding_html(idx: int, rule: str, description: str) -> str:
+    """One plain sentence; only the rule id (chip) and numbers are emphasized."""
+    parts, last = [], 0
+    for m in _NUMBER_RE.finditer(description):
+        parts.append(html.escape(description[last : m.start()]))
+        parts.append(f"<strong>{html.escape(m.group(0))}</strong>")
+        last = m.end()
+    parts.append(html.escape(description[last:]))
+    text = "".join(parts)
+    return f'<div class="finding-line"><span class="rule-chip">{html.escape(rule)}</span>{idx}. {text}</div>'
 
 
 # ── Theme (appearance only): ui/theme.css ─────────────────────────────────────
@@ -419,10 +450,8 @@ with st.sidebar:
         except PermissionError:
             active_mode = "bloqueado (PIN requerido)"
     st.markdown(f"**Modo activo:** {active_mode}")
-    if "audit_results" in st.session_state:
-        last_mode = st.session_state["audit_results"].get("execution_mode")
-        if last_mode:
-            st.caption(f"Última auditoría: {last_mode}")
+    # Filled at the end of the run, after this interaction's audit (see _render_audit_status).
+    _last_mode_slot = st.empty()
 
     st.divider()
     st.markdown("#### System Safeguards")
@@ -434,26 +463,11 @@ with st.sidebar:
     else:
         _llm_check = "activa"
     st.markdown(f"**Bartleby:** τ = {_tau:.2f} (config); verificación LLM 3b: {_llm_check}")
-    _last = st.session_state.get("audit_results")
-    if _last:
-        _fs = _last.get("validated_findings", [])
-        _nv = sum(1 for f in _fs if f.verification_status == "NOT_VERIFIABLE")
-        st.markdown(
-            f"**Citas (última auditoría):** {len(_fs) - _nv} con cita validada, "
-            f"{_nv} NOT_VERIFIABLE"
-        )
-    else:
-        st.markdown("**Citas:** sin auditoría en esta sesión")
+    _citas_slot = st.empty()
     st.markdown("**Decision Logic:** Deterministic Policy Engine")
-    if is_tracing_enabled():
-        host_preview = os.getenv("LANGFUSE_BASE_URL") or os.getenv(
-            "LANGFUSE_HOST", "cloud.langfuse.com"
-        )
-        st.markdown(
-            f"**Langfuse:** claves definidas (`{host_preview[:22]}`); entrega al servidor no medida"
-        )
-    else:
-        st.markdown("**Langfuse:** sin claves (NoOpTracer)")
+    st.markdown(
+        "**Langfuse:** claves definidas" if is_tracing_enabled() else "**Langfuse:** sin claves"
+    )
 
 
 # ── SCREEN 1: REVIEW WORKSPACE ────────────────────────────────────────────────
@@ -594,7 +608,10 @@ if selected_screen == "📋 Review Workspace":
                             if hasattr(finding.anomaly_type, "value")
                             else finding.anomaly_type
                         )
-                        st.markdown(f"**{idx}. [{anom_code}] {finding.description}**")
+                        st.markdown(
+                            _finding_html(idx, anom_code, finding.description),
+                            unsafe_allow_html=True,
+                        )
                     with col_f2:
                         sev_str = str(
                             finding.severity.value
@@ -1515,3 +1532,6 @@ elif selected_screen == "ℹ️ System Architecture":
         4. **Offline Stub Execution:** The entire benchmark and audit pipeline runs deterministically offline without LLM API calls or cloud credentials.
         """
     )
+
+# Sidebar audit status reflects the audit run in this same interaction.
+_render_audit_status(_last_mode_slot, _citas_slot)
