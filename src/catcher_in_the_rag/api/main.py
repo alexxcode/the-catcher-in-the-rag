@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import secrets
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -14,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from catcher_in_the_rag.graph import audit_pipeline
-from catcher_in_the_rag.providers.factory import get_llm_provider
+from catcher_in_the_rag.providers.factory import get_llm_provider, resolve_llm_provider
 from catcher_in_the_rag.schemas import (
     Decision,
     DecisionType,
@@ -73,37 +72,19 @@ def _resolve_llm_provider(
     x_api_key: str | None = None,
     authorization: str | None = None,
 ) -> Any:
-    """Determine LLM provider based on PIN authentication to safeguard LLM budget.
-
-    Spend Safeguard:
-    - If DEMO_ACCESS_PIN is configured and verified (via X-API-Key or Authorization Bearer),
-      returns the active production provider (e.g., vertex_ai).
-    - If unauthenticated:
-      - If ALLOW_PUBLIC_STUB=true (default): executes safely using zero-cost offline stub.
-      - If ALLOW_PUBLIC_STUB=false: rejects with 401 Unauthorized.
-    - If DEMO_ACCESS_PIN is not configured (local dev): returns active default provider.
-    """
-    configured_pin = os.getenv("DEMO_ACCESS_PIN", "").strip()
-    if not configured_pin:
-        return get_llm_provider()
-
+    """Extract the PIN from X-API-Key or Bearer and delegate to resolve_llm_provider."""
     token = None
     if x_api_key:
         token = x_api_key.strip()
     elif authorization and authorization.lower().startswith("bearer "):
         token = authorization[7:].strip()
-
-    if token and secrets.compare_digest(token, configured_pin):
-        return get_llm_provider()
-
-    allow_stub = os.getenv("ALLOW_PUBLIC_STUB", "true").lower() in ("1", "true", "yes")
-    if allow_stub:
-        return get_llm_provider(provider_type="stub")
-
-    raise HTTPException(
-        status_code=401,
-        detail="Unauthorized: valid DEMO_ACCESS_PIN required via X-API-Key or Bearer token.",
-    )
+    try:
+        return resolve_llm_provider(token)
+    except PermissionError:
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: valid DEMO_ACCESS_PIN required via X-API-Key or Bearer token.",
+        ) from None
 
 
 class HealthResponse(BaseModel):

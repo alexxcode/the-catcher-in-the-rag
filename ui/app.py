@@ -16,6 +16,7 @@ from catcher_in_the_rag.ingest.cuad_loader import (
     CUADContract,
     CUADLoader,
 )
+from catcher_in_the_rag.providers.factory import get_llm_provider, resolve_llm_provider
 from catcher_in_the_rag.providers.tracing import is_tracing_enabled
 from catcher_in_the_rag.retrieve.retriever import ContractRetriever
 from catcher_in_the_rag.schemas import (
@@ -33,15 +34,27 @@ from catcher_in_the_rag.schemas import (
 load_dotenv()
 
 
+def _ui_credential() -> str | None:
+    """PIN sent to the provider decision only when the auditor unlocked it in the sidebar."""
+    if st.session_state.get("is_authenticated"):
+        return os.getenv("DEMO_ACCESS_PIN", "").strip() or None
+    return None
+
+
 def execute_audit(package: ProcurementPackage) -> dict[str, Any]:
-    """Execute audit via private Cloud Run API (service-to-service) or local in-process pipeline."""
+    """Execute audit via private Cloud Run API (service-to-service) or local in-process pipeline.
+
+    If API_URL is set and the API fails, the audit runs locally with the stub provider and a
+    visible warning is shown (no silent fallback).
+    """
     api_url = os.getenv("API_URL", "").strip().rstrip("/")
     if api_url:
+        api_error = ""
         try:
             import httpx
 
             headers: dict[str, str] = {}
-            pin = os.getenv("DEMO_ACCESS_PIN", "").strip()
+            pin = _ui_credential()
             if pin:
                 headers["X-API-Key"] = pin
 
@@ -78,11 +91,21 @@ def execute_audit(package: ProcurementPackage) -> dict[str, Any]:
                     ],
                     "bartleby_abstained": data.get("bartleby_abstained", False),
                     "bartleby_reason": data.get("bartleby_reason"),
+                    "execution_mode": f"API ({data.get('execution_provider', 'unknown')})",
                 }
-        except Exception:
-            pass
+            api_error = f"HTTP {resp.status_code}"
+        except Exception as exc:
+            api_error = type(exc).__name__
+        st.warning(f"API no disponible: modo local/stub ({api_error})")
+        st.sidebar.warning("Modo activo: local/stub (API no disponible)")
+        result = dict(audit_pipeline(package, llm_provider=get_llm_provider(provider_type="stub")))
+        result["execution_mode"] = "local/stub (API no disponible)"
+        return result
 
-    return audit_pipeline(package)
+    provider = resolve_llm_provider(_ui_credential())
+    result = dict(audit_pipeline(package, llm_provider=provider))
+    result["execution_mode"] = f"local/{getattr(provider, 'provider_type', 'unknown')}"
+    return result
 
 
 # ── Streamlit Configuration ──────────────────────────────────────────────────
@@ -474,12 +497,24 @@ with st.sidebar:
                 else:
                     st.error("Invalid Access PIN.")
         else:
-            st.markdown("🟢 **Mode:** Live Vertex AI / Full Access")
+            st.markdown("🔓 **PIN:** unlocked")
             if st.button("Lock Public Demo Mode", use_container_width=True):
                 st.session_state["is_authenticated"] = False
                 st.rerun()
+
+    if os.getenv("API_URL", "").strip():
+        active_mode = "API remota (API_URL)"
     else:
-        st.markdown("🟢 **Mode:** Offline / Deterministic Stub")
+        try:
+            _prov = resolve_llm_provider(_ui_credential())
+            active_mode = f"local/{getattr(_prov, 'provider_type', 'unknown')}"
+        except PermissionError:
+            active_mode = "bloqueado (PIN requerido)"
+    st.markdown(f"🟢 **Modo activo:** {active_mode}")
+    if "audit_results" in st.session_state:
+        last_mode = st.session_state["audit_results"].get("execution_mode")
+        if last_mode:
+            st.caption(f"Última auditoría: {last_mode}")
 
     st.divider()
     st.markdown("#### System Safeguards")

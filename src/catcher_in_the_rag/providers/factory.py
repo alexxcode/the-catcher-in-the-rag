@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import secrets
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +46,23 @@ def get_llm_provider(
 
     msg = f"Unknown LLM provider type: {p_type}. Expected 'stub', 'vertex_ai', 'gemini', or 'real'."
     raise ValueError(msg)
+
+
+def resolve_llm_provider(credential: str | None = None) -> LLMProvider:
+    """Single provider decision for API, UI and pipeline (spend safeguard).
+
+    - DEMO_ACCESS_PIN unset (local dev): LLM_PROVIDER from env (stub if unset).
+    - DEMO_ACCESS_PIN set and ``credential`` matches: LLM_PROVIDER from env.
+    - Otherwise: stub if ALLOW_PUBLIC_STUB (default true), else PermissionError.
+    """
+    configured_pin = os.getenv("DEMO_ACCESS_PIN", "").strip()
+    if not configured_pin:
+        return get_llm_provider()
+    if credential and secrets.compare_digest(credential.strip(), configured_pin):
+        return get_llm_provider()
+    if os.getenv("ALLOW_PUBLIC_STUB", "true").lower() in ("1", "true", "yes"):
+        return get_llm_provider(provider_type="stub")
+    raise PermissionError("valid DEMO_ACCESS_PIN required")
 
 
 def get_embedding_provider(provider_type: str | None = None) -> EmbeddingProvider:
