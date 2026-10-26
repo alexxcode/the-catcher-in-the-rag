@@ -23,9 +23,13 @@ variable "max_live_calls" {
 }
 
 variable "container_image" {
-  description = "Container image URL in Artifact Registry."
+  description = "Container image URL in Artifact Registry (set by scripts/deploy.sh). Required: no :latest fallback."
   type        = string
-  default     = ""
+
+  validation {
+    condition     = length(trimspace(var.container_image)) > 0
+    error_message = "container_image is required: run scripts/deploy.sh, then terraform apply tfplan."
+  }
 }
 
 variable "billing_account_id" {

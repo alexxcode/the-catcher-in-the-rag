@@ -12,7 +12,8 @@ Auditor determinista de compras corporativas (procurement) con verificación con
 2. Construir, subir la imagen y planificar: `PROJECT_ID=<proyecto> REGION=<región> scripts/deploy.sh`. Imprime la URL del servicio y el comando de smoke; no aplica nada.
 3. Aplicar a mano tras revisar el plan: `terraform -chdir=infra/terraform apply tfplan`. Luego `scripts/smoke.sh <API_URL>`.
 
-En el primer despliegue el repositorio de Artifact Registry aún no existe: aplica antes `terraform -chdir=infra/terraform apply -target=google_artifact_registry_repository.images`. Con `MAX_LIVE_CALLS=0` (valor por defecto en Cloud Run) el servicio corre solo con stub.
+En el primer despliegue el repositorio de Artifact Registry aún no existe: aplica antes `terraform -chdir=infra/terraform apply -target=google_artifact_registry_repository.images -var container_image=none` (la variable es obligatoria; ese apply solo crea el repositorio). Con `MAX_LIVE_CALLS=0` (valor por defecto en Cloud Run) el servicio corre solo con stub.
+No ejecutes terraform apply a secas: usa deploy.sh y luego apply tfplan.
 
 ## Limitaciones
 - La Regla 3a es una heurística de plantilla sintética; los datos sintéticos no son evidencia empírica.
