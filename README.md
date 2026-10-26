@@ -25,7 +25,7 @@ Cada cifra sale de un bloque `GEN` regenerado desde `evals/reports/*.json` (`mak
 
 ### 1. Recuperación fuera de muestra (`MAX_LIVE_CALLS=20 uv run python evals/eval_out_of_sample.py --retrieval-ablation --embedding-provider vertex_ai --start 15 --end 50` -> `evals/reports/retrieval_ablation_oos_report.json`)
 <!-- GEN:retrieval_table -->
-156 casos de presencia, CUAD-0016 to CUAD-0050 (35 contracts), embeddings `text-embedding-005`, commit `3cdff0d`. Empates resueltos por orden de aparición en el contrato.
+156 casos de presencia, CUAD-0016 to CUAD-0050 (35 contracts), embeddings `text-embedding-005`, commit `8a68fe2`. Empates resueltos por orden de aparición en el contrato.
 
 | Método | Hit@1 | Hit@5 |
 |---|:---:|:---:|
@@ -100,5 +100,5 @@ Plantillas generadas por `datagen/`; medido con el τ de `config/thresholds.yaml
 | **Abstención Correcta de Bartleby** | **100.0%** (30/30 en A09*) | 0.0% (0/30 en A09) | Detección de silencios (vía heurística de plantilla 3a*) |
 | **Tasa de Falsos Positivos (A10)** | **0.0%** (0/30) | 0.0% (0/30) | Paquetes limpios aprobados sin fricción |
 | **Recall@5 de Recuperación** | **100.0%** [plantillas sintéticas] | N/A | Recuperación en plantillas sintéticas |
-| **Latencia Media por Paquete** | **16.6 ms** | 0.0 ms | Ejecución determinista local |
+| **Latencia Media por Paquete** | **16.9 ms** | 0.0 ms | Ejecución determinista local |
 <!-- /GEN -->
