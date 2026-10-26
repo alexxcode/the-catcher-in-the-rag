@@ -149,8 +149,13 @@ class ReviewOverrideResponse(BaseModel):
 _REVIEW_OVERRIDES: dict[str, dict[str, Any]] = {}
 
 
-@app.get("/health", response_model=HealthResponse)
 @app.get("/healthz", response_model=HealthResponse)
+def get_liveness() -> HealthResponse:
+    """Liveness probe for Cloud Run/Docker: no model call, so probes never spend Vertex calls."""
+    return HealthResponse()
+
+
+@app.get("/health", response_model=HealthResponse)
 def get_health() -> HealthResponse:
     """Service health check endpoint with active model lifecycle verification."""
     try:

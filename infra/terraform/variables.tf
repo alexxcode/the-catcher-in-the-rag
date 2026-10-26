@@ -16,6 +16,12 @@ variable "environment" {
   default     = "dev"
 }
 
+variable "max_live_calls" {
+  description = "Per-instance cap on live Vertex calls (MAX_LIVE_CALLS); 0 blocks all."
+  type        = number
+  default     = 0
+}
+
 variable "max_instances" {
   description = "Maximum Cloud Run instances to prevent runaway cost."
   type        = number

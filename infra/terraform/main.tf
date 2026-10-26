@@ -221,6 +221,10 @@ resource "google_cloud_run_v2_service" "api" {
         name  = "ALLOW_PUBLIC_STUB"
         value = "true"
       }
+      env {
+        name  = "MAX_LIVE_CALLS"
+        value = tostring(var.max_live_calls)
+      }
 
       startup_probe {
         http_get {
