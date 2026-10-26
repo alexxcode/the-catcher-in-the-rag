@@ -1,0 +1,213 @@
+/* The Catcher in the RAG — UI theme (appearance only).
+   Tokens first; components reference them. Loaded by ui/app.py. */
+
+:root {
+  --text-primary: #1D1D1F;
+  --text-secondary: #6E6E73;
+  --text-tertiary: #86868B;
+  --surface: #FFFFFF;
+  --surface-muted: #F5F5F7;
+  --hairline: #E5E5EA;
+  --accent: #0071E3;
+  --approve: #1E8E3E;
+  --review: #B26A00;
+  --reject: #D70015;
+  --abstain: #5E5CE6;
+  --approve-tint: rgba(52, 199, 89, 0.10);
+  --review-tint: rgba(255, 159, 10, 0.12);
+  --reject-tint: rgba(255, 59, 48, 0.09);
+  --abstain-tint: rgba(94, 92, 230, 0.09);
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* ── Layout & typography ─────────────────────────────────────────────────── */
+.block-container {
+  max-width: 1200px;
+  padding-top: 2.5rem;
+  padding-bottom: 4rem;
+}
+h1, h2, h3, h4, h5 {
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+}
+h3 {
+  margin-top: 2.25rem;
+  font-size: 1.35rem;
+}
+p, li {
+  line-height: 1.55;
+}
+.hero-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--text-primary);
+  margin-bottom: 0.4rem;
+}
+.hero-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  line-height: 1.45;
+  max-width: 62ch;
+  margin-bottom: 2rem;
+}
+
+/* ── Cards & surfaces ────────────────────────────────────────────────────── */
+.cuad-card,
+.metric-container,
+.bartleby-banner,
+div[data-testid="stMetric"],
+div[data-testid="stExpander"] details {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+}
+div[data-testid="stMetric"] {
+  padding: 1rem 1.15rem;
+}
+div[data-testid="stMetricLabel"] p {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+.cuad-card {
+  padding: 1.25rem 1.4rem;
+  margin-bottom: 1rem;
+}
+.metric-container {
+  padding: 1.1rem;
+  text-align: center;
+}
+.bartleby-banner {
+  padding: 1.15rem 1.4rem;
+  margin-bottom: 1.25rem;
+  border-left: 4px solid var(--abstain);
+}
+
+/* ── Decision: the primary element ───────────────────────────────────────── */
+.decision-card-approve,
+.decision-card-review,
+.decision-card-reject,
+.decision-card-abstain {
+  border-radius: var(--radius-lg);
+  padding: 1.75rem 2rem;
+  margin: 0.5rem 0 1.75rem;
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow);
+}
+.decision-card-approve { background: var(--approve-tint); border-color: rgba(52, 199, 89, 0.35); }
+.decision-card-review  { background: var(--review-tint);  border-color: rgba(255, 159, 10, 0.40); }
+.decision-card-reject  { background: var(--reject-tint);  border-color: rgba(255, 59, 48, 0.35); }
+.decision-card-abstain { background: var(--abstain-tint); border-color: rgba(94, 92, 230, 0.35); }
+
+.decision-eyebrow {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.decision-value {
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 0.2rem 0 0.9rem;
+}
+.decision-card-approve .decision-value { color: var(--approve); }
+.decision-card-review  .decision-value { color: var(--review); }
+.decision-card-reject  .decision-value { color: var(--reject); }
+.decision-card-abstain .decision-value { color: var(--abstain); }
+.decision-meta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.decision-justification {
+  font-size: 1.02rem;
+  line-height: 1.55;
+  color: var(--text-primary);
+  max-width: 75ch;
+}
+
+/* ── Verbatim citations ──────────────────────────────────────────────────── */
+.citation-box {
+  background: var(--surface-muted);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 0.9rem 1.15rem;
+  margin-top: 0.6rem;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+.citation-box code {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: transparent;
+  font-size: 0.92rem;
+}
+
+/* ── Badges & meters ─────────────────────────────────────────────────────── */
+.cuad-badge-present,
+.cuad-badge-absent {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.cuad-badge-present { background: var(--approve-tint); color: var(--approve); }
+.cuad-badge-absent  { background: var(--surface-muted); color: var(--text-secondary); }
+.score-meter {
+  background: var(--hairline);
+  border-radius: 999px;
+  overflow: hidden;
+  height: 6px;
+  margin-top: 6px;
+}
+.score-fill {
+  background: var(--accent);
+  height: 100%;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+section[data-testid="stSidebar"] p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+section[data-testid="stSidebar"] strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ── Motion: subtle, and off when the user asks for less ─────────────────── */
+.decision-card-approve, .decision-card-review, .decision-card-reject, .decision-card-abstain,
+.cuad-card, .bartleby-banner, .citation-box, div[data-testid="stMetric"] {
+  animation: catcher-fade-in 260ms var(--ease) both;
+}
+.stButton button, div[data-testid="stExpander"] details, .cuad-card {
+  transition: background-color 160ms var(--ease), border-color 160ms var(--ease),
+    box-shadow 160ms var(--ease), transform 160ms var(--ease);
+}
+.cuad-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+.stButton button:active {
+  transform: scale(0.985);
+}
+@keyframes catcher-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

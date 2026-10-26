@@ -1,0 +1,21 @@
+[theme]
+base = "light"
+primaryColor = "#0071E3"
+backgroundColor = "#FBFBFD"
+secondaryBackgroundColor = "#F5F5F7"
+textColor = "#1D1D1F"
+linkColor = "#0066CC"
+borderColor = "#E5E5EA"
+showWidgetBorder = true
+baseRadius = "0.75rem"
+buttonRadius = "0.75rem"
+font = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+headingFont = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+codeFont = "'SF Mono', ui-monospace, Menlo, Consolas, monospace"
+codeBackgroundColor = "#F5F5F7"
+baseFontSize = 15
+headingFontWeights = [700, 600, 600, 600, 600, 600]
+
+[theme.sidebar]
+backgroundColor = "#F5F5F7"
+secondaryBackgroundColor = "#FFFFFF"

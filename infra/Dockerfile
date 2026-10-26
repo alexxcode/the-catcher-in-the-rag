@@ -27,6 +27,7 @@ COPY config/ ./config/
 COPY datagen/ ./datagen/
 COPY evals/ ./evals/
 COPY ui/ ./ui/
+COPY .streamlit/ ./.streamlit/
 COPY infra/entrypoint.sh ./infra/entrypoint.sh
 
 # Install the application package

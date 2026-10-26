@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import secrets
 import time
 from datetime import date, datetime, timedelta
@@ -124,123 +125,18 @@ except ValueError:
 if _max_live_calls <= 0:
     st.info("Demo en modo stub; sin llamadas a Gemini (MAX_LIVE_CALLS=0).")
 
-# ── Custom CSS for High-End Typography & Visuals ──────────────────────────────
-st.markdown(
-    """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+_EMOJI_RE = re.compile("[\U0001f300-\U0001faff\u2139\u2600-\u27bf\ufe0f]+\\s*")
 
-    html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-    code, pre {
-        font-family: 'JetBrains Mono', monospace !important;
-    }
-    .hero-title {
-        font-size: 2.2rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #38BDF8 0%, #818CF8 50%, #C084FC 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 0.2rem;
-    }
-    .hero-subtitle {
-        color: #94A3B8;
-        font-size: 1.05rem;
-        font-style: italic;
-        margin-bottom: 1.5rem;
-    }
-    .decision-card-approve {
-        background: rgba(16, 185, 129, 0.12);
-        border: 1px solid rgba(16, 185, 129, 0.4);
-        border-radius: 12px;
-        padding: 1.25rem;
-        margin-bottom: 1rem;
-    }
-    .decision-card-review {
-        background: rgba(245, 158, 11, 0.12);
-        border: 1px solid rgba(245, 158, 11, 0.4);
-        border-radius: 12px;
-        padding: 1.25rem;
-        margin-bottom: 1rem;
-    }
-    .decision-card-reject {
-        background: rgba(239, 68, 68, 0.12);
-        border: 1px solid rgba(239, 68, 68, 0.4);
-        border-radius: 12px;
-        padding: 1.25rem;
-        margin-bottom: 1rem;
-    }
-    .decision-card-abstain {
-        background: rgba(148, 163, 184, 0.12);
-        border: 1px solid rgba(148, 163, 184, 0.4);
-        border-radius: 12px;
-        padding: 1.25rem;
-        margin-bottom: 1rem;
-    }
-    .citation-box {
-        background: rgba(15, 23, 42, 0.6);
-        border-left: 3px solid #38BDF8;
-        padding: 0.8rem 1rem;
-        border-radius: 0 8px 8px 0;
-        margin-top: 0.5rem;
-    }
-    .bartleby-banner {
-        background: linear-gradient(90deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%);
-        border: 1px solid #475569;
-        border-radius: 10px;
-        padding: 1rem;
-        margin-bottom: 1rem;
-    }
-    .metric-container {
-        background: rgba(30, 41, 59, 0.5);
-        border: 1px solid rgba(71, 85, 105, 0.4);
-        border-radius: 10px;
-        padding: 1rem;
-        text-align: center;
-    }
-    .cuad-card {
-        background: rgba(30, 41, 59, 0.4);
-        border: 1px solid rgba(71, 85, 105, 0.35);
-        border-radius: 12px;
-        padding: 1.2rem;
-        margin-bottom: 1rem;
-    }
-    .cuad-badge-present {
-        background: rgba(16, 185, 129, 0.15);
-        border: 1px solid rgba(16, 185, 129, 0.4);
-        color: #34D399;
-        padding: 0.25rem 0.6rem;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 0.85rem;
-        display: inline-block;
-    }
-    .cuad-badge-absent {
-        background: rgba(100, 116, 139, 0.15);
-        border: 1px solid rgba(100, 116, 139, 0.35);
-        color: #94A3B8;
-        padding: 0.25rem 0.6rem;
-        border-radius: 6px;
-        font-weight: 500;
-        font-size: 0.85rem;
-        display: inline-block;
-    }
-    .score-meter {
-        background: rgba(15, 23, 42, 0.7);
-        border-radius: 6px;
-        overflow: hidden;
-        height: 8px;
-        margin-top: 4px;
-    }
-    .score-fill {
-        background: linear-gradient(90deg, #38BDF8, #818CF8);
-        height: 100%;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+
+def _plain_label(option: str) -> str:
+    """Display-only label without decorative emoji (the option value is unchanged)."""
+    return _EMOJI_RE.sub("", option).strip()
+
+
+# ── Theme (appearance only): ui/theme.css ─────────────────────────────────────
+_THEME_CSS = Path(__file__).with_name("theme.css")
+if _THEME_CSS.exists():
+    st.markdown(f"<style>{_THEME_CSS.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
 
 
 def load_package_list(data_dir: str = "data/synthetic") -> list[dict[str, Any]]:
@@ -463,7 +359,7 @@ def build_simulated_cuad_package(
 
 # ── Sidebar Navigation ────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### 🛡️ The Catcher in the RAG")
+    st.markdown("### The Catcher in the RAG")
     st.markdown("*catches the invoice before it falls off the cliff.*")
     st.divider()
 
@@ -475,6 +371,7 @@ with st.sidebar:
             "📊 Evaluation Dashboard",
             "ℹ️ System Architecture",
         ],
+        format_func=_plain_label,
         index=0,
     )
 
@@ -493,7 +390,7 @@ with st.sidebar:
 
     if demo_pin_env:
         if not st.session_state["is_authenticated"]:
-            st.markdown("🔒 **Public Demo Mode** (Zero-Cost / Cached)")
+            st.markdown("**Public Demo Mode** (Zero-Cost / Cached)")
             st.caption(
                 "Live Vertex AI calls are locked to protect GCP budget against bot scraping."
             )
@@ -508,7 +405,7 @@ with st.sidebar:
                 else:
                     st.error("Invalid Access PIN.")
         else:
-            st.markdown("🔓 **PIN:** unlocked")
+            st.markdown("**PIN:** unlocked")
             if st.button("Lock Public Demo Mode", use_container_width=True):
                 st.session_state["is_authenticated"] = False
                 st.rerun()
@@ -521,7 +418,7 @@ with st.sidebar:
             active_mode = f"local/{getattr(_prov, 'provider_type', 'unknown')}"
         except PermissionError:
             active_mode = "bloqueado (PIN requerido)"
-    st.markdown(f"🟢 **Modo activo:** {active_mode}")
+    st.markdown(f"**Modo activo:** {active_mode}")
     if "audit_results" in st.session_state:
         last_mode = st.session_state["audit_results"].get("execution_mode")
         if last_mode:
@@ -536,27 +433,27 @@ with st.sidebar:
         _llm_check = "inactiva (stub)"
     else:
         _llm_check = "activa"
-    st.markdown(f"🔒 **Bartleby:** τ = {_tau:.2f} (config); verificación LLM 3b: {_llm_check}")
+    st.markdown(f"**Bartleby:** τ = {_tau:.2f} (config); verificación LLM 3b: {_llm_check}")
     _last = st.session_state.get("audit_results")
     if _last:
         _fs = _last.get("validated_findings", [])
         _nv = sum(1 for f in _fs if f.verification_status == "NOT_VERIFIABLE")
         st.markdown(
-            f"📑 **Citas (última auditoría):** {len(_fs) - _nv} con cita validada, "
+            f"**Citas (última auditoría):** {len(_fs) - _nv} con cita validada, "
             f"{_nv} NOT_VERIFIABLE"
         )
     else:
-        st.markdown("📑 **Citas:** sin auditoría en esta sesión")
-    st.markdown("🤖 **Decision Logic:** Deterministic Policy Engine")
+        st.markdown("**Citas:** sin auditoría en esta sesión")
+    st.markdown("**Decision Logic:** Deterministic Policy Engine")
     if is_tracing_enabled():
         host_preview = os.getenv("LANGFUSE_BASE_URL") or os.getenv(
             "LANGFUSE_HOST", "cloud.langfuse.com"
         )
         st.markdown(
-            f"📡 **Langfuse:** claves definidas (`{host_preview[:22]}`); entrega al servidor no medida"
+            f"**Langfuse:** claves definidas (`{host_preview[:22]}`); entrega al servidor no medida"
         )
     else:
-        st.markdown("📡 **Langfuse:** sin claves (NoOpTracer)")
+        st.markdown("**Langfuse:** sin claves (NoOpTracer)")
 
 
 # ── SCREEN 1: REVIEW WORKSPACE ────────────────────────────────────────────────
@@ -616,9 +513,9 @@ if selected_screen == "📋 Review Workspace":
         # ── Decision Banner ───────────────────────────────────────────────────
         if labels is not None:
             match_status = (
-                "✅ Aligned with ground truth"
+                "Aligned with ground truth"
                 if decision.decision == labels.expected_decision
-                else "⚠️ Review discrepancy"
+                else "Review discrepancy"
             )
             anom_str = (
                 ", ".join([a.value for a in labels.anomalies])
@@ -626,7 +523,7 @@ if selected_screen == "📋 Review Workspace":
                 else "A10 (Clean)"
             )
             st.markdown(
-                f"<div style='margin-bottom: 0.6rem; font-size: 0.88rem; color: #94A3B8;'>"
+                f"<div style='margin-bottom: 0.6rem; font-size: 0.88rem; color: var(--text-secondary);'>"
                 f"<strong>Ground Truth Benchmark:</strong> Expected <code>{labels.expected_decision.value}</code> "
                 f"[{anom_str}] &middot; <em>{match_status}</em></div>",
                 unsafe_allow_html=True,
@@ -638,25 +535,17 @@ if selected_screen == "📋 Review Workspace":
             DecisionType.ABSTAIN: "decision-card-abstain",
         }.get(decision.decision, "decision-card-review")
 
-        badge_emoji = {
-            DecisionType.APPROVE: "✅",
-            DecisionType.REVIEW: "⚠️",
-            DecisionType.REJECT: "🛑",
-            DecisionType.ABSTAIN: "📜",
-        }.get(decision.decision, "ℹ️")
-
         st.markdown(
             f"""
             <div class="{decision_class}">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size: 1.4rem; font-weight: 700;">
-                        {badge_emoji} Agent Decision: {decision.decision.value}
-                    </div>
-                    <div style="font-size: 0.95rem; opacity: 0.85;">
-                        Package: <strong>{package.package_id}</strong> | Timestamp: {datetime.now().strftime("%H:%M:%S")}
+                <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap;">
+                    <div class="decision-eyebrow">Agent Decision</div>
+                    <div class="decision-meta">
+                        Package <strong>{package.package_id}</strong> &middot; {datetime.now().strftime("%H:%M:%S")}
                     </div>
                 </div>
-                <div style="margin-top: 0.6rem; font-size: 1.05rem;">
+                <div class="decision-value">{decision.decision.value}</div>
+                <div class="decision-justification">
                     <strong>Policy Justification:</strong> {decision.justification}
                 </div>
             </div>
@@ -669,13 +558,13 @@ if selected_screen == "📋 Review Workspace":
             st.markdown(
                 f"""
                 <div class="bartleby-banner">
-                    <div style="font-weight: 600; font-size: 1.05rem; color: #38BDF8;">
-                        📜 Bartleby Abstention Guard Activated
+                    <div style="font-weight: 600; font-size: 1.05rem; color: var(--accent);">
+                        Bartleby Abstention Guard Activated
                     </div>
-                    <div style="font-style: italic; color: #CBD5E1; margin: 0.3rem 0;">
+                    <div style="font-style: italic; color: var(--text-primary); margin: 0.3rem 0;">
                         "I would prefer not to." — Herman Melville, <em>Bartleby, the Scrivener (1853)</em>
                     </div>
-                    <div style="color: #E2E8F0; font-size: 0.95rem;">
+                    <div style="color: var(--text-primary); font-size: 0.95rem;">
                         <strong>Abstention Reason:</strong> {bartleby_reason or "No contractual clause found to substantiate the invoice surcharge."}
                         <br/><em>The system strictly abstains from inventing ungrounded interpretations when contractual evidence is absent.</em>
                     </div>
@@ -685,7 +574,7 @@ if selected_screen == "📋 Review Workspace":
             )
 
         # ── Findings & Citations Section ──────────────────────────────────────
-        st.markdown("### 🔍 Verified Findings & Verbatim Citations")
+        st.markdown("### Verified Findings & Verbatim Citations")
         if not findings and decision.decision.value != "APPROVE":
             st.error(
                 f"Decisión {decision.decision.value} sin hallazgos en la respuesta: "
@@ -713,10 +602,10 @@ if selected_screen == "📋 Review Workspace":
                             else finding.severity
                         )
                         sev_color = {
-                            "ERROR": "#EF4444",
-                            "CRITICAL": "#EF4444",
-                            "WARNING": "#F59E0B",
-                            "INFO": "#38BDF8",
+                            "ERROR": "var(--reject)",
+                            "CRITICAL": "var(--reject)",
+                            "WARNING": "var(--review)",
+                            "INFO": "var(--accent)",
                         }.get(sev_str, "gray")
                         st.markdown(
                             f"<span style='color:{sev_color}; font-weight:600;'>Severity: {sev_str}</span>",
@@ -727,14 +616,14 @@ if selected_screen == "📋 Review Workspace":
                         st.markdown(
                             f"""
                             <div class="citation-box">
-                                <span style="font-size: 0.85rem; color: #94A3B8; font-weight: 600;">
+                                <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">
                                     VERBATIM CLAUSE CITATION &middot; Document: <code>{finding.citation.document_id}</code> &middot; Offsets: <code>[{finding.citation.start_char}:{finding.citation.end_char}]</code>
                                 </span>
-                                <div style="margin-top: 0.3rem; font-size: 0.95rem; color: #F1F5F9; font-style: italic;">
+                                <div style="margin-top: 0.3rem; font-size: 0.95rem; color: var(--text-primary); font-style: italic;">
                                     &ldquo;{finding.citation.text}&rdquo;
                                 </div>
-                                <div style="margin-top: 0.3rem; font-size: 0.8rem; color: #10B981; font-weight: 600;">
-                                    ✓ Verified verbatim in governing contract text
+                                <div style="margin-top: 0.3rem; font-size: 0.8rem; color: var(--approve); font-weight: 600;">
+                                    Verified verbatim in governing contract text
                                 </div>
                             </div>
                             """,
@@ -743,7 +632,7 @@ if selected_screen == "📋 Review Workspace":
                     st.divider()
 
         # ── 4-Way Document Explorer Tabs ──────────────────────────────────────
-        st.markdown("### 📑 Package Document Inspector")
+        st.markdown("### Package Document Inspector")
         tab_inv, tab_po, tab_receipt, tab_contract = st.tabs(
             ["🧾 Invoice", "📋 Purchase Order", "📦 Goods Receipt", "📜 Governing Contract"]
         )
@@ -848,7 +737,7 @@ if selected_screen == "📋 Review Workspace":
 
         # ── Human Reviewer Action Box ─────────────────────────────────────────
         st.divider()
-        st.markdown("### ✍️ Human-in-the-Loop Audit Decision")
+        st.markdown("### Human-in-the-Loop Audit Decision")
         col_ov1, col_ov2 = st.columns([2, 1])
 
         with col_ov1:
@@ -945,12 +834,12 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                     st.markdown(
                         f"""
                         <div class="cuad-card">
-                            <div style="font-size: 0.9rem; color: #94A3B8;">Document ID: <code>{contract_obj.contract_id}</code></div>
-                            <div style="font-weight: 700; color: #38BDF8; font-size: 1.05rem; margin-top: 2px;">{contract_obj.title[:35]}...</div>
-                            <div style="margin-top: 6px; font-size: 0.85rem; color: #E2E8F0;">
-                                📏 <strong>Length:</strong> {contract_obj.char_length:,} characters (~{contract_obj.char_length // 4:,} tokens)<br/>
-                                ✅ <strong>Present Clauses:</strong> {len(contract_obj.annotations)} / {len(contract_obj.annotations) + len(contract_obj.absent_categories)}<br/>
-                                📜 <strong>Absent Categories:</strong> {len(contract_obj.absent_categories)} / {len(contract_obj.annotations) + len(contract_obj.absent_categories)}
+                            <div style="font-size: 0.9rem; color: var(--text-secondary);">Document ID: <code>{contract_obj.contract_id}</code></div>
+                            <div style="font-weight: 700; color: var(--accent); font-size: 1.05rem; margin-top: 2px;">{contract_obj.title[:35]}...</div>
+                            <div style="margin-top: 6px; font-size: 0.85rem; color: var(--text-primary);">
+                                <strong>Length:</strong> {contract_obj.char_length:,} characters (~{contract_obj.char_length // 4:,} tokens)<br/>
+                                <strong>Present Clauses:</strong> {len(contract_obj.annotations)} / {len(contract_obj.annotations) + len(contract_obj.absent_categories)}<br/>
+                                <strong>Absent Categories:</strong> {len(contract_obj.absent_categories)} / {len(contract_obj.annotations) + len(contract_obj.absent_categories)}
                             </div>
                         </div>
                         """,
@@ -1004,17 +893,17 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                         if is_present:
                             spans = contract_obj.annotations[sel_cat]
                             st.markdown(
-                                f'<span class="cuad-badge-present">✅ PRESENT IN CONTRACT ({len(spans)} verbatim span{"s" if len(spans) > 1 else ""})</span>',
+                                f'<span class="cuad-badge-present">PRESENT IN CONTRACT ({len(spans)} verbatim span{"s" if len(spans) > 1 else ""})</span>',
                                 unsafe_allow_html=True,
                             )
                             for s_idx, sp in enumerate(spans, 1):
                                 st.markdown(
                                     f"""
                                     <div class="citation-box" style="margin-top: 0.8rem;">
-                                        <div style="font-size: 0.85rem; color: #94A3B8; font-weight: 600;">
+                                        <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">
                                             SPAN #{s_idx} &middot; Offsets: <code>[{sp.start_char}:{sp.end_char}]</code> &middot; Length: {len(sp.text)} chars
                                         </div>
-                                        <div style="margin-top: 0.4rem; font-size: 0.95rem; color: #F8FAFC; line-height: 1.5;">
+                                        <div style="margin-top: 0.4rem; font-size: 0.95rem; color: var(--text-primary); line-height: 1.5;">
                                             &ldquo;{sp.text}&rdquo;
                                         </div>
                                     </div>
@@ -1023,14 +912,14 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                                 )
                         else:
                             st.markdown(
-                                '<span class="cuad-badge-absent">📜 ABSENT IN CONTRACT (GROUND TRUTH NEGATIVE FOR BARTLEBY)</span>',
+                                '<span class="cuad-badge-absent">ABSENT IN CONTRACT (GROUND TRUTH NEGATIVE FOR BARTLEBY)</span>',
                                 unsafe_allow_html=True,
                             )
                             st.markdown(
                                 f"""
                                 <div class="bartleby-banner" style="margin-top: 0.8rem;">
-                                    <div style="font-weight: 600; color: #38BDF8;">Ground Truth Absence: Category '{sel_cat}' is not in this contract</div>
-                                    <div style="margin-top: 0.4rem; color: #CBD5E1; font-size: 0.95rem;">
+                                    <div style="font-weight: 600; color: var(--accent);">Ground Truth Absence: Category '{sel_cat}' is not in this contract</div>
+                                    <div style="margin-top: 0.4rem; color: var(--text-primary); font-size: 0.95rem;">
                                         In CUAD v1, this category was explicitly verified as absent (<code>answers: []</code>, <code>is_impossible: True</code>).
                                         When an auditor or query searches for terms governed by this category, <strong>The Catcher in the RAG's Bartleby Guard</strong> must strictly decline to assert terms (<code>NO_EVIDENCE</code>) rather than hallucinating plausible terms.
                                     </div>
@@ -1105,8 +994,8 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                         assessment = guard.evaluate_retrieval(retrieved, query_text)
 
                         st.markdown(
-                            f"<div style='font-size: 0.9rem; color: #94A3B8; margin-bottom: 0.5rem;'>"
-                            f"⚡ Retrieved {len(retrieved)} candidate clauses in <strong>{retrieval_ms:.1f} ms</strong> across {len(cat_contract.clauses)} segmented contract sections.</div>",
+                            f"<div style='font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;'>"
+                            f"Retrieved {len(retrieved)} candidate clauses in <strong>{retrieval_ms:.1f} ms</strong> across {len(cat_contract.clauses)} segmented contract sections.</div>",
                             unsafe_allow_html=True,
                         )
 
@@ -1114,17 +1003,17 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                             st.markdown(
                                 f"""
                                 <div class="bartleby-banner">
-                                    <div style="font-weight: 700; font-size: 1.1rem; color: #38BDF8;">
-                                        📜 Bartleby Abstention Guard Triggered (NO_EVIDENCE)
+                                    <div style="font-weight: 700; font-size: 1.1rem; color: var(--accent);">
+                                        Bartleby Abstention Guard Triggered (NO_EVIDENCE)
                                     </div>
-                                    <div style="font-style: italic; color: #CBD5E1; margin: 0.3rem 0;">
+                                    <div style="font-style: italic; color: var(--text-primary); margin: 0.3rem 0;">
                                         "I would prefer not to." — Herman Melville, <em>Bartleby, the Scrivener (1853)</em>
                                     </div>
-                                    <div style="color: #F1F5F9; font-size: 0.95rem; margin-top: 0.4rem;">
+                                    <div style="color: var(--text-primary); font-size: 0.95rem; margin-top: 0.4rem;">
                                         <strong>Abstention Reason:</strong> {assessment.reason}
                                     </div>
-                                    <div style="color: #94A3B8; font-size: 0.85rem; margin-top: 0.4rem;">
-                                        ✓ The highest candidate clause scored below the calibrated relevance threshold (0.50). The agent refuses to hallucinate authorization.
+                                    <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.4rem;">
+                                        The highest candidate clause scored below the calibrated relevance threshold (0.50). The agent refuses to hallucinate authorization.
                                     </div>
                                 </div>
                                 """,
@@ -1134,10 +1023,10 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                             st.markdown(
                                 f"""
                                 <div class="decision-card-approve">
-                                    <div style="font-weight: 700; font-size: 1.05rem; color: #10B981;">
-                                        ✅ Contract Evidence Found & Verified
+                                    <div style="font-weight: 700; font-size: 1.05rem; color: var(--approve);">
+                                        Contract Evidence Found & Verified
                                     </div>
-                                    <div style="font-size: 0.95rem; margin-top: 0.2rem; color: #E2E8F0;">
+                                    <div style="font-size: 0.95rem; margin-top: 0.2rem; color: var(--text-primary);">
                                         Top retrieved clause scored <strong>{retrieved[0].score:.3f}</strong> (threshold &ge; {guard.min_relevance_score:.2f}). Evidence is sufficient for policy evaluation.
                                     </div>
                                 </div>
@@ -1152,7 +1041,7 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                                 st.markdown(f"**Rank #{r_idx}: {sc.title}**")
                                 st.markdown(
                                     f"<div class='citation-box' style='margin-top: 0.2rem; font-size: 0.9rem;'>"
-                                    f"<span style='color: #94A3B8; font-size: 0.8rem;'>Offsets: [{sc.start_char}:{sc.end_char}]</span><br/>"
+                                    f"<span style='color: var(--text-secondary); font-size: 0.8rem;'>Offsets: [{sc.start_char}:{sc.end_char}]</span><br/>"
                                     f"{sc.text[:400]}{'...' if len(sc.text) > 400 else ''}"
                                     f"</div>",
                                     unsafe_allow_html=True,
@@ -1160,7 +1049,7 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                             with col_s2:
                                 st.metric("Hybrid Score", f"{sc.score:.3f}")
                                 st.markdown(
-                                    f"<div style='font-size: 0.8rem; color: #94A3B8;'>"
+                                    f"<div style='font-size: 0.8rem; color: var(--text-secondary);'>"
                                     f"BM25 Lexical: <code>{sc.bm25_score:.3f}</code><br/>"
                                     f"Dense Vector: <code>{sc.dense_score:.3f}</code>"
                                     f"</div>",
@@ -1210,20 +1099,12 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                             DecisionType.ABSTAIN: "decision-card-abstain",
                         }.get(dec.decision, "decision-card-review")
 
-                        emoji = {
-                            DecisionType.APPROVE: "✅",
-                            DecisionType.REVIEW: "⚠️",
-                            DecisionType.REJECT: "🛑",
-                            DecisionType.ABSTAIN: "📜",
-                        }.get(dec.decision, "ℹ️")
-
                         st.markdown(
                             f"""
                             <div class="{dec_class}">
-                                <div style="font-size: 1.3rem; font-weight: 700;">
-                                    {emoji} Policy Decision: {dec.decision.value}
-                                </div>
-                                <div style="margin-top: 0.4rem; font-size: 1.0rem;">
+                                <div class="decision-eyebrow">Policy Decision</div>
+                                <div class="decision-value">{dec.decision.value}</div>
+                                <div class="decision-justification">
                                     <strong>Justification:</strong> {dec.justification}
                                 </div>
                             </div>
@@ -1235,8 +1116,8 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                             st.markdown(
                                 f"""
                                 <div class="bartleby-banner">
-                                    <div style="font-weight: 600; color: #38BDF8;">📜 Bartleby Guard Exercised Abstention</div>
-                                    <div style="color: #CBD5E1; font-size: 0.95rem; margin-top: 0.2rem;">
+                                    <div style="font-weight: 600; color: var(--accent);">Bartleby Guard Exercised Abstention</div>
+                                    <div style="color: var(--text-primary); font-size: 0.95rem; margin-top: 0.2rem;">
                                         {audit_res.get("bartleby_reason")}
                                     </div>
                                 </div>
@@ -1261,7 +1142,7 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                                 if f_item.citation:
                                     st.markdown(
                                         f"<div class='citation-box'>"
-                                        f"<span style='color: #94A3B8; font-size: 0.8rem;'>Quote from {f_item.citation.document_id}</span><br/>"
+                                        f"<span style='color: var(--text-secondary); font-size: 0.8rem;'>Quote from {f_item.citation.document_id}</span><br/>"
                                         f"&ldquo;{f_item.citation.text}&rdquo;"
                                         f"</div>",
                                         unsafe_allow_html=True,
@@ -1299,6 +1180,7 @@ elif selected_screen == "📊 Evaluation Dashboard":
             "📜 Real-World CUAD Contract Benchmark (SEC Edgar)",
             "⚡ Vertex AI Model Bake-Off (Gemini Flash vs Pro vs Rules)",
         ],
+        format_func=_plain_label,
         horizontal=True,
     )
 
@@ -1340,7 +1222,7 @@ elif selected_screen == "📊 Evaluation Dashboard":
             st.divider()
 
             # ── Ablation Comparison Section ───────────────────────────────────────
-            st.markdown("### 🔬 Ablación sintética: con vs. sin evaluador de cláusulas")
+            st.markdown("### Ablación sintética: con vs. sin evaluador de cláusulas")
             st.caption(
                 "Leído de canonical_baseline_report.json y canonical_norag_report.json "
                 "(plantillas sintéticas; no es evidencia empírica)."
@@ -1364,7 +1246,7 @@ elif selected_screen == "📊 Evaluation Dashboard":
             st.divider()
 
             # ── Anomaly Taxonomy Per-Class Breakdown ──────────────────────────────
-            st.markdown("### 🎯 Anomaly Taxonomy Matrix (A01 – A10)")
+            st.markdown("### Anomaly Taxonomy Matrix (A01 – A10)")
             class_metrics = data.get("per_class_metrics", {})
             if class_metrics:
                 taxonomy_descriptions = {
@@ -1400,7 +1282,7 @@ elif selected_screen == "📊 Evaluation Dashboard":
 
             # ── Failure Cases Inspector ───────────────────────────────────────────
             st.divider()
-            st.markdown("### ⚠️ Failure Cases & Edge Case Inspection")
+            st.markdown("### Failure Cases & Edge Case Inspection")
             failures = data.get("failure_cases", [])
             if not failures:
                 st.success("Zero failure cases recorded in this evaluation run!")
@@ -1427,7 +1309,7 @@ elif selected_screen == "📊 Evaluation Dashboard":
                 cuad_data = json.load(f)
 
             rep = cuad_data.get("report", {})
-            st.markdown("### 🏆 Real-World Retrieval & Melville Abstention on SEC Contracts")
+            st.markdown("### Real-World Retrieval & Melville Abstention on SEC Contracts")
             st.markdown(
                 "Benchmark executed on authentic commercial contracts filed with the SEC, testing hybrid RAG retrieval against expert-annotated spans and Melville abstention on ground-truth absent clauses."
             )
@@ -1435,7 +1317,7 @@ elif selected_screen == "📊 Evaluation Dashboard":
             emb_prov = rep.get("embedding_provider", "Hybrid BM25 + Dense")
             emb_model = rep.get("embedding_model_id", "text-embedding-005")
             st.caption(
-                f"🧬 Active Dense Vector Index: **{emb_prov}** (`{emb_model}`) | Contracts: {rep.get('total_contracts_evaluated', 0)} (Train: {rep.get('train_contracts_count', 0)}, Val: {rep.get('val_contracts_count', 0)})"
+                f"Active Dense Vector Index: **{emb_prov}** (`{emb_model}`) | Contracts: {rep.get('total_contracts_evaluated', 0)} (Train: {rep.get('train_contracts_count', 0)}, Val: {rep.get('val_contracts_count', 0)})"
             )
 
             # Metrics row 1: Retrieval
@@ -1541,7 +1423,7 @@ elif selected_screen == "📊 Evaluation Dashboard":
             with bakeoff_report_path.open(encoding="utf-8") as f:
                 bakeoff_data = json.load(f)
 
-            st.markdown("### ⚡ Live Vertex AI Structured Extraction Bake-Off")
+            st.markdown("### Live Vertex AI Structured Extraction Bake-Off")
             st.markdown(
                 "Head-to-head empirical comparison between deterministic rule parsing and GA Gemini models (`gemini-3.5-flash`, `gemini-3.8-flash`) over Google Cloud Vertex AI ADC."
             )
@@ -1554,13 +1436,13 @@ elif selected_screen == "📊 Evaluation Dashboard":
                         st.markdown(
                             f"""
                             <div class="cuad-card">
-                                <div style="font-weight: 700; color: #38BDF8; font-size: 1.05rem;">{cand.get("candidate_name")}</div>
-                                <div style="font-size: 0.85rem; color: #94A3B8; margin-top: 2px;">Model ID: <code>{cand.get("model_id")}</code></div>
+                                <div style="font-weight: 700; color: var(--accent); font-size: 1.05rem;">{cand.get("candidate_name")}</div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px;">Model ID: <code>{cand.get("model_id")}</code></div>
                                 <div style="margin-top: 8px; font-size: 0.9rem;">
-                                    ⏱️ <strong>Latency:</strong> {cand.get("mean_latency_ms", 0.0):.1f} ms<br/>
-                                    💰 <strong>Cost / 1k:</strong> ${cand.get("estimated_cost_per_1k_usd", 0.0):.2f}<br/>
-                                    🎯 <strong>Accuracy:</strong> {cand.get("overall_perfect_accuracy", 0.0) * 100:.1f}%<br/>
-                                    ⚠️ <strong>Error Rate:</strong> {cand.get("error_rate", 0.0) * 100:.1f}%
+                                    ⏱<strong>Latency:</strong> {cand.get("mean_latency_ms", 0.0):.1f} ms<br/>
+                                    <strong>Cost / 1k:</strong> ${cand.get("estimated_cost_per_1k_usd", 0.0):.2f}<br/>
+                                    <strong>Accuracy:</strong> {cand.get("overall_perfect_accuracy", 0.0) * 100:.1f}%<br/>
+                                    <strong>Error Rate:</strong> {cand.get("error_rate", 0.0) * 100:.1f}%
                                 </div>
                             </div>
                             """,
