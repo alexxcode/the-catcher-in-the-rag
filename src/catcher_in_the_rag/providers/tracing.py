@@ -18,8 +18,48 @@ from pathlib import Path
 from typing import Any
 
 
+class NoOpSpan:
+    """Span handle that records nothing; children are no-ops too."""
+
+    trace_id: str | None = None
+
+    def child(self, name: str) -> NoOpSpan:
+        return NoOpSpan()
+
+    def update(self, **fields: Any) -> None:
+        pass
+
+    def end(self) -> None:
+        pass
+
+
+class LangfuseSpan(NoOpSpan):
+    """Live Langfuse span: opened when created, closed by end(), so its duration is real."""
+
+    def __init__(self, observation: Any) -> None:
+        self._obs = observation
+        self.trace_id = getattr(observation, "trace_id", None)
+
+    def child(self, name: str) -> NoOpSpan:
+        with contextlib.suppress(Exception):
+            return LangfuseSpan(self._obs.start_observation(name=name, as_type="span"))
+        return NoOpSpan()
+
+    def update(self, **fields: Any) -> None:
+        with contextlib.suppress(Exception):
+            self._obs.update(**fields)
+
+    def end(self) -> None:
+        with contextlib.suppress(Exception):
+            self._obs.end()
+
+
 class BaseTracer(ABC):
     """Abstract interface for application and evaluation tracing."""
+
+    def start_span(self, name: str, input_data: Any = None) -> NoOpSpan:
+        """Open a live span that can hold child spans; no-op unless overridden."""
+        return NoOpSpan()
 
     @abstractmethod
     def trace_execution(
@@ -116,6 +156,16 @@ class LangfuseTracer(BaseTracer):
             return self._client
         except Exception:
             return None
+
+    def start_span(self, name: str, input_data: Any = None) -> NoOpSpan:
+        client = self._ensure_client()
+        if not client:
+            return NoOpSpan()
+        with contextlib.suppress(Exception):
+            return LangfuseSpan(
+                client.start_observation(name=name, as_type="span", input=input_data)
+            )
+        return NoOpSpan()
 
     def trace_execution(
         self,

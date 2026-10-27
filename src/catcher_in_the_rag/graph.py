@@ -12,12 +12,13 @@ except ImportError:
     END = "__end__"
 
 from catcher_in_the_rag.apply_terms.evaluator import ContractTermsEvaluator
+from catcher_in_the_rag.bartleby.guard import load_bartleby_thresholds
 from catcher_in_the_rag.extract.extractor import DocumentExtractor
 from catcher_in_the_rag.match.matcher import run_three_way_match
 from catcher_in_the_rag.policy.engine import PolicyEngine
 from catcher_in_the_rag.providers.base import LLMProvider
 from catcher_in_the_rag.providers.factory import get_llm_provider
-from catcher_in_the_rag.providers.tracing import get_tracer
+from catcher_in_the_rag.providers.tracing import NoOpSpan, get_tracer
 from catcher_in_the_rag.schemas import (
     Decision,
     Finding,
@@ -231,13 +232,15 @@ def audit_pipeline(
 ) -> AuditState:
     """Run full audit pipeline on a package and return the full final AuditState.
 
-    If on_node is given, the same graph is streamed and on_node(name, elapsed_ms, update)
-    is called as each node completes; the final state is the same as with invoke.
+    The graph is streamed so each node is timed once with perf_counter: that interval is the
+    node's child span under the audit_pipeline span, and on_node(name, elapsed_ms, update),
+    if given, receives the same value. The final state is the same as with invoke.
     """
-    compiled = build_audit_graph(
+    graph = build_audit_graph(
         llm_provider=llm_provider,
         extract_contract_from_text=extract_contract_from_text,
-    ).compile()
+    )
+    compiled = graph.compile()
     init_state: AuditState = {}
     if isinstance(source, ProcurementPackage):
         init_state["package"] = source
@@ -245,53 +248,100 @@ def audit_pipeline(
     else:
         init_state["raw_input"] = source
 
-    t0 = time.perf_counter()
-    if on_node is not None and hasattr(compiled, "stream"):
-        streamed: dict[str, Any] = dict(init_state)
-        t_prev = t0
-        for chunk in compiled.stream(init_state, stream_mode="updates"):
-            now = time.perf_counter()
-            for node_name, update in chunk.items():
-                streamed.update(update or {})
-                on_node(node_name, (now - t_prev) * 1000, update or {})
-            t_prev = now
-        final_state: AuditState = streamed  # type: ignore[assignment]
-    else:
-        final_state = compiled.invoke(init_state)
-    elapsed_ms = (time.perf_counter() - t0) * 1000
-
-    # Observability: Trace execution via Langfuse (or NoOp if offline)
-    pkg = final_state.get("package")
-    decision = final_state.get("decision")
-    findings = final_state.get("validated_findings", [])
     tracer = get_tracer()
-
-    final_state["trace_id"] = tracer.trace_execution(
-        name="audit_pipeline",
-        input_data={
-            "package_id": final_state.get("package_id"),
-            "vendor_name": pkg.invoice.vendor_name if pkg else None,
-            "invoice_total": float(pkg.invoice.total_amount) if pkg else None,
-        },
-        output_data={
-            "decision": decision.decision.value if decision else "UNKNOWN",
-            "justification": decision.justification if decision else None,
-            "findings_count": len(findings),
-        },
-        metadata={
-            "bartleby_abstained": final_state.get("bartleby_abstained", False),
-            "bartleby_reason": final_state.get("bartleby_reason"),
-            "requires_human_review": final_state.get("requires_human_review", False),
-        },
-        tags=[
-            "audit",
-            decision.decision.value.lower() if decision else "unknown",
-        ],
-        latency_ms=elapsed_ms,
+    tau = load_bartleby_thresholds()["min_relevance_score"]
+    root = tracer.start_span(
+        "audit_pipeline", input_data={"package_id": init_state.get("package_id")}
     )
-    tracer.flush()
+    try:
+        t0 = time.perf_counter()
+        if hasattr(compiled, "stream"):
+            # One child span per graph node, opened when the node starts and closed when its
+            # update arrives; the same perf_counter interval is what on_node receives.
+            next_node = dict(getattr(graph, "edges", ()))
+            streamed: dict[str, Any] = dict(init_state)
+            t_prev = t0
+            step = root.child("step")
+            for chunk in compiled.stream(init_state, stream_mode="updates"):
+                now = time.perf_counter()
+                for node_name, update in chunk.items():
+                    update = update or {}
+                    streamed.update(update)
+                    elapsed_step = (now - t_prev) * 1000
+                    step.update(
+                        name=node_name,
+                        metadata={
+                            "latency_ms": elapsed_step,
+                            **_step_metadata(node_name, update, tau),
+                        },
+                    )
+                    step.end()
+                    if on_node is not None:
+                        on_node(node_name, elapsed_step, update)
+                    step = (
+                        root.child("step") if next_node.get(node_name, END) != END else NoOpSpan()
+                    )
+                t_prev = now
+            final_state: AuditState = streamed  # type: ignore[assignment]
+        else:
+            final_state = compiled.invoke(init_state)
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+
+        # Observability: the root span carries the run summary (NoOp if offline)
+        pkg = final_state.get("package")
+        decision = final_state.get("decision")
+        findings = final_state.get("validated_findings", [])
+        root.update(
+            input={
+                "package_id": final_state.get("package_id"),
+                "vendor_name": pkg.invoice.vendor_name if pkg else None,
+                "invoice_total": float(pkg.invoice.total_amount) if pkg else None,
+            },
+            output={
+                "decision": decision.decision.value if decision else "UNKNOWN",
+                "justification": decision.justification if decision else None,
+                "findings_count": len(findings),
+            },
+            metadata={
+                "bartleby_abstained": final_state.get("bartleby_abstained", False),
+                "bartleby_reason": final_state.get("bartleby_reason"),
+                "requires_human_review": final_state.get("requires_human_review", False),
+                "tau": tau,
+                "latency_ms": elapsed_ms,
+                "tags": ["audit", decision.decision.value.lower() if decision else "unknown"],
+            },
+        )
+        final_state["trace_id"] = root.trace_id
+    finally:
+        root.end()
+        tracer.flush()
 
     return final_state
+
+
+def _step_metadata(node_name: str, update: dict[str, Any], tau: float) -> dict[str, Any]:
+    """Fields a node already returned, as span metadata (counts instead of full objects)."""
+    if node_name == "extract":
+        return {"llm_extraction_failed": update.get("llm_extraction_failed", False)}
+    if node_name == "match":
+        return {"findings_count": len(update.get("match_findings", []))}
+    if node_name == "apply_terms":
+        return {
+            "findings_count": len(update.get("clause_findings", [])),
+            "bartleby_abstained": update.get("bartleby_abstained", False),
+            "bartleby_reason": update.get("bartleby_reason"),
+            "tau": tau,
+        }
+    if node_name == "validate":
+        return {"findings_count": len(update.get("validated_findings", []))}
+    if node_name == "decide":
+        decision = update.get("decision")
+        return {
+            "decision": decision.decision.value if decision else None,
+            "findings_count": len(decision.findings) if decision else None,
+            "requires_human_review": update.get("requires_human_review", False),
+        }
+    return {}
 
 
 def run_audit(
