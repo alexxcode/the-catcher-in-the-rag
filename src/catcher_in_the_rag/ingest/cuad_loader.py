@@ -70,6 +70,16 @@ class CUADContract:
         return bool(self.annotations.get(category))
 
 
+FULL_CUAD_PATH = Path("data/real/cuad/CUADv1.json")
+DEMO_CUAD_PATH = Path("data/demo/cuad_demo.json")  # trimmed copy shipped in the repo
+CUAD_FULL_CONTRACT_COUNT = 510
+
+
+def resolve_cuad_path() -> Path:
+    """Full CUAD if downloaded (make download-data), otherwise the bundled demo subset."""
+    return FULL_CUAD_PATH if FULL_CUAD_PATH.exists() else DEMO_CUAD_PATH
+
+
 class CUADLoader:
     """Loads and converts CUAD v1 dataset contracts into The Catcher in the RAG schemas."""
 

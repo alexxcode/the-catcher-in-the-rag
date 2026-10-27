@@ -27,6 +27,7 @@ COPY config/ ./config/
 COPY datagen/ ./datagen/
 COPY evals/ ./evals/
 COPY ui/ ./ui/
+COPY data/demo/ ./data/demo/
 COPY .streamlit/ ./.streamlit/
 COPY infra/entrypoint.sh ./infra/entrypoint.sh
 

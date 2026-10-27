@@ -15,8 +15,11 @@ from dotenv import load_dotenv
 from catcher_in_the_rag.bartleby.guard import BartlebyGuard, load_bartleby_thresholds
 from catcher_in_the_rag.graph import audit_pipeline
 from catcher_in_the_rag.ingest.cuad_loader import (
+    CUAD_FULL_CONTRACT_COUNT,
+    DEMO_CUAD_PATH,
     CUADContract,
     CUADLoader,
+    resolve_cuad_path,
 )
 from catcher_in_the_rag.providers.factory import get_llm_provider, resolve_llm_provider
 from catcher_in_the_rag.providers.tracing import is_tracing_enabled
@@ -263,10 +266,10 @@ def load_evaluation_reports(
 
 @st.cache_resource(show_spinner=False)
 def get_cuad_loader(
-    data_path: str = "data/real/cuad/CUADv1.json",
+    data_path: str | None = None,
 ) -> CUADLoader | None:
-    """Get cached CUADLoader instance if dataset file exists."""
-    path = Path(data_path)
+    """Get cached CUADLoader: full CUAD if present, else the bundled demo subset."""
+    path = Path(data_path) if data_path else resolve_cuad_path()
     if not path.exists():
         return None
     try:
@@ -279,7 +282,7 @@ def get_cuad_loader(
 
 @st.cache_data(show_spinner=False)
 def load_cuad_contract_summaries(
-    data_path: str = "data/real/cuad/CUADv1.json", limit: int = 50
+    data_path: str | None = None, limit: int = 50
 ) -> list[dict[str, Any]]:
     """Load high-level summaries for the first N CUAD contracts."""
     loader = get_cuad_loader(data_path)
@@ -833,6 +836,11 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
     )
 
     cuad_loader = get_cuad_loader()
+    if cuad_loader is not None and cuad_loader.path == DEMO_CUAD_PATH:
+        st.info(
+            f"Subconjunto de demostración: {cuad_loader.count()} de {CUAD_FULL_CONTRACT_COUNT} "
+            "contratos de CUAD. El corpus completo se descarga con make download-data"
+        )
     if cuad_loader is None:
         st.warning(
             "CUAD dataset not found at `data/real/cuad/CUADv1.json`. "
@@ -840,7 +848,9 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
         )
     else:
         # Top KPI Metrics Banner
-        st.metric("SEC Edgar Contracts (loaded from CUADv1.json)", f"{cuad_loader.count()}")
+        st.metric(
+            f"SEC Edgar Contracts (loaded from {cuad_loader.path.name})", f"{cuad_loader.count()}"
+        )
 
         st.divider()
 

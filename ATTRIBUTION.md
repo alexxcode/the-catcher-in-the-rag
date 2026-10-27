@@ -6,6 +6,9 @@ This project uses the following third-party datasets, libraries, and resources.
 
 - **CUAD v1** — The Atticus Project. Licensed under CC BY 4.0.
   https://github.com/TheAtticusProject/cuad
+  `data/demo/cuad_demo.json` is a trimmed copy of CUAD v1 (a small subset of its contracts,
+  unmodified, same JSON format) redistributed under CC BY 4.0 for the UI demo; the full corpus
+  is downloaded with `make download-data`.
 
 - **FATURA** — TODO: record full citation once download is confirmed.
 
