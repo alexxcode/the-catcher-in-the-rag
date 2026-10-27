@@ -111,11 +111,11 @@ def generate_domain_calibration_table() -> str:
     auc_val = cuad_data["auc_roc_val"]
     always_f1 = cuad_data["baseline_always_abstain"]["macro_f1"]
 
-    table = f"""| Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\\tau$) | Macro F1 Validación | AUC-ROC Separabilidad | Desempeño Empírico en Transferencia |
+    table = f"""| Domain | Source dataset | Calibrated threshold ($\\tau$) | Validation Macro F1 | AUC-ROC (separability) | Empirical transfer performance |
 |---|---|:---:|:---:|:---:|---|
-| **Plantillas Sintéticas (+ Heurística 3a*)** | Datagen M1 ({synth_data["total_packages"]} paquetes; no es evidencia) | **{synth_t:.2f}** | **{synth_f1:.4f}** | **{synth_auc:.4f}** | F1 con regex de denegación 3a: {synth_data["heuristic_3a_val_macro_f1"]:.4f}. Score puro sin 3a: F1 {pure_f1:.4f} (abstención {pure_abs:.1f}%). |
-| **Contratos SEC Reales (Transfer)** | CUAD v1, contratos 1–{cuad_data["total_contracts"]}, Train/Val 60/40 | **{synth_t:.2f}** (fijado) | **{val_synth:.4f}** | **{auc_val:.4f}** | Abstención correcta en ausencias {val_c_synth:.1f}% ({100 - val_c_synth:.1f}% pasan). |
-| **Contratos SEC Reales (Recalibrado)** | CUAD v1, contratos 1–{cuad_data["total_contracts"]}, Train/Val 60/40 | **{cuad_t:.2f}** (recalibrado, no aplicado) | **{val_cuad:.4f}** | **{auc_val:.4f}** | Abstención correcta {val_c_opt:.1f}%, falsas abstenciones {val_f_opt:.1f}% (Siempre Abstenerse: {always_f1:.4f}). |"""
+| **Synthetic templates (+ Rule 3a heuristic*)** | Datagen M1 ({synth_data["total_packages"]} packages; not evidence) | **{synth_t:.2f}** | **{synth_f1:.4f}** | **{synth_auc:.4f}** | F1 with the 3a denial regex: {synth_data["heuristic_3a_val_macro_f1"]:.4f}. Pure score without 3a: F1 {pure_f1:.4f} (abstention {pure_abs:.1f}%). |
+| **Real SEC contracts (transfer)** | CUAD v1, contracts 1–{cuad_data["total_contracts"]}, train/val 60/40 | **{synth_t:.2f}** (fixed) | **{val_synth:.4f}** | **{auc_val:.4f}** | Correct abstention on absences {val_c_synth:.1f}% ({100 - val_c_synth:.1f}% pass through). |
+| **Real SEC contracts (recalibrated)** | CUAD v1, contracts 1–{cuad_data["total_contracts"]}, train/val 60/40 | **{cuad_t:.2f}** (recalibrated, not applied) | **{val_cuad:.4f}** | **{auc_val:.4f}** | Correct abstention {val_c_opt:.1f}%, false abstentions {val_f_opt:.1f}% (Always abstain: {always_f1:.4f}). |"""
     return table
 
 
@@ -131,7 +131,7 @@ def generate_llm_verification_table() -> str:
     for m in data["modes"]:
         name = m["mode_name"]
         tau = f"{m['relevance_threshold']:.2f}"
-        llm = "Gemini 3.5 Flash" if m["use_llm_verification"] else "Desactivada"
+        llm = "Gemini 3.5 Flash" if m["use_llm_verification"] else "Off"
         c_abs = f"{m['correct_abstention_rate'] * 100:.1f}% ({m['correct_abstentions']}/{m['total_absences']})"
         f_abs = f"{m['false_abstention_rate'] * 100:.1f}% ({m['false_abstentions']}/{m['total_presences']})"
         f1 = f"{m['macro_f1']:.4f}"
@@ -145,7 +145,7 @@ def generate_llm_verification_table() -> str:
             f"| **{name}** | **{tau}** | `{llm}` | **{c_abs}** | **{f_abs}** | **{f1}** | {lat} | {cost} |"
         )
 
-    header = """| Modo de Guardia | $\\tau$ | Verificación LLM | Abstención Correcta (Recall) | Falsa Abstención (Error) | Macro F1 | Latencia Media | Costo Estimado / 1k* |
+    header = """| Guard mode | $\\tau$ | LLM verification | Correct abstention (recall) | False abstention (error) | Macro F1 | Mean latency | Estimated cost / 1k* |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|"""
     return header + "\n" + "\n".join(rows)
 
@@ -156,14 +156,14 @@ def generate_retrieval_table() -> str:
         return "NOT MEASURED (`evals/reports/retrieval_ablation_oos_report.json` missing)."
     data = json.loads(path.read_text(encoding="utf-8"))
     metrics = data["metrics"]
-    labels = {"bm25": "BM25", "dense": "Denso", "hybrid": "Híbrido (50/50)"}
+    labels = {"bm25": "BM25", "dense": "Dense", "hybrid": "Hybrid (50/50)"}
 
     def cell(e: dict) -> str:
         lo, hi = e["wilson_ci95"]
-        return f"{e['rate'] * 100:.1f}% ({e['count']}/{e['total']}) [IC95 {lo * 100:.1f}–{hi * 100:.1f}]"
+        return f"{e['rate'] * 100:.1f}% ({e['count']}/{e['total']}) [CI95 {lo * 100:.1f}–{hi * 100:.1f}]"
 
     rows = [
-        "| Método | Hit@1 | Hit@5 |",
+        "| Method | Hit@1 | Hit@5 |",
         "|---|:---:|:---:|",
     ]
     for mode, label in labels.items():
@@ -178,7 +178,7 @@ def generate_retrieval_table() -> str:
         )
         if overlap:
             notes.append(
-                f"{name}: los tres métodos son estadísticamente indistinguibles en esta muestra."
+                f"{name}: the three methods are statistically indistinguishable on this sample."
             )
         else:
             apart = [
@@ -186,22 +186,22 @@ def generate_retrieval_table() -> str:
                 for a in cis
                 if all(cis[a][1] < cis[b][0] or cis[b][1] < cis[a][0] for b in cis if b != a)
             ]
-            who = ", ".join(apart) if apart else "algún par"
+            who = ", ".join(apart) if apart else "some pair"
             same = [
-                f"{labels[a]} y {labels[b]}"
+                f"{labels[a]} and {labels[b]}"
                 for a in cis
                 for b in cis
                 if a < b and cis[a][0] <= cis[b][1] and cis[b][0] <= cis[a][1]
             ]
-            same_txt = f" {'; '.join(same)}: indistinguibles en esta muestra." if same else ""
+            same_txt = f" {'; '.join(same)}: indistinguishable on this sample." if same else ""
             notes.append(
-                f"{name}: el intervalo de Wilson de {who} no se solapa con los demás; los tres "
-                f"métodos no son indistinguibles en esta muestra.{same_txt}"
+                f"{name}: the Wilson interval of {who} does not overlap the others; the three "
+                f"methods are not indistinguishable on this sample.{same_txt}"
             )
     header = (
-        f"{data['presence_cases']} casos de presencia, {data['contract_slice']}, "
+        f"{data['presence_cases']} presence cases, {data['contract_slice']}, "
         f"embeddings `{data['embedding_model_id']}`, commit `{data['git_commit_sha'][:7]}`. "
-        "Empates resueltos por orden de aparición en el contrato."
+        "Ties broken by order of appearance in the contract."
     )
     return "\n".join([header, "", *rows, "", *(f"- {n}" for n in notes)])
 
@@ -215,16 +215,16 @@ def _load(path: str) -> dict:
 
 def _rate(count: int, total: int, ci: list[float]) -> str:
     return (
-        f"{count}/{total} = {count / total * 100:.1f}% [IC95 {ci[0] * 100:.1f}–{ci[1] * 100:.1f}]"
+        f"{count}/{total} = {count / total * 100:.1f}% [CI95 {ci[0] * 100:.1f}–{ci[1] * 100:.1f}]"
     )
 
 
 def _oos_rows() -> list[tuple[str, str, dict]]:
     rows = []
     for path, label in (
-        ("evals/reports/out_of_sample_cuad_stub_tau0.50_report.json", "Sin LLM, solo score"),
-        ("evals/reports/out_of_sample_cuad_stub_tau0.80_report.json", "Sin LLM, solo score"),
-        ("evals/reports/out_of_sample_cuad_report.json", "Con verificación LLM (3b)"),
+        ("evals/reports/out_of_sample_cuad_stub_tau0.50_report.json", "No LLM, score only"),
+        ("evals/reports/out_of_sample_cuad_stub_tau0.80_report.json", "No LLM, score only"),
+        ("evals/reports/out_of_sample_cuad_report.json", "With LLM verification (3b)"),
     ):
         d = _load(path)
         rows.append((path, label, d))
@@ -244,27 +244,27 @@ def generate_mode3_diagnosis() -> str:
     total_q = oos_llm["total_queries_evaluated"]
 
     a = (
-        f"(a) **El score de recuperación solo es una señal débil.** AUC-ROC de validación "
-        f"{auc:.4f} [IC95 {ci[0]:.4f}–{ci[1]:.4f}] con `{cal['embedding_provider']}` "
-        f"(CUAD, contratos 1–{cal['total_contracts']}, `calibration_cuad_report.json`); "
-        + ("el intervalo incluye 0.50." if includes_half else "el intervalo excluye 0.50.")
+        f"(a) **The retrieval score alone is a weak signal.** Validation AUC-ROC "
+        f"{auc:.4f} [CI95 {ci[0]:.4f}–{ci[1]:.4f}] with `{cal['embedding_provider']}` "
+        f"(CUAD, contracts 1–{cal['total_contracts']}, `calibration_cuad_report.json`); "
+        + ("the interval includes 0.50." if includes_half else "the interval excludes 0.50.")
     )
     b = (
-        f"(b) **La verificación con LLM aporta la abstención.** Con los mismos embeddings y "
-        f"$\\tau$ = {m1['relevance_threshold']:.2f} (`bartleby_llm_verification_report.json`), la "
-        f"abstención correcta en ausencias pasa de {m1['correct_abstentions']}/{m1['total_absences']} "
-        f"({m1['correct_abstention_rate'] * 100:.1f}%) sin LLM a {m3['correct_abstentions']}/"
-        f"{m3['total_absences']} ({m3['correct_abstention_rate'] * 100:.1f}%) con LLM."
+        f"(b) **LLM verification supplies the abstention.** With the same embeddings and "
+        f"$\\tau$ = {m1['relevance_threshold']:.2f} (`bartleby_llm_verification_report.json`), "
+        f"correct abstention on absences goes from {m1['correct_abstentions']}/{m1['total_absences']} "
+        f"({m1['correct_abstention_rate'] * 100:.1f}%) without the LLM to {m3['correct_abstentions']}/"
+        f"{m3['total_absences']} ({m3['correct_abstention_rate'] * 100:.1f}%) with it."
     )
     c = (
-        f"(c) **Las falsas abstenciones siguen altas.** Con LLM, fuera de muestra: "
-        f"{_rate(fa['count'], fa['total'], fa['wilson_ci95'])} de las cláusulas presentes "
-        f"(`out_of_sample_cuad_report.json`). Cada falsa abstención es una revisión humana "
-        f"innecesaria: {fa['count']} en {total_q} consultas "
-        f"({fa['count'] / total_q * 100:.1f} por cada 100). Tiempo o costo por revisión: NOT MEASURED."
+        f"(c) **False abstentions remain high.** With the LLM, out of sample: "
+        f"{_rate(fa['count'], fa['total'], fa['wilson_ci95'])} of present clauses "
+        f"(`out_of_sample_cuad_report.json`). Each false abstention is an unnecessary human "
+        f"review: {fa['count']} in {total_q} queries "
+        f"({fa['count'] / total_q * 100:.1f} per 100). Time or cost per review: NOT MEASURED."
     )
     return "\n".join(
-        ["> **Bartleby: tres afirmaciones medidas**", f"> {a}", ">", f"> {b}", ">", f"> {c}"]
+        ["> **Bartleby: three measured claims**", f"> {a}", ">", f"> {b}", ">", f"> {c}"]
     )
 
 
@@ -282,43 +282,43 @@ def generate_operating_point() -> str:
 
     ca_hi, fa_hi, _, _ = parts(hi)
     ca_lo, _, n_lo, q_lo = parts(lo)
-    cfg_txt = " (valor actual de `config/thresholds.yaml`)" if cfg_tau == hi["tau_override"] else ""
+    cfg_txt = " (current value in `config/thresholds.yaml`)" if cfg_tau == hi["tau_override"] else ""
     s1 = (
-        f"Sin LLM, $\\tau$ = {hi['tau_override']:.2f}{cfg_txt} se abstiene en "
-        f"{ca_hi['rate'] * 100:.1f}% de las ausencias ({ca_hi['count']}/{ca_hi['total']}) y en "
-        f"{fa_hi['rate'] * 100:.1f}% de las presencias ({fa_hi['count']}/{fa_hi['total']})."
+        f"Without the LLM, $\\tau$ = {hi['tau_override']:.2f}{cfg_txt} abstains on "
+        f"{ca_hi['rate'] * 100:.1f}% of absences ({ca_hi['count']}/{ca_hi['total']}) and on "
+        f"{fa_hi['rate'] * 100:.1f}% of presences ({fa_hi['count']}/{fa_hi['total']})."
     )
-    verb = "casi nunca se abstiene" if n_lo / q_lo < 0.25 else "se abstiene"
+    verb = "almost never abstains" if n_lo / q_lo < 0.25 else "abstains"
     s2 = (
-        f"$\\tau$ = {lo['tau_override']:.2f} {verb}: {n_lo} de {q_lo} consultas "
-        f"({n_lo / q_lo * 100:.1f}%), y solo en {ca_lo['rate'] * 100:.1f}% de las ausencias."
+        f"$\\tau$ = {lo['tau_override']:.2f} {verb}: {n_lo} of {q_lo} queries "
+        f"({n_lo / q_lo * 100:.1f}%), and on only {ca_lo['rate'] * 100:.1f}% of absences."
     )
     llm_emb = llm_rep.get("embedding_provider") or "stub"
     reasons = []
     if llm_emb != hi.get("embedding_provider"):
-        reasons.append(f"usó embeddings `{llm_emb}`")
+        reasons.append(f"it used `{llm_emb}` embeddings")
     if llm_rep.get("git_dirty"):
-        reasons.append("se generó con `git_dirty: true`")
+        reasons.append("it was generated with `git_dirty: true`")
     note = (
-        f"La fila con LLM no es comparable con las filas sin LLM: {' y '.join(reasons)}."
+        f"The LLM row is not comparable with the rows without the LLM: {' and '.join(reasons)}."
         if reasons
-        else "La fila con LLM usa los mismos embeddings que las filas sin LLM."
+        else "The LLM row uses the same embeddings as the rows without the LLM."
     )
-    return f"{s1} {s2}\n\n> **Nota:** {note}"
+    return f"{s1} {s2}\n\n> **Note:** {note}"
 
 
 def generate_oos_bartleby_table() -> str:
     """Out-of-sample (contracts 16-50) abstention per configuration plus Always-Abstain."""
     rows = [
-        "| Configuración | $\\tau$ | Embeddings | Abstención correcta (ausencias) | Falsa abstención (presencias) | Macro F1 | Reporte |",
+        "| Configuration | $\\tau$ | Embeddings | Correct abstention (absences) | False abstention (presences) | Macro F1 | Report |",
         "|---|:---:|---|:---:|:---:|:---:|---|",
     ]
     for path, label, d in _oos_rows():
         m = d["metrics"]
         ca, fa = m["correct_abstention_on_negatives"], m["false_abstention_on_positives"]
         tau = d.get("tau_override")
-        tau_txt = f"{tau:.2f}" if tau is not None else "0.50 (fijo en el eval)"
-        emb = d.get("embedding_provider") or "stub (valor por defecto del comando)"
+        tau_txt = f"{tau:.2f}" if tau is not None else "0.50 (fixed in the eval)"
+        emb = d.get("embedding_provider") or "stub (command default)"
         dirty = " (git_dirty)" if d.get("git_dirty") else ""
         rows.append(
             f"| {label} | {tau_txt} | `{emb}` | {_rate(ca['count'], ca['total'], ca['wilson_ci95'])} | "
@@ -329,8 +329,8 @@ def generate_oos_bartleby_table() -> str:
     p_abs = n_abs / (n_abs + n_pres)
     f1_always = round((2 * p_abs / (p_abs + 1.0)) / 2.0, 4)
     rows.append(
-        f"| Siempre abstenerse (trivial) | — | — | {n_abs}/{n_abs} = 100.0% | {n_pres}/{n_pres} = 100.0% | "
-        f"{f1_always:.4f} | calculado de los conteos |"
+        f"| Always abstain (trivial) | — | — | {n_abs}/{n_abs} = 100.0% | {n_pres}/{n_pres} = 100.0% | "
+        f"{f1_always:.4f} | computed from the counts |"
     )
     return "\n".join(rows)
 
@@ -368,14 +368,14 @@ def generate_synthetic_ablation_table() -> str:
     lat = base_data["mean_latency_ms"]
     norag_lat = norag_data["mean_latency_ms"]
 
-    table = f"""| Métrica de Evaluación | Con Términos Contractuales (Baseline) | Sin Términos (Solo Cotejo 3-Way) | Impacto / Delta |
+    table = f"""| Metric | With contract terms (baseline) | Without terms (three-way match only) | Impact / delta |
 |---|:---:|:---:|:---:|
-| **Exactitud Global de Decisión** | **{b_acc:.1f}%** ({b_acc_count}/{tot}) | **{n_acc:.1f}%** ({n_acc_count}/{tot}) | **ablación: sin evaluador de cláusulas (+{delta_acc:.1f}% degradación)** |
-| **Validez de Citas Verbatim** | **{c_rate:.1f}%** ({c_val}/{c_tot}) [plantillas sintéticas] | N/A | Cero citas sintéticas inválidas |
-| **Abstención Correcta de Bartleby** | **{b_a09_rate:.1f}%** ({b_a09_corr}/{b_a09_tot} en A09*) | 0.0% (0/{b_a09_tot} en A09) | Detección de silencios (vía heurística de plantilla 3a*) |
-| **Tasa de Falsos Positivos (A10)** | **{fp_a10:.1f}%** (0/30) | 0.0% (0/30) | Paquetes limpios aprobados sin fricción |
-| **Recall@5 de Recuperación** | **{r5:.1f}%** [plantillas sintéticas] | N/A | Recuperación en plantillas sintéticas |
-| **Latencia Media por Paquete** | **{lat:.1f} ms** | {norag_lat:.1f} ms | Ejecución determinista local |"""
+| **Overall decision accuracy** | **{b_acc:.1f}%** ({b_acc_count}/{tot}) | **{n_acc:.1f}%** ({n_acc_count}/{tot}) | **ablation: no clause evaluator (+{delta_acc:.1f}% degradation)** |
+| **Verbatim citation validity** | **{c_rate:.1f}%** ({c_val}/{c_tot}) [synthetic templates] | N/A | Zero invalid synthetic citations |
+| **Bartleby correct abstention** | **{b_a09_rate:.1f}%** ({b_a09_corr}/{b_a09_tot} on A09*) | 0.0% (0/{b_a09_tot} on A09) | Silence detection (via the 3a template heuristic*) |
+| **False positive rate (A10)** | **{fp_a10:.1f}%** (0/30) | 0.0% (0/30) | Clean packages approved without friction |
+| **Retrieval Recall@5** | **{r5:.1f}%** [synthetic templates] | N/A | Retrieval on synthetic templates |
+| **Mean latency per package** | **{lat:.1f} ms** | {norag_lat:.1f} ms | Local deterministic execution |"""
     return table
 
 
@@ -412,23 +412,23 @@ def generate_domain_calibration_diagnosis() -> str:
     va_ci = cuad_data.get("auc_roc_val_ci95")
 
     def ci_txt(ci: list[float] | None) -> str:
-        return f" [IC95 {ci[0]:.4f}–{ci[1]:.4f}]" if ci else " [IC no reportado]"
+        return f" [CI95 {ci[0]:.4f}–{ci[1]:.4f}]" if ci else " [CI not reported]"
 
     if va_ci and va_ci[0] <= 0.5 <= va_ci[1]:
         auc_note = (
-            "el intervalo de validación incluye 0.50: no distinguible del azar en esta muestra."
+            "the validation interval includes 0.50: indistinguishable from chance on this sample."
         )
     elif va_ci:
-        auc_note = "el intervalo de validación excluye 0.50."
+        auc_note = "the validation interval excludes 0.50."
     else:
-        auc_note = "sin intervalo, no se puede comparar con 0.50."
+        auc_note = "no interval, so it cannot be compared with 0.50."
 
-    text = f"""> **Diagnóstico de calibración en CUAD** (`evals/reports/calibration_cuad_report.json`)
-> Sintético (referencia, no evidencia): $\\tau = {synth_t:.2f}$, Macro F1 validación {synth_f1:.4f}, AUC-ROC {synth_auc:.4f}.
-> CUAD: {n_tot} contratos (entrenamiento {n_tr}, validación {n_va}, semilla 42), embeddings `{emb}`.
+    text = f"""> **CUAD calibration diagnosis** (`evals/reports/calibration_cuad_report.json`)
+> Synthetic (reference, not evidence): $\\tau = {synth_t:.2f}$, validation Macro F1 {synth_f1:.4f}, AUC-ROC {synth_auc:.4f}.
+> CUAD: {n_tot} contracts (train {n_tr}, validation {n_va}, seed 42), embeddings `{emb}`.
 >
-> 1. **AUC-ROC (Wilcoxon-Mann-Whitney):** entrenamiento {auc_train:.4f}{ci_txt(tr_ci)}; validación {auc_val:.4f}{ci_txt(va_ci)}; {auc_note}
-> 2. **Umbral:** a $\\tau = {synth_t:.2f}$ la abstención correcta en ausencias de validación es {val_c_synth:.1f}%. A $\\tau = {cuad_t:.2f}$ (óptimo de entrenamiento) es {val_c_opt:.1f}%, con {val_f_opt:.1f}% de falsas abstenciones y Macro F1 {val_cuad:.4f} (Siempre Abstenerse: {always_f1:.4f}; diferencia {delta_f1:+.4f})."""
+> 1. **AUC-ROC (Wilcoxon-Mann-Whitney):** train {auc_train:.4f}{ci_txt(tr_ci)}; validation {auc_val:.4f}{ci_txt(va_ci)}; {auc_note}
+> 2. **Threshold:** at $\\tau = {synth_t:.2f}$, correct abstention on validation absences is {val_c_synth:.1f}%. At $\\tau = {cuad_t:.2f}$ (train optimum) it is {val_c_opt:.1f}%, with {val_f_opt:.1f}% false abstentions and Macro F1 {val_cuad:.4f} (Always abstain: {always_f1:.4f}; difference {delta_f1:+.4f})."""
     return text
 
 
@@ -444,7 +444,7 @@ def generate_llm_verification_footnote() -> str:
     prompt_tokens = m3["prompt_tokens"]
     candidate_tokens = m3["candidate_tokens"]
 
-    text = f"""*\\*Costo estimado a partir de tokens medidos ({prompt_tokens:,} prompt / {candidate_tokens:,} candidate, incluyendo tokens de pensamiento contabilizados como salida) y tarifas pay-as-you-go oficiales en Vertex AI ($1.50 / $9.00 por millón de tokens para Gemini 3.5 Flash según [`config/pricing.yaml`](config/pricing.yaml)). Con Gemini 3.8 Flash, el costo estimado resulta en ~$0.88/1k con la tarifa introductoria vigente ($0.75 / $3.75 hasta el 31 de diciembre de 2026) y en ~$1.77/1k con la tarifa estándar ($1.50 / $7.50 a partir del 1 de enero de 2027).*"""
+    text = f"""*\\*Cost estimated from measured tokens ({prompt_tokens:,} prompt / {candidate_tokens:,} candidate, with thinking tokens counted as output) and official pay-as-you-go Vertex AI rates ($1.50 / $9.00 per million tokens for Gemini 3.5 Flash, per [`config/pricing.yaml`](config/pricing.yaml)). With Gemini 3.8 Flash the estimated cost is ~$0.88/1k at the current introductory rate ($0.75 / $3.75 until December 31, 2026) and ~$1.77/1k at the standard rate ($1.50 / $7.50 from January 1, 2027).*"""
     return text
 
 

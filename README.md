@@ -84,16 +84,16 @@ Every number below lives in a `GEN` block regenerated from `evals/reports/*.json
 Dense retrieval does the heavy lifting: BM25 alone trails, and the hybrid is indistinguishable from dense on this sample.
 
 <!-- GEN:retrieval_table -->
-156 casos de presencia, CUAD-0016 to CUAD-0050 (35 contracts), embeddings `text-embedding-005`, commit `8a68fe2`. Empates resueltos por orden de aparición en el contrato.
+156 presence cases, CUAD-0016 to CUAD-0050 (35 contracts), embeddings `text-embedding-005`, commit `8a68fe2`. Ties broken by order of appearance in the contract.
 
-| Método | Hit@1 | Hit@5 |
+| Method | Hit@1 | Hit@5 |
 |---|:---:|:---:|
-| **BM25** | 30.1% (47/156) [IC95 23.5–37.7] | 68.6% (107/156) [IC95 60.9–75.3] |
-| **Denso** | 55.8% (87/156) [IC95 47.9–63.3] | 85.9% (134/156) [IC95 79.6–90.5] |
-| **Híbrido (50/50)** | 55.1% (86/156) [IC95 47.3–62.7] | 84.6% (132/156) [IC95 78.1–89.4] |
+| **BM25** | 30.1% (47/156) [CI95 23.5–37.7] | 68.6% (107/156) [CI95 60.9–75.3] |
+| **Dense** | 55.8% (87/156) [CI95 47.9–63.3] | 85.9% (134/156) [CI95 79.6–90.5] |
+| **Hybrid (50/50)** | 55.1% (86/156) [CI95 47.3–62.7] | 84.6% (132/156) [CI95 78.1–89.4] |
 
-- Hit@1: el intervalo de Wilson de BM25 no se solapa con los demás; los tres métodos no son indistinguibles en esta muestra. Denso y Híbrido (50/50): indistinguibles en esta muestra.
-- Hit@5: el intervalo de Wilson de BM25 no se solapa con los demás; los tres métodos no son indistinguibles en esta muestra. Denso y Híbrido (50/50): indistinguibles en esta muestra.
+- Hit@1: the Wilson interval of BM25 does not overlap the others; the three methods are not indistinguishable on this sample. Dense and Hybrid (50/50): indistinguishable on this sample.
+- Hit@5: the Wilson interval of BM25 does not overlap the others; the three methods are not indistinguishable on this sample. Dense and Hybrid (50/50): indistinguishable on this sample.
 <!-- /GEN -->
 
 ### 2. Bartleby's abstention, out of sample
@@ -102,25 +102,25 @@ Dense retrieval does the heavy lifting: BM25 alone trails, and the hybrid is ind
 A higher τ buys correct abstentions on absent clauses and pays for them with false abstentions on present ones. The LLM row is not directly comparable with the others (see the note).
 
 <!-- GEN:oos_bartleby_table -->
-| Configuración | $\tau$ | Embeddings | Abstención correcta (ausencias) | Falsa abstención (presencias) | Macro F1 | Reporte |
+| Configuration | $\tau$ | Embeddings | Correct abstention (absences) | False abstention (presences) | Macro F1 | Report |
 |---|:---:|---|:---:|:---:|:---:|---|
-| Sin LLM, solo score | 0.50 | `vertex_ai` | 63/264 = 23.9% [IC95 19.1–29.4] | 8/156 = 5.1% [IC95 2.6–9.8] | 0.4811 | `out_of_sample_cuad_stub_tau0.50_report.json` |
-| Sin LLM, solo score | 0.80 | `vertex_ai` | 221/264 = 83.7% [IC95 78.8–87.7] | 72/156 = 46.2% [IC95 38.5–54.0] | 0.6936 | `out_of_sample_cuad_stub_tau0.80_report.json` |
-| Con verificación LLM (3b) | 0.50 (fijo en el eval) | `stub (valor por defecto del comando)` | 248/264 = 93.9% [IC95 90.4–96.2] | 74/156 = 47.4% [IC95 39.8–55.2] | 0.7460 | `out_of_sample_cuad_report.json` (git_dirty) |
-| Siempre abstenerse (trivial) | — | — | 264/264 = 100.0% | 156/156 = 100.0% | 0.3860 | calculado de los conteos |
+| No LLM, score only | 0.50 | `vertex_ai` | 63/264 = 23.9% [CI95 19.1–29.4] | 8/156 = 5.1% [CI95 2.6–9.8] | 0.4811 | `out_of_sample_cuad_stub_tau0.50_report.json` |
+| No LLM, score only | 0.80 | `vertex_ai` | 221/264 = 83.7% [CI95 78.8–87.7] | 72/156 = 46.2% [CI95 38.5–54.0] | 0.6936 | `out_of_sample_cuad_stub_tau0.80_report.json` |
+| With LLM verification (3b) | 0.50 (fixed in the eval) | `stub (command default)` | 248/264 = 93.9% [CI95 90.4–96.2] | 74/156 = 47.4% [CI95 39.8–55.2] | 0.7460 | `out_of_sample_cuad_report.json` (git_dirty) |
+| Always abstain (trivial) | — | — | 264/264 = 100.0% | 156/156 = 100.0% | 0.3860 | computed from the counts |
 <!-- /GEN -->
 <!-- GEN:operating_point -->
-Sin LLM, $\tau$ = 0.80 (valor actual de `config/thresholds.yaml`) se abstiene en 83.7% de las ausencias (221/264) y en 46.2% de las presencias (72/156). $\tau$ = 0.50 casi nunca se abstiene: 71 de 420 consultas (16.9%), y solo en 23.9% de las ausencias.
+Without the LLM, $\tau$ = 0.80 (current value in `config/thresholds.yaml`) abstains on 83.7% of absences (221/264) and on 46.2% of presences (72/156). $\tau$ = 0.50 almost never abstains: 71 of 420 queries (16.9%), and on only 23.9% of absences.
 
-> **Nota:** La fila con LLM no es comparable con las filas sin LLM: usó embeddings `stub` y se generó con `git_dirty: true`.
+> **Note:** The LLM row is not comparable with the rows without the LLM: it used `stub` embeddings and it was generated with `git_dirty: true`.
 <!-- /GEN -->
 <!-- GEN:mode3_diagnosis -->
-> **Bartleby: tres afirmaciones medidas**
-> (a) **El score de recuperación solo es una señal débil.** AUC-ROC de validación 0.5909 [IC95 0.3885–0.7933] con `text-embedding-005` (CUAD, contratos 1–15, `calibration_cuad_report.json`); el intervalo incluye 0.50.
+> **Bartleby: three measured claims**
+> (a) **The retrieval score alone is a weak signal.** Validation AUC-ROC 0.5909 [CI95 0.3885–0.7933] with `text-embedding-005` (CUAD, contracts 1–15, `calibration_cuad_report.json`); the interval includes 0.50.
 >
-> (b) **La verificación con LLM aporta la abstención.** Con los mismos embeddings y $\tau$ = 0.50 (`bartleby_llm_verification_report.json`), la abstención correcta en ausencias pasa de 22/79 (27.9%) sin LLM a 50/79 (63.3%) con LLM.
+> (b) **LLM verification supplies the abstention.** With the same embeddings and $\tau$ = 0.50 (`bartleby_llm_verification_report.json`), correct abstention on absences goes from 22/79 (27.9%) without the LLM to 50/79 (63.3%) with it.
 >
-> (c) **Las falsas abstenciones siguen altas.** Con LLM, fuera de muestra: 74/156 = 47.4% [IC95 39.8–55.2] de las cláusulas presentes (`out_of_sample_cuad_report.json`). Cada falsa abstención es una revisión humana innecesaria: 74 en 420 consultas (17.6 por cada 100). Tiempo o costo por revisión: NOT MEASURED.
+> (c) **False abstentions remain high.** With the LLM, out of sample: 74/156 = 47.4% [CI95 39.8–55.2] of present clauses (`out_of_sample_cuad_report.json`). Each false abstention is an unnecessary human review: 74 in 420 queries (17.6 per 100). Time or cost per review: NOT MEASURED.
 <!-- /GEN -->
 
 ### 3. LLM verification (mode 3)
@@ -129,14 +129,14 @@ Sin LLM, $\tau$ = 0.80 (valor actual de `config/thresholds.yaml`) se abstiene en
 Measured with τ fixed in the eval and whatever embeddings that run's environment used (the report does not record them). LLM verification adds most of the correct abstentions, and false abstentions, latency and cost rise with it.
 
 <!-- GEN:llm_verification_table -->
-| Modo de Guardia | $\tau$ | Verificación LLM | Abstención Correcta (Recall) | Falsa Abstención (Error) | Macro F1 | Latencia Media | Costo Estimado / 1k* |
+| Guard mode | $\tau$ | LLM verification | Correct abstention (recall) | False abstention (error) | Macro F1 | Mean latency | Estimated cost / 1k* |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Pure Vector Hybrid (tau=0.50)** | **0.50** | `Desactivada` | **27.9% (22/79)** | **0.0% (0/26)** | **0.4564** | 17.1 ms | $0.0000 |
-| **Pure Vector Hybrid (tau=0.70)** | **0.70** | `Desactivada` | **40.5% (32/79)** | **26.9% (7/26)** | **0.4777** | 16.9 ms | $0.0000 |
+| **Pure Vector Hybrid (tau=0.50)** | **0.50** | `Off` | **27.9% (22/79)** | **0.0% (0/26)** | **0.4564** | 17.1 ms | $0.0000 |
+| **Pure Vector Hybrid (tau=0.70)** | **0.70** | `Off` | **40.5% (32/79)** | **26.9% (7/26)** | **0.4777** | 16.9 ms | $0.0000 |
 | **Bartleby Condition 3 (tau=0.50 + LLM Verification)** | **0.50** | `Gemini 3.5 Flash` | **63.3% (50/79)** | **42.3% (11/26)** | **0.5714** | 3303.5 ms | $2.3367 |
 <!-- /GEN -->
 <!-- GEN:llm_verification_footnote -->
-*\*Costo estimado a partir de tokens medidos (98,140 prompt / 10,905 candidate, incluyendo tokens de pensamiento contabilizados como salida) y tarifas pay-as-you-go oficiales en Vertex AI ($1.50 / $9.00 por millón de tokens para Gemini 3.5 Flash según [`config/pricing.yaml`](config/pricing.yaml)). Con Gemini 3.8 Flash, el costo estimado resulta en ~$0.88/1k con la tarifa introductoria vigente ($0.75 / $3.75 hasta el 31 de diciembre de 2026) y en ~$1.77/1k con la tarifa estándar ($1.50 / $7.50 a partir del 1 de enero de 2027).*
+*\*Cost estimated from measured tokens (98,140 prompt / 10,905 candidate, with thinking tokens counted as output) and official pay-as-you-go Vertex AI rates ($1.50 / $9.00 per million tokens for Gemini 3.5 Flash, per [`config/pricing.yaml`](config/pricing.yaml)). With Gemini 3.8 Flash the estimated cost is ~$0.88/1k at the current introductory rate ($0.75 / $3.75 until December 31, 2026) and ~$1.77/1k at the standard rate ($1.50 / $7.50 from January 1, 2027).*
 <!-- /GEN -->
 
 ### 4. Calibrating τ
@@ -145,19 +145,19 @@ Measured with τ fixed in the eval and whatever embeddings that run's environmen
 On real contracts the retrieval score barely separates present clauses from absent ones: the validation interval includes chance.
 
 <!-- GEN:domain_calibration_table -->
-| Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\tau$) | Macro F1 Validación | AUC-ROC Separabilidad | Desempeño Empírico en Transferencia |
+| Domain | Source dataset | Calibrated threshold ($\tau$) | Validation Macro F1 | AUC-ROC (separability) | Empirical transfer performance |
 |---|---|:---:|:---:|:---:|---|
-| **Plantillas Sintéticas (+ Heurística 3a*)** | Datagen M1 (300 paquetes; no es evidencia) | **0.50** | **1.0000** | **0.1204** | F1 con regex de denegación 3a: 1.0000. Score puro sin 3a: F1 0.4737 (abstención 0.0%). |
-| **Contratos SEC Reales (Transfer)** | CUAD v1, contratos 1–15, Train/Val 60/40 | **0.50** (fijado) | **0.4496** | **0.5909** | Abstención correcta en ausencias 25.8% (74.2% pasan). |
-| **Contratos SEC Reales (Recalibrado)** | CUAD v1, contratos 1–15, Train/Val 60/40 | **0.80** (recalibrado, no aplicado) | **0.5457** | **0.5909** | Abstención correcta 54.8%, falsas abstenciones 36.4% (Siempre Abstenerse: 0.4247). |
+| **Synthetic templates (+ Rule 3a heuristic*)** | Datagen M1 (300 packages; not evidence) | **0.50** | **1.0000** | **0.1204** | F1 with the 3a denial regex: 1.0000. Pure score without 3a: F1 0.4737 (abstention 0.0%). |
+| **Real SEC contracts (transfer)** | CUAD v1, contracts 1–15, train/val 60/40 | **0.50** (fixed) | **0.4496** | **0.5909** | Correct abstention on absences 25.8% (74.2% pass through). |
+| **Real SEC contracts (recalibrated)** | CUAD v1, contracts 1–15, train/val 60/40 | **0.80** (recalibrated, not applied) | **0.5457** | **0.5909** | Correct abstention 54.8%, false abstentions 36.4% (Always abstain: 0.4247). |
 <!-- /GEN -->
 <!-- GEN:domain_calibration_diagnosis -->
-> **Diagnóstico de calibración en CUAD** (`evals/reports/calibration_cuad_report.json`)
-> Sintético (referencia, no evidencia): $\tau = 0.50$, Macro F1 validación 1.0000, AUC-ROC 0.1204.
-> CUAD: 15 contratos (entrenamiento 9, validación 6, semilla 42), embeddings `text-embedding-005`.
+> **CUAD calibration diagnosis** (`evals/reports/calibration_cuad_report.json`)
+> Synthetic (reference, not evidence): $\tau = 0.50$, validation Macro F1 1.0000, AUC-ROC 0.1204.
+> CUAD: 15 contracts (train 9, validation 6, seed 42), embeddings `text-embedding-005`.
 >
-> 1. **AUC-ROC (Wilcoxon-Mann-Whitney):** entrenamiento 0.7708 [IC95 0.6202–0.9214]; validación 0.5909 [IC95 0.3885–0.7933]; el intervalo de validación incluye 0.50: no distinguible del azar en esta muestra.
-> 2. **Umbral:** a $\tau = 0.50$ la abstención correcta en ausencias de validación es 25.8%. A $\tau = 0.80$ (óptimo de entrenamiento) es 54.8%, con 36.4% de falsas abstenciones y Macro F1 0.5457 (Siempre Abstenerse: 0.4247; diferencia +0.1210).
+> 1. **AUC-ROC (Wilcoxon-Mann-Whitney):** train 0.7708 [CI95 0.6202–0.9214]; validation 0.5909 [CI95 0.3885–0.7933]; the validation interval includes 0.50: indistinguishable from chance on this sample.
+> 2. **Threshold:** at $\tau = 0.50$, correct abstention on validation absences is 25.8%. At $\tau = 0.80$ (train optimum) it is 54.8%, with 36.4% false abstentions and Macro F1 0.5457 (Always abstain: 0.4247; difference +0.1210).
 <!-- /GEN -->
 
 ### 5. Synthetic control — not evidence
@@ -166,14 +166,14 @@ On real contracts the retrieval score barely separates present clauses from abse
 Templates written by `datagen/`, measured with the τ in `config/thresholds.yaml`. It checks that the wiring works, nothing more.
 
 <!-- GEN:synthetic_ablation_table -->
-| Métrica de Evaluación | Con Términos Contractuales (Baseline) | Sin Términos (Solo Cotejo 3-Way) | Impacto / Delta |
+| Metric | With contract terms (baseline) | Without terms (three-way match only) | Impact / delta |
 |---|:---:|:---:|:---:|
-| **Exactitud Global de Decisión** | **91.3%** (274/300) | **60.0%** (180/300) | **ablación: sin evaluador de cláusulas (+31.3% degradación)** |
-| **Validez de Citas Verbatim** | **100.0%** (64/64) [plantillas sintéticas] | N/A | Cero citas sintéticas inválidas |
-| **Abstención Correcta de Bartleby** | **100.0%** (30/30 en A09*) | 0.0% (0/30 en A09) | Detección de silencios (vía heurística de plantilla 3a*) |
-| **Tasa de Falsos Positivos (A10)** | **0.0%** (0/30) | 0.0% (0/30) | Paquetes limpios aprobados sin fricción |
-| **Recall@5 de Recuperación** | **100.0%** [plantillas sintéticas] | N/A | Recuperación en plantillas sintéticas |
-| **Latencia Media por Paquete** | **16.9 ms** | 0.0 ms | Ejecución determinista local |
+| **Overall decision accuracy** | **91.3%** (274/300) | **60.0%** (180/300) | **ablation: no clause evaluator (+31.3% degradation)** |
+| **Verbatim citation validity** | **100.0%** (64/64) [synthetic templates] | N/A | Zero invalid synthetic citations |
+| **Bartleby correct abstention** | **100.0%** (30/30 on A09*) | 0.0% (0/30 on A09) | Silence detection (via the 3a template heuristic*) |
+| **False positive rate (A10)** | **0.0%** (0/30) | 0.0% (0/30) | Clean packages approved without friction |
+| **Retrieval Recall@5** | **100.0%** [synthetic templates] | N/A | Retrieval on synthetic templates |
+| **Mean latency per package** | **16.9 ms** | 0.0 ms | Local deterministic execution |
 <!-- /GEN -->
 
 ## Honest limitations
