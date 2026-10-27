@@ -4,6 +4,7 @@ import os
 import re
 import secrets
 import time
+from collections.abc import Callable
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -46,7 +47,44 @@ def _ui_credential() -> str | None:
     return None
 
 
-def execute_audit(package: ProcurementPackage) -> dict[str, Any]:
+_NODE_LABELS = {
+    "extract": "Extracción",
+    "match": "Conciliación 3-way",
+    "apply_terms": "Recuperación de cláusulas y Bartleby",
+    "validate": "Validación de citas",
+    "decide": "Política",
+}
+
+
+def _run_audit_with_status(package: ProcurementPackage) -> dict[str, Any]:
+    """Run the audit showing each measured pipeline step (local) or the API round trip."""
+    with st.status("Ejecutando auditoría…", expanded=True) as status:
+
+        def on_node(node: str, elapsed_ms: float, update: dict[str, Any]) -> None:
+            line = f"**{_NODE_LABELS.get(node, node)}** — {elapsed_ms:.1f} ms"
+            if node == "apply_terms":
+                line += " · Bartleby: " + (
+                    "abstención" if update.get("bartleby_abstained") else "sin abstención"
+                )
+            status.write(line)
+
+        t0 = time.perf_counter()
+        result = execute_audit(package, on_node=on_node)
+        total_ms = (time.perf_counter() - t0) * 1000
+        if str(result.get("execution_mode", "")).startswith("API"):
+            status.write(
+                f"**Llamada a /api/audit** — {total_ms:.1f} ms (la API no devuelve tiempos por paso)"
+            )
+        status.update(
+            label=f"Auditoría completada en {total_ms:.1f} ms", state="complete", expanded=True
+        )
+    return result
+
+
+def execute_audit(
+    package: ProcurementPackage,
+    on_node: Callable[[str, float, dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
     """Execute audit via private Cloud Run API (service-to-service) or local in-process pipeline.
 
     If API_URL is set and the API fails, the audit runs locally with the stub provider and a
@@ -104,12 +142,16 @@ def execute_audit(package: ProcurementPackage) -> dict[str, Any]:
             api_error = type(exc).__name__
         st.warning(f"API no disponible: modo local/stub ({api_error})")
         st.sidebar.warning("Modo activo: local/stub (API no disponible)")
-        result = dict(audit_pipeline(package, llm_provider=get_llm_provider(provider_type="stub")))
+        result = dict(
+            audit_pipeline(
+                package, llm_provider=get_llm_provider(provider_type="stub"), on_node=on_node
+            )
+        )
         result["execution_mode"] = "local/stub (API no disponible)"
         return result
 
     provider = resolve_llm_provider(_ui_credential())
-    result = dict(audit_pipeline(package, llm_provider=provider))
+    result = dict(audit_pipeline(package, llm_provider=provider, on_node=on_node))
     result["execution_mode"] = f"local/{getattr(provider, 'provider_type', 'unknown')}"
     return result
 
@@ -550,145 +592,148 @@ if selected_screen == "📋 Review Workspace":
         run_audit_btn = st.button("🔍 Run Audit Agent", use_container_width=True, type="primary")
 
     if package is not None:
-        if "audit_results" not in st.session_state or run_audit_btn:
-            with st.spinner("Executing 3-way match, hybrid contract RAG, and Bartleby guard..."):
-                st.session_state["audit_results"] = execute_audit(package)
-                st.session_state["current_pkg_id"] = package.package_id
-
-        # Make sure results belong to currently selected package
+        # Results belong to the package they were run on; drop them when the selection changes.
         if st.session_state.get("current_pkg_id") != package.package_id:
-            st.session_state["audit_results"] = execute_audit(package)
+            st.session_state.pop("audit_results", None)
             st.session_state["current_pkg_id"] = package.package_id
+        if run_audit_btn:
+            st.session_state["audit_results"] = _run_audit_with_status(package)
 
-        res = st.session_state["audit_results"]
-        decision = res["decision"]
-        findings: list[Finding] = _all_findings(res)
-        bartleby_abstained = res.get("bartleby_abstained", False)
-        bartleby_reason = res.get("bartleby_reason")
-
-        # ── Decision Banner ───────────────────────────────────────────────────
-        if labels is not None:
-            match_status = (
-                "Aligned with ground truth"
-                if decision.decision == labels.expected_decision
-                else "Review discrepancy"
+        res = st.session_state.get("audit_results")
+        if res is None:
+            st.info(
+                "Revisa los documentos del paquete y pulsa «Run Audit Agent» para obtener "
+                "el veredicto y los hallazgos."
             )
-            anom_str = (
-                ", ".join([a.value for a in labels.anomalies])
-                if labels.anomalies
-                else "A10 (Clean)"
-            )
-            st.markdown(
-                f"<div style='margin-bottom: 0.6rem; font-size: 0.88rem; color: var(--text-secondary);'>"
-                f"<strong>Ground Truth Benchmark:</strong> Expected <code>{labels.expected_decision.value}</code> "
-                f"[{anom_str}] &middot; <em>{match_status}</em></div>",
-                unsafe_allow_html=True,
-            )
-        decision_class = {
-            DecisionType.APPROVE: "decision-card-approve",
-            DecisionType.REVIEW: "decision-card-review",
-            DecisionType.REJECT: "decision-card-reject",
-            DecisionType.ABSTAIN: "decision-card-abstain",
-        }.get(decision.decision, "decision-card-review")
+        else:
+            decision = res["decision"]
+            findings: list[Finding] = _all_findings(res)
+            bartleby_abstained = res.get("bartleby_abstained", False)
+            bartleby_reason = res.get("bartleby_reason")
 
-        st.markdown(
-            f"""
-            <div class="{decision_class}">
-                <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap;">
-                    <div class="decision-eyebrow">Agent Decision</div>
-                    <div class="decision-meta">
-                        Package <strong>{package.package_id}</strong> &middot; {datetime.now().strftime("%H:%M:%S")}
-                    </div>
-                </div>
-                <div class="decision-value">{decision.decision.value}</div>
-                <div class="decision-justification">
-                    <strong>Policy Justification:</strong> {decision.justification}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+            # ── Decision Banner ───────────────────────────────────────────────────
+            if labels is not None:
+                match_status = (
+                    "Aligned with ground truth"
+                    if decision.decision == labels.expected_decision
+                    else "Review discrepancy"
+                )
+                anom_str = (
+                    ", ".join([a.value for a in labels.anomalies])
+                    if labels.anomalies
+                    else "A10 (Clean)"
+                )
+                st.markdown(
+                    f"<div style='margin-bottom: 0.6rem; font-size: 0.88rem; color: var(--text-secondary);'>"
+                    f"<strong>Ground Truth Benchmark:</strong> Expected <code>{labels.expected_decision.value}</code> "
+                    f"[{anom_str}] &middot; <em>{match_status}</em></div>",
+                    unsafe_allow_html=True,
+                )
+            decision_class = {
+                DecisionType.APPROVE: "decision-card-approve",
+                DecisionType.REVIEW: "decision-card-review",
+                DecisionType.REJECT: "decision-card-reject",
+                DecisionType.ABSTAIN: "decision-card-abstain",
+            }.get(decision.decision, "decision-card-review")
 
-        # ── Bartleby Guard Banner (If Abstained) ──────────────────────────────
-        if bartleby_abstained:
             st.markdown(
                 f"""
-                <div class="bartleby-banner">
-                    <div style="font-weight: 600; font-size: 1.05rem; color: var(--accent);">
-                        Bartleby Abstention Guard Activated
+                <div class="{decision_class}">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap;">
+                        <div class="decision-eyebrow">Agent Decision</div>
+                        <div class="decision-meta">
+                            Package <strong>{package.package_id}</strong> &middot; {datetime.now().strftime("%H:%M:%S")}
+                        </div>
                     </div>
-                    <div style="font-style: italic; color: var(--text-primary); margin: 0.3rem 0;">
-                        "I would prefer not to." — Herman Melville, <em>Bartleby, the Scrivener (1853)</em>
-                    </div>
-                    <div style="color: var(--text-primary); font-size: 0.95rem;">
-                        <strong>Abstention Reason:</strong> {bartleby_reason or "No contractual clause found to substantiate the invoice surcharge."}
-                        <br/><em>The system strictly abstains from inventing ungrounded interpretations when contractual evidence is absent.</em>
+                    <div class="decision-value">{decision.decision.value}</div>
+                    <div class="decision-justification">
+                        <strong>Policy Justification:</strong> {decision.justification}
                     </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-        # ── Findings & Citations Section ──────────────────────────────────────
-        st.markdown("### Verified Findings & Verbatim Citations")
-        if not findings and decision.decision.value != "APPROVE":
-            st.error(
-                f"Decisión {decision.decision.value} sin hallazgos en la respuesta: "
-                "faltan los hallazgos (revisa la respuesta de la API o el pipeline)."
-            )
-        elif not findings:
-            st.success(
-                "No discrepancies detected. 3-way match and contract terms are fully compliant."
-            )
-        else:
-            for idx, finding in enumerate(findings, start=1):
-                with st.container():
-                    col_f1, col_f2 = st.columns([3, 1])
-                    with col_f1:
-                        anom_code = str(
-                            finding.anomaly_type.value
-                            if hasattr(finding.anomaly_type, "value")
-                            else finding.anomaly_type
-                        )
-                        st.markdown(
-                            _finding_html(idx, anom_code, _display_description(finding)),
-                            unsafe_allow_html=True,
-                        )
-                    with col_f2:
-                        sev_str = str(
-                            finding.severity.value
-                            if hasattr(finding.severity, "value")
-                            else finding.severity
-                        )
-                        sev_color = {
-                            "ERROR": "var(--reject)",
-                            "CRITICAL": "var(--reject)",
-                            "WARNING": "var(--review)",
-                            "INFO": "var(--accent)",
-                        }.get(sev_str, "gray")
-                        st.markdown(
-                            f"<span style='color:{sev_color}; font-weight:600;'>Severity: {sev_str}</span>",
-                            unsafe_allow_html=True,
-                        )
+            # ── Bartleby Guard Banner (If Abstained) ──────────────────────────────
+            if bartleby_abstained:
+                st.markdown(
+                    f"""
+                    <div class="bartleby-banner">
+                        <div style="font-weight: 600; font-size: 1.05rem; color: var(--accent);">
+                            Bartleby Abstention Guard Activated
+                        </div>
+                        <div style="font-style: italic; color: var(--text-primary); margin: 0.3rem 0;">
+                            "I would prefer not to." — Herman Melville, <em>Bartleby, the Scrivener (1853)</em>
+                        </div>
+                        <div style="color: var(--text-primary); font-size: 0.95rem;">
+                            <strong>Abstention Reason:</strong> {bartleby_reason or "No contractual clause found to substantiate the invoice surcharge."}
+                            <br/><em>The system strictly abstains from inventing ungrounded interpretations when contractual evidence is absent.</em>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
-                    if finding.citation:
-                        st.markdown(
-                            f"""
-                            <div class="citation-box">
-                                <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">
-                                    VERBATIM CLAUSE CITATION &middot; Document: <code>{finding.citation.document_id}</code> &middot; Offsets: <code>[{finding.citation.start_char}:{finding.citation.end_char}]</code>
-                                </span>
-                                <div style="margin-top: 0.3rem; font-size: 0.95rem; color: var(--text-primary); font-style: italic;">
-                                    &ldquo;{finding.citation.text}&rdquo;
+            # ── Findings & Citations Section ──────────────────────────────────────
+            st.markdown("### Verified Findings & Verbatim Citations")
+            if not findings and decision.decision.value != "APPROVE":
+                st.error(
+                    f"Decisión {decision.decision.value} sin hallazgos en la respuesta: "
+                    "faltan los hallazgos (revisa la respuesta de la API o el pipeline)."
+                )
+            elif not findings:
+                st.success(
+                    "No discrepancies detected. 3-way match and contract terms are fully compliant."
+                )
+            else:
+                for idx, finding in enumerate(findings, start=1):
+                    with st.container():
+                        col_f1, col_f2 = st.columns([3, 1])
+                        with col_f1:
+                            anom_code = str(
+                                finding.anomaly_type.value
+                                if hasattr(finding.anomaly_type, "value")
+                                else finding.anomaly_type
+                            )
+                            st.markdown(
+                                _finding_html(idx, anom_code, _display_description(finding)),
+                                unsafe_allow_html=True,
+                            )
+                        with col_f2:
+                            sev_str = str(
+                                finding.severity.value
+                                if hasattr(finding.severity, "value")
+                                else finding.severity
+                            )
+                            sev_color = {
+                                "ERROR": "var(--reject)",
+                                "CRITICAL": "var(--reject)",
+                                "WARNING": "var(--review)",
+                                "INFO": "var(--accent)",
+                            }.get(sev_str, "gray")
+                            st.markdown(
+                                f"<span style='color:{sev_color}; font-weight:600;'>Severity: {sev_str}</span>",
+                                unsafe_allow_html=True,
+                            )
+
+                        if finding.citation:
+                            st.markdown(
+                                f"""
+                                <div class="citation-box">
+                                    <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">
+                                        VERBATIM CLAUSE CITATION &middot; Document: <code>{finding.citation.document_id}</code> &middot; Offsets: <code>[{finding.citation.start_char}:{finding.citation.end_char}]</code>
+                                    </span>
+                                    <div style="margin-top: 0.3rem; font-size: 0.95rem; color: var(--text-primary); font-style: italic;">
+                                        &ldquo;{finding.citation.text}&rdquo;
+                                    </div>
+                                    <div style="margin-top: 0.3rem; font-size: 0.8rem; color: var(--approve); font-weight: 600;">
+                                        Verified verbatim in governing contract text
+                                    </div>
                                 </div>
-                                <div style="margin-top: 0.3rem; font-size: 0.8rem; color: var(--approve); font-weight: 600;">
-                                    Verified verbatim in governing contract text
-                                </div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
-                    st.divider()
+                                """,
+                                unsafe_allow_html=True,
+                            )
+                        st.divider()
 
         # ── 4-Way Document Explorer Tabs ──────────────────────────────────────
         st.markdown("### Package Document Inspector")
@@ -794,38 +839,40 @@ if selected_screen == "📋 Review Workspace":
                 ):
                     st.write(clause.text)
 
-        # ── Human Reviewer Action Box ─────────────────────────────────────────
-        st.divider()
-        st.markdown("### Human-in-the-Loop Audit Decision")
-        col_ov1, col_ov2 = st.columns([2, 1])
+        if res is not None:
+            # ── Human Reviewer Action Box ─────────────────────────────────────────
+            st.divider()
+            st.markdown("### Human-in-the-Loop Audit Decision")
+            col_ov1, col_ov2 = st.columns([2, 1])
 
-        with col_ov1:
-            auditor_notes = st.text_area(
-                "Auditor Review Notes",
-                placeholder="Enter justification, notes for vendor, or resolution comments...",
-                key=f"notes_{package.package_id}",
-            )
-
-        with col_ov2:
-            st.markdown("<div style='height: 25px'></div>", unsafe_allow_html=True)
-            override_action = st.radio(
-                "Final Action",
-                ["Confirm Agent Decision", "Override: Approve", "Override: Reject"],
-                key=f"act_{package.package_id}",
-            )
-            confirm_btn = st.button(
-                "Submit Audit Sign-Off", type="secondary", use_container_width=True
-            )
-
-            st.caption("Nota: este botón no guarda nada; solo muestra un mensaje en pantalla.")
-            if confirm_btn:
-                st.info(
-                    f"No guardado: {package.package_id} — {override_action} "
-                    "(sin persistencia implementada)"
+            with col_ov1:
+                auditor_notes = st.text_area(
+                    "Auditor Review Notes",
+                    placeholder="Enter justification, notes for vendor, or resolution comments...",
+                    key=f"notes_{package.package_id}",
                 )
 
+            with col_ov2:
+                st.markdown("<div style='height: 25px'></div>", unsafe_allow_html=True)
+                override_action = st.radio(
+                    "Final Action",
+                    ["Confirm Agent Decision", "Override: Approve", "Override: Reject"],
+                    key=f"act_{package.package_id}",
+                )
+                confirm_btn = st.button(
+                    "Submit Audit Sign-Off", type="secondary", use_container_width=True
+                )
 
-# ── SCREEN 2: CUAD REAL SEC CONTRACTS ────────────────────────────────────────
+                st.caption("Nota: este botón no guarda nada; solo muestra un mensaje en pantalla.")
+                if confirm_btn:
+                    st.info(
+                        f"No guardado: {package.package_id} — {override_action} "
+                        "(sin persistencia implementada)"
+                    )
+
+    # ── SCREEN 2: CUAD REAL SEC CONTRACTS ────────────────────────────────────────
+
+
 elif selected_screen == "📜 CUAD Real SEC Contracts":
     st.markdown(
         '<div class="hero-title">CUAD Real-World Contract Corpus</div>', unsafe_allow_html=True

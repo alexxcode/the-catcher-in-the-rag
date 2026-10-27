@@ -227,8 +227,13 @@ def audit_pipeline(
     source: str | dict[str, Any] | Path | ProcurementPackage,
     llm_provider: LLMProvider | None = None,
     extract_contract_from_text: bool = True,
+    on_node: Callable[[str, float, dict[str, Any]], None] | None = None,
 ) -> AuditState:
-    """Run full audit pipeline on a package and return the full final AuditState."""
+    """Run full audit pipeline on a package and return the full final AuditState.
+
+    If on_node is given, the same graph is streamed and on_node(name, elapsed_ms, update)
+    is called as each node completes; the final state is the same as with invoke.
+    """
     compiled = build_audit_graph(
         llm_provider=llm_provider,
         extract_contract_from_text=extract_contract_from_text,
@@ -241,7 +246,18 @@ def audit_pipeline(
         init_state["raw_input"] = source
 
     t0 = time.perf_counter()
-    final_state: AuditState = compiled.invoke(init_state)
+    if on_node is not None and hasattr(compiled, "stream"):
+        streamed: dict[str, Any] = dict(init_state)
+        t_prev = t0
+        for chunk in compiled.stream(init_state, stream_mode="updates"):
+            now = time.perf_counter()
+            for node_name, update in chunk.items():
+                streamed.update(update or {})
+                on_node(node_name, (now - t_prev) * 1000, update or {})
+            t_prev = now
+        final_state: AuditState = streamed  # type: ignore[assignment]
+    else:
+        final_state = compiled.invoke(init_state)
     elapsed_ms = (time.perf_counter() - t0) * 1000
 
     # Observability: Trace execution via Langfuse (or NoOp if offline)
