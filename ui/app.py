@@ -517,6 +517,23 @@ if selected_screen == "📋 Review Workspace":
                 range(len(packages)),
                 format_func=lambda i: pkg_options[i],
             )
+            _per_type: dict[str, int] = {}
+            for p in packages:
+                _key = ",".join(p["anomalies"]) or "A10"
+                _per_type[_key] = _per_type.get(_key, 0) + 1
+            _counts = sorted(set(_per_type.values()))
+            _per_txt = str(_counts[0]) if len(_counts) == 1 else f"{_counts[0]}–{_counts[-1]}"
+            _readme_n = "?"
+            _canonical = Path("evals/reports/canonical_baseline_report.json")
+            if _canonical.exists():
+                _readme_n = json.loads(_canonical.read_text(encoding="utf-8")).get(
+                    "total_packages", "?"
+                )
+            st.caption(
+                f"Corpus de demostración: {len(packages)} paquetes sintéticos "
+                f"({_per_txt} por tipo, semilla 42). Las métricas del README se miden sobre "
+                f"{_readme_n} paquetes generados con la misma fórmula; la numeración no coincide."
+            )
             selected_pkg_info = packages[selected_idx]
             package, labels = load_package_data(selected_pkg_info["dir"])
         else:

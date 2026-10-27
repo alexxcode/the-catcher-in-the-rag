@@ -15,6 +15,9 @@ Auditor determinista de compras corporativas (procurement) con verificación con
 En el primer despliegue el repositorio de Artifact Registry aún no existe: aplica antes `terraform -chdir=infra/terraform apply -target=google_artifact_registry_repository.images -var container_image=none` (la variable es obligatoria; ese apply solo crea el repositorio). Con `MAX_LIVE_CALLS=0` (valor por defecto en Cloud Run) el servicio corre solo con stub.
 No ejecutes terraform apply a secas: usa deploy.sh y luego apply tfplan.
 
+## Demo en vivo
+Corpus de demostración: 30 paquetes sintéticos (3 por tipo, semilla 42). Las métricas del README se miden sobre 300 paquetes generados con la misma fórmula; la numeración no coincide.
+
 ## Limitaciones
 - La Regla 3a es una heurística de plantilla sintética; los datos sintéticos no son evidencia empírica.
 - `config/thresholds.yaml` usa el τ calibrado en CUAD (sección 4). Con ese τ y embeddings stub, los paquetes sintéticos A06 pasan de REJECT a REVIEW (hallazgo NOT_VERIFIABLE); los tests sintéticos fijan el τ de su propia calibración. La sección 5 refleja ese cambio.
