@@ -1,33 +1,88 @@
 # The Catcher in the RAG
 
-Auditor determinista de compras corporativas (procurement) con verificación contractual y guardia de abstención Melville (Bartleby).
+**Catches the invoice before it falls off the cliff.**
 
-## Arquitectura y Ejecución
-- **Pipeline:** Extracción (`extract/`), cotejo tripartito (`match/`), recuperación híbrida BM25/vectorial (`retrieve/`), guardia de abstención (`bartleby/`), evaluación de términos (`apply_terms/`), validación verbatim (`validate/`) y motor de políticas (`policy/`).
-- **Proveedores:** `GeminiProvider` en Google Cloud Vertex AI (autenticación ADC) y `StubProvider` determinista offline.
-- **Ejecución:** Pruebas offline con `make test`, puerta completa con `make verify`, UI en `make run-ui` (puerto 8501) y API en `make run-api` (puerto 8000).
+[![CI](https://github.com/alexxcode/the-catcher-in-the-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/alexxcode/the-catcher-in-the-rag/actions/workflows/ci.yml)
+[![Live demo](https://img.shields.io/badge/demo-live%20(staging%2C%20stub)-0071E3)](https://catcher-ui-staging-hrok623gcq-uc.a.run.app)
 
-## Despliegue en Cloud Run (staging)
-1. Autenticarse: `gcloud auth login && gcloud auth application-default login`.
-2. Construir, subir la imagen y planificar: `PROJECT_ID=<proyecto> REGION=<región> scripts/deploy.sh`. Imprime la URL del servicio y el comando de smoke; no aplica nada.
-3. Aplicar a mano tras revisar el plan: `terraform -chdir=infra/terraform apply tfplan`. Luego `scripts/smoke.sh <API_URL>`.
+![Animated walkthrough of the Review Workspace: a package is selected, Run Audit Agent is pressed, the pipeline steps appear with their measured times, and the verdict card and verbatim citations render below](docs/img/demo.gif)
 
-En el primer despliegue el repositorio de Artifact Registry aún no existe: aplica antes `terraform -chdir=infra/terraform apply -target=google_artifact_registry_repository.images -var container_image=none` (la variable es obligatoria; ese apply solo crea el repositorio). Con `MAX_LIVE_CALLS=0` (valor por defecto en Cloud Run) el servicio corre solo con stub.
-No ejecutes terraform apply a secas: usa deploy.sh y luego apply tfplan.
+## The idea
 
-## Demo en vivo
-Corpus de demostración: 30 paquetes sintéticos (3 por tipo, semilla 42). Las métricas del README se miden sobre 300 paquetes generados con la misma fórmula; la numeración no coincide.
+In Salinger's novel, Holden pictures himself standing at the edge of a cliff beside a rye field, catching the kids before they run over. This project takes the same post in accounts payable: it stands between the invoice and the payment and catches the ones about to go over the edge — a unit price above the contracted rate, a duplicate, a quantity that was billed but never received.
 
-## Limitaciones
-- La Regla 3a es una heurística de plantilla sintética; los datos sintéticos no son evidencia empírica.
-- `config/thresholds.yaml` usa el τ calibrado en CUAD (sección 4). Con ese τ y embeddings stub, los paquetes sintéticos A06 pasan de REJECT a REVIEW (hallazgo NOT_VERIFIABLE); los tests sintéticos fijan el τ de su propia calibración. La sección 5 refleja ese cambio.
-- **NOT MEASURED:** abstención con LLM y `text-embedding-005` fuera de muestra, costo de la revisión humana, latencia en red distribuida.
-- **Reranker:** no medido, desactivado.
+It follows three rules of conduct:
 
-## Resultados medidos
-Cada cifra sale de un bloque `GEN` regenerado desde `evals/reports/*.json` (`make sync-readme-tables`).
+1. **Check everything against the contract.** A three-way match (purchase order, goods receipt, invoice) plus contract clauses retrieved with RAG.
+2. **Cite or stay quiet.** Every clause-backed finding carries a verbatim excerpt that is validated as an exact substring of the contract, with character offsets. If the quote isn't in the source, the finding is dropped.
+3. **When there is no evidence, prefer not to.** Bartleby, the abstention guard, is named after Melville's scrivener and his "I would prefer not to" (public domain). No relevant clause, no verdict: the package goes to a human.
 
-### 1. Recuperación fuera de muestra (`MAX_LIVE_CALLS=20 uv run python evals/eval_out_of_sample.py --retrieval-ablation --embedding-provider vertex_ai --start 15 --end 50` -> `evals/reports/retrieval_ablation_oos_report.json`)
+| Caught: a price over the contract ceiling | Declined: no clause supports the charge |
+|:---:|:---:|
+| ![Review Workspace showing a REJECT card for a unit price above the contract ceiling, with the verbatim clause citation, document id and character offsets underneath](docs/img/reject.png) | ![Review Workspace showing an ABSTAIN card: no contract clause for an expedited rush surcharge met the relevance threshold, and the Bartleby abstention banner explains the reason](docs/img/abstain.png) |
+
+## Four possible verdicts
+
+| APPROVE | REVIEW | REJECT | ABSTAIN |
+|:---:|:---:|:---:|:---:|
+| ![Green APPROVE card: the package passed every check and is within the auto-approval threshold](docs/img/approve.png) | ![Amber REVIEW card: a payment-terms finding that could not be verified against a contract clause, sent to a human](docs/img/review.png) | ![Red REJECT card: a hard policy violation with its verbatim contract citation](docs/img/reject.png) | ![Violet ABSTAIN card: Bartleby found no clause relevant enough to judge the charge](docs/img/abstain.png) |
+| Every check passed and the total is within the auto-approval limit. Pay it. | Something needs a person: a soft finding, or one the contract could not confirm. | A hard violation backed by a verbatim clause. Don't pay it. | No clause is relevant enough to judge. Bartleby declines to guess and hands it to a human. |
+
+## How it works
+
+The pipeline is a LangGraph state machine (`src/catcher_in_the_rag/graph.py`). The nodes run in this order:
+
+```mermaid
+flowchart LR
+    A([package]) --> E[extract]
+    E --> M[match<br/>three-way match]
+    M --> T
+    subgraph T[apply_terms]
+        R[retrieve clauses<br/>BM25 + dense] --> B{Bartleby}
+    end
+    T --> V[validate<br/>verbatim citations]
+    V --> D{decide<br/>policy engine}
+    D --> AP([APPROVE])
+    D --> RV([REVIEW])
+    D --> RJ([REJECT])
+    D --> AB([ABSTAIN])
+```
+
+- **extract** turns the package into typed documents and pulls the governing terms out of the contract text.
+- **match** runs the deterministic three-way match.
+- **apply_terms** retrieves the relevant clauses and passes them through Bartleby before any clause-backed finding is produced.
+- **validate** drops any finding whose citation is not an exact substring of the contract.
+- **decide** applies the policy rules and returns one of the four verdicts.
+
+## The RAG, in plain words
+
+The contract is split into clauses. For each question the audit needs to answer ("what is the price ceiling for this SKU?"), clauses are ranked by a hybrid retriever: BM25 for exact words and dense embeddings (`text-embedding-005` on Vertex AI) for meaning. The top passages go through Bartleby before anything is generated: if none is relevant enough, the answer is an abstention, not a guess. When a finding does cite a clause, its offsets point to the exact characters in the source text, so anyone can check the quote.
+
+By default everything runs offline with deterministic stubs (`MAX_LIVE_CALLS=0`): no network calls, the same answer every time. Vertex AI and Gemini are opt-in, and every live call counts against a hard cap.
+
+![CUAD explorer in the UI: a real SEC contract with its annotated clause categories, showing a category marked absent that Bartleby must decline to assert](docs/img/cuad.png)
+
+## Observability (Langfuse)
+
+![Langfuse graph view of one audit: the audit_pipeline span with its child spans extract, match, apply_terms, validate and decide, next to the trace's input and output (decision, justification, findings count)](docs/img/langfuse-graph.png)
+
+Each audit produces one trace: an `audit_pipeline` span with one child span per graph node, timed as the node actually runs. The span metadata carries the decision, the findings count and τ. In the Graph view, Langfuse draws `extract` and `match` side by side because they are sibling spans; in `graph.py` they run one after the other.
+
+Tracing is optional and switches on when `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set; without them the tracer is a no-op. The screenshots come from local runs in stub mode. The deployed demo runs without traces.
+
+![Langfuse tree view of one audit_pipeline trace with its five child spans and their durations](docs/img/langfuse-trace-detail.png)
+
+![Langfuse trace table filtered to audit_pipeline: one row per audit with its package, decision and latency metadata](docs/img/langfuse-traces.png)
+
+## Results
+
+Every number below lives in a `GEN` block regenerated from `evals/reports/*.json` (`make sync-readme-tables`). Nothing is typed by hand.
+
+### 1. Out-of-sample retrieval
+`MAX_LIVE_CALLS=20 uv run python evals/eval_out_of_sample.py --retrieval-ablation --embedding-provider vertex_ai --start 15 --end 50` → `evals/reports/retrieval_ablation_oos_report.json`
+
+Dense retrieval does the heavy lifting: BM25 alone trails, and the hybrid is indistinguishable from dense on this sample.
+
 <!-- GEN:retrieval_table -->
 156 casos de presencia, CUAD-0016 to CUAD-0050 (35 contracts), embeddings `text-embedding-005`, commit `8a68fe2`. Empates resueltos por orden de aparición en el contrato.
 
@@ -41,7 +96,11 @@ Cada cifra sale de un bloque `GEN` regenerado desde `evals/reports/*.json` (`mak
 - Hit@5: el intervalo de Wilson de BM25 no se solapa con los demás; los tres métodos no son indistinguibles en esta muestra. Denso y Híbrido (50/50): indistinguibles en esta muestra.
 <!-- /GEN -->
 
-### 2. Abstención de Bartleby fuera de muestra (`MAX_LIVE_CALLS=3 uv run python evals/eval_out_of_sample.py --start 15 --end 50 --embedding-provider vertex_ai --llm-provider stub --tau <τ>`)
+### 2. Bartleby's abstention, out of sample
+`MAX_LIVE_CALLS=3 uv run python evals/eval_out_of_sample.py --start 15 --end 50 --embedding-provider vertex_ai --llm-provider stub --tau <τ>`
+
+A higher τ buys correct abstentions on absent clauses and pays for them with false abstentions on present ones. The LLM row is not directly comparable with the others (see the note).
+
 <!-- GEN:oos_bartleby_table -->
 | Configuración | $\tau$ | Embeddings | Abstención correcta (ausencias) | Falsa abstención (presencias) | Macro F1 | Reporte |
 |---|:---:|---|:---:|:---:|:---:|---|
@@ -64,8 +123,11 @@ Sin LLM, $\tau$ = 0.80 (valor actual de `config/thresholds.yaml`) se abstiene en
 > (c) **Las falsas abstenciones siguen altas.** Con LLM, fuera de muestra: 74/156 = 47.4% [IC95 39.8–55.2] de las cláusulas presentes (`out_of_sample_cuad_report.json`). Cada falsa abstención es una revisión humana innecesaria: 74 en 420 consultas (17.6 por cada 100). Tiempo o costo por revisión: NOT MEASURED.
 <!-- /GEN -->
 
-### 3. Verificación con LLM, modo 3 (`make eval-bartleby-llm` -> `evals/reports/bartleby_llm_verification_report.json`)
-Medido con τ fijo en el eval y los embeddings del entorno de esa corrida (el reporte no los registra).
+### 3. LLM verification (mode 3)
+`make eval-bartleby-llm` → `evals/reports/bartleby_llm_verification_report.json`
+
+Measured with τ fixed in the eval and whatever embeddings that run's environment used (the report does not record them). LLM verification adds most of the correct abstentions, and false abstentions, latency and cost rise with it.
+
 <!-- GEN:llm_verification_table -->
 | Modo de Guardia | $\tau$ | Verificación LLM | Abstención Correcta (Recall) | Falsa Abstención (Error) | Macro F1 | Latencia Media | Costo Estimado / 1k* |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -77,7 +139,11 @@ Medido con τ fijo en el eval y los embeddings del entorno de esa corrida (el re
 *\*Costo estimado a partir de tokens medidos (98,140 prompt / 10,905 candidate, incluyendo tokens de pensamiento contabilizados como salida) y tarifas pay-as-you-go oficiales en Vertex AI ($1.50 / $9.00 por millón de tokens para Gemini 3.5 Flash según [`config/pricing.yaml`](config/pricing.yaml)). Con Gemini 3.8 Flash, el costo estimado resulta en ~$0.88/1k con la tarifa introductoria vigente ($0.75 / $3.75 hasta el 31 de diciembre de 2026) y en ~$1.77/1k con la tarifa estándar ($1.50 / $7.50 a partir del 1 de enero de 2027).*
 <!-- /GEN -->
 
-### 4. Calibración de τ (`MAX_LIVE_CALLS=80 uv run python -m evals.calibrate_cuad --embedding-provider vertex_ai` -> `evals/reports/calibration_cuad_report.json`)
+### 4. Calibrating τ
+`MAX_LIVE_CALLS=80 uv run python -m evals.calibrate_cuad --embedding-provider vertex_ai` → `evals/reports/calibration_cuad_report.json`
+
+On real contracts the retrieval score barely separates present clauses from absent ones: the validation interval includes chance.
+
 <!-- GEN:domain_calibration_table -->
 | Dominio Evaluado | Dataset de Origen | Umbral Calibrado ($\tau$) | Macro F1 Validación | AUC-ROC Separabilidad | Desempeño Empírico en Transferencia |
 |---|---|:---:|:---:|:---:|---|
@@ -94,8 +160,11 @@ Medido con τ fijo en el eval y los embeddings del entorno de esa corrida (el re
 > 2. **Umbral:** a $\tau = 0.50$ la abstención correcta en ausencias de validación es 25.8%. A $\tau = 0.80$ (óptimo de entrenamiento) es 54.8%, con 36.4% de falsas abstenciones y Macro F1 0.5457 (Siempre Abstenerse: 0.4247; diferencia +0.1210).
 <!-- /GEN -->
 
-### 5. Control sintético — no es evidencia (`make eval-ablations` -> `evals/reports/canonical_baseline_report.json`)
-Plantillas generadas por `datagen/`; medido con el τ de `config/thresholds.yaml` (`LLM_PROVIDER=stub EMBEDDING_PROVIDER=stub MAX_LIVE_CALLS=0 make eval-ablations`).
+### 5. Synthetic control — not evidence
+`LLM_PROVIDER=stub EMBEDDING_PROVIDER=stub MAX_LIVE_CALLS=0 make eval-ablations` → `evals/reports/canonical_baseline_report.json`
+
+Templates written by `datagen/`, measured with the τ in `config/thresholds.yaml`. It checks that the wiring works, nothing more.
+
 <!-- GEN:synthetic_ablation_table -->
 | Métrica de Evaluación | Con Términos Contractuales (Baseline) | Sin Términos (Solo Cotejo 3-Way) | Impacto / Delta |
 |---|:---:|:---:|:---:|
@@ -106,3 +175,47 @@ Plantillas generadas por `datagen/`; medido con el τ de `config/thresholds.yaml
 | **Recall@5 de Recuperación** | **100.0%** [plantillas sintéticas] | N/A | Recuperación en plantillas sintéticas |
 | **Latencia Media por Paquete** | **16.9 ms** | 0.0 ms | Ejecución determinista local |
 <!-- /GEN -->
+
+## Honest limitations
+
+- **Synthetic is not evidence.** The synthetic packages come from templates the generator wrote; section 5 only shows the wiring works.
+- **Rule 3a is a template heuristic.** It was written against the synthetic templates, and the synthetic Bartleby scores lean on it.
+- **Stub embeddings in part of the measurements.** The LLM row in section 2 used stub embeddings and was generated from a dirty tree; section 5 runs on stub embeddings; the section 3 report does not record which embeddings it used.
+- **τ comes from CUAD.** `config/thresholds.yaml` uses the τ calibrated on CUAD (section 4). With that τ and stub embeddings, synthetic A06 packages move from REJECT to REVIEW (a NOT_VERIFIABLE finding); the synthetic tests pin the τ from their own calibration. Section 5 reflects that change.
+- **False abstentions remain high.** Each one is an unnecessary human review (section 2).
+- **The demo corpus is not the measured corpus.** The demo ships 30 synthetic packages (3 per type, seed 42) and 6 CUAD contracts. The metrics are measured on 300 packages from the same generator and on CUAD contracts 16–50 (τ calibrated on contracts 1–15). Package numbering does not match between the two. The screenshots come from local runs on the full corpora.
+- **Reranker:** not measured, disabled.
+- **NOT MEASURED:** LLM abstention with `text-embedding-005` out of sample, the cost of a human review, latency over a distributed network.
+
+## Try it
+
+**Live demo.** [Staging on Cloud Run](https://catcher-ui-staging-hrok623gcq-uc.a.run.app), in stub mode with no calls to Gemini. It scales to zero and may be switched off.
+
+**Run it locally.**
+
+```bash
+uv sync
+make run-api      # FastAPI on port 8000
+make run-ui       # Streamlit on port 8501
+make verify       # lint, tests, claim audit, report checks, terraform validate
+```
+
+**Deploy it (Cloud Run staging).**
+
+1. Authenticate: `gcloud auth login && gcloud auth application-default login`.
+2. Build, push and plan: `PROJECT_ID=<project> REGION=<region> scripts/deploy.sh`. It prints the service URL and the smoke command; it applies nothing.
+3. Apply by hand after reading the plan: `terraform -chdir=infra/terraform apply tfplan`, then `scripts/smoke.sh <API_URL>`.
+
+On the first deploy the Artifact Registry repository doesn't exist yet: run `terraform -chdir=infra/terraform apply -target=google_artifact_registry_repository.images -var container_image=none` first (the variable is required; that apply only creates the repository). With `MAX_LIVE_CALLS=0`, the Cloud Run default, the service runs on stubs only.
+
+> **Don't run a bare `terraform apply`.** Use `scripts/deploy.sh`, then `apply tfplan`.
+
+## Stack, datasets and licenses
+
+- **Stack:** Python, LangGraph, Pydantic, FastAPI, Streamlit, rank-bm25, Vertex AI (Gemini, `text-embedding-005`), Langfuse, Terraform on Cloud Run, uv.
+- **Data:** [CUAD v1](https://github.com/TheAtticusProject/cuad) by The Atticus Project, CC BY 4.0. `data/demo/cuad_demo.json` is an unmodified subset redistributed under the same license; the full corpus comes from `make download-data`. Synthetic packages are generated by `datagen/`.
+- **License:** MIT (`pyproject.toml`). Third-party credits are in [ATTRIBUTION.md](ATTRIBUTION.md).
+
+## About the names
+
+*The Catcher in the RAG* is a parody of J.D. Salinger's *The Catcher in the Rye*: no text from the novel appears here, only the picture of someone standing at the edge so nobody falls. *Bartleby* is the clerk in Herman Melville's *Bartleby, the Scrivener* (1853), who answers every request with "I would prefer not to." The guard borrows his manners: when the contract says nothing, it says nothing either.
