@@ -9,10 +9,11 @@ from typing import Any
 import pytest
 
 from catcher_in_the_rag.extract.contract_extractor import (
+    ExtractedContractTerms,
     HybridContractExtractor,
     RuleBasedContractExtractor,
 )
-from catcher_in_the_rag.providers.gemini import GeminiProvider
+from catcher_in_the_rag.providers.gemini import GeminiEmbeddingProvider, GeminiProvider
 from datagen.templates import render_contract_text
 
 
@@ -138,3 +139,50 @@ def test_llm_failure_is_recorded_and_falls_back(
     record = json.loads((tmp_path / "test_llm_failure.jsonl").read_text(encoding="utf-8"))
     assert record["status"] == "error"
     assert record["error_type"] == "RuntimeError"
+
+
+def test_gemini_flash_always_routes_to_global(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GOOGLE_CLOUD_REGION", "us-central1")
+    assert GeminiProvider(config={}, model_id="gemini-3.5-flash").region == "global"
+    assert GeminiProvider(config={}, model_id="gemini-3.8-flash").region == "global"
+    assert GeminiProvider(config={}, model_id="gemini-2.5-flash").region == "us-central1"
+    assert GeminiEmbeddingProvider(config={}).region == "us-central1"
+
+
+def test_hybrid_llm_path_requests_extracted_contract_terms(monkeypatch: pytest.MonkeyPatch) -> None:
+    raw_text, _ = render_contract_text(
+        contract_id="CTR-TEST-LLM",
+        vendor_id="VND-TEST-LLM",
+        vendor_name="Apex Systems & Hardware LLC",
+        effective_date=date(2025, 3, 1),
+        expiration_date=date(2026, 3, 1),
+        rate_items=[("SKU-101", "Enterprise Workstation 32GB RAM", Decimal("1450.00"))],
+        payment_terms_days=45,
+        late_penalty_pct=Decimal("0.5"),
+    )
+    requested: list[Any] = []
+
+    def _fake(text: str, schema: Any, system_prompt: str | None = None, **kwargs: Any) -> Any:
+        requested.append(schema)
+        return ExtractedContractTerms(
+            contract_id="CTR-FROM-LLM",
+            vendor_id="VND-FROM-LLM",
+            vendor_name="Vendor From LLM",
+            effective_date=date(2025, 3, 1),
+            expiration_date=date(2026, 3, 1),
+            payment_terms_days=45,
+            late_delivery_penalty_pct_per_day=Decimal("0.5"),
+        )
+
+    provider = GeminiProvider(config={})  # no network: extract_structured is replaced
+    monkeypatch.setattr(provider, "extract_structured", _fake)
+    extractor = HybridContractExtractor(provider=provider)
+    contract = extractor.extract(raw_text)
+
+    assert requested == [ExtractedContractTerms]
+    assert extractor.last_method_used == "llm"
+    assert extractor.last_error is None
+    assert contract.contract_id == "CTR-FROM-LLM"
+    assert contract.payment_terms_days == 45
+    assert contract.clauses == RuleBasedContractExtractor().extract(raw_text).clauses
+    assert contract.raw_text == raw_text

@@ -276,15 +276,8 @@ class HybridContractExtractor:
         self.llm_attempts += 1
         self.last_error = None
         try:
-            contract = self.provider.extract_structured(
-                text=raw_text,
-                schema=Contract,
-                system_prompt=(
-                    "Extract contract governing terms (contract_id, vendor_id, vendor_name, "
-                    "effective_date, expiration_date, auto_renew, payment_terms_days, "
-                    "late_delivery_penalty_pct_per_day, rate_sheet, clauses) into the Contract schema."
-                ),
-            )
+            # Same path as the bake-off: the LLM fills ExtractedContractTerms, clauses come from rules.
+            contract = LLMContractExtractor(provider=self.provider).extract(raw_text)
             self.llm_successes += 1
             self.last_method_used = "llm"
             return contract
