@@ -349,6 +349,94 @@ def load_cuad_contract_summaries(
     return summaries
 
 
+def _percent_bar_chart(values: dict[str, float]) -> None:
+    """One bar per metric (not stacked) on a fixed 0-100 axis."""
+    import altair as alt
+
+    rows = [{"metric": k, "percent": v} for k, v in values.items()]
+    chart = (
+        alt.Chart(alt.Data(values=rows))
+        .mark_bar()
+        .encode(
+            x=alt.X("metric:N", title=None, sort=None, axis=alt.Axis(labelAngle=0)),
+            y=alt.Y("percent:Q", title="%", scale=alt.Scale(domain=[0, 100])),
+            tooltip=["metric:N", alt.Tooltip("percent:Q", format=".1f")],
+        )
+    )
+    st.altair_chart(chart, use_container_width=True)
+
+
+def _read_report(path: str) -> dict[str, Any] | None:
+    report = Path(path)
+    if not report.exists():
+        st.warning(f"NOT MEASURED: `{path}` not found.")
+        return None
+    return json.loads(report.read_text(encoding="utf-8"))
+
+
+def _ci_text(ci: list[float]) -> str:
+    return f"[CI95 {ci[0] * 100:.1f}–{ci[1] * 100:.1f}]"
+
+
+def _render_oos_cuad_results() -> None:
+    """Out-of-sample CUAD results read from the JSON reports (same format as the README tables)."""
+    st.markdown("### Out-of-sample results (definitive measurement)")
+
+    abl = _read_report("evals/reports/retrieval_ablation_oos_report.json")
+    if abl:
+        st.markdown("#### Retrieval: Hit@1 and Hit@5")
+        st.caption(
+            f"{abl['presence_cases']} presence cases, contracts {abl['contract_slice']}, "
+            f"embeddings `{abl['embedding_model_id']}`, report commit `{abl['git_commit_sha'][:7]}`. "
+            "Source: `evals/reports/retrieval_ablation_oos_report.json`."
+        )
+        labels = {"bm25": "BM25", "dense": "Dense", "hybrid": "Hybrid (50/50)"}
+        rows = ["| Method | Hit@1 | Hit@5 |", "|---|:---:|:---:|"]
+        for mode, label in labels.items():
+            cells = []
+            for key in ("hit_at_1", "hit_at_5"):
+                e = abl["metrics"][mode][key]
+                cells.append(
+                    f"{e['rate'] * 100:.1f}% ({e['count']}/{e['total']}) {_ci_text(e['wilson_ci95'])}"
+                )
+            rows.append(f"| **{label}** | {cells[0]} | {cells[1]} |")
+        st.markdown("\n".join(rows))
+
+    st.markdown("#### Bartleby abstention without LLM (score only)")
+    rows = [
+        "| τ | Embeddings | Correct abstention (absences) | False abstention (presences) "
+        "| Macro F1 | Report | Commit |",
+        "|:---:|---|:---:|:---:|:---:|---|---|",
+    ]
+    for name in (
+        "out_of_sample_cuad_stub_tau0.50_report.json",
+        "out_of_sample_cuad_stub_tau0.80_report.json",
+    ):
+        d = _read_report(f"evals/reports/{name}")
+        if not d:
+            continue
+        m = d["metrics"]
+        cells = []
+        for key in ("correct_abstention_on_negatives", "false_abstention_on_positives"):
+            e = m[key]
+            cells.append(
+                f"{e['count']}/{e['total']} = {e['count'] / e['total'] * 100:.1f}% "
+                f"{_ci_text(e['wilson_ci95'])}"
+            )
+        emb = d.get("embedding_model_id") or d.get("embedding_provider")
+        rows.append(
+            f"| {d['tau_override']:.2f} | `{emb}` | {cells[0]} | {cells[1]} | "
+            f"{m['macro_f1']:.4f} | `{name}` | `{d['git_commit_sha'][:7]}` |"
+        )
+        slice_txt = d["contract_slice"]
+    if len(rows) > 2:
+        st.caption(
+            f"Contracts {slice_txt}; Vertex embeddings (`vertex_ai`; the report does not record the "
+            "model id), LLM `stub`."
+        )
+        st.markdown("\n".join(rows))
+
+
 # ── Sidebar Navigation ────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("### The Catcher in the RAG")
@@ -969,7 +1057,10 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                         ]
                         preset_labels = [p[0] for p in query_presets]
                         sel_preset = st.selectbox(
-                            "Select Audit Query Preset", range(len(preset_labels)), index=0
+                            "Select Audit Query Preset",
+                            range(len(preset_labels)),
+                            index=0,
+                            format_func=lambda i: query_presets[i][1],
                         )
 
                         if sel_preset == len(query_presets) - 1:
@@ -1328,114 +1419,129 @@ elif selected_screen == "📊 Evaluation Dashboard":
                         )
 
     elif eval_mode == "📜 Real-World CUAD Contract Benchmark (SEC Edgar)":
-        cuad_report_path = Path("evals/reports/cuad_benchmark_latest.json")
-        if not cuad_report_path.exists():
-            st.warning(
-                "CUAD benchmark report not found at `evals/reports/cuad_benchmark_latest.json`. Run `make eval-cuad` to produce it."
-            )
-        else:
-            with cuad_report_path.open(encoding="utf-8") as f:
-                cuad_data = json.load(f)
-
-            rep = cuad_data.get("report", {})
-            st.markdown("### Real-World Retrieval & Melville Abstention on SEC Contracts")
-            st.markdown(
-                "Benchmark executed on authentic commercial contracts filed with the SEC, testing hybrid RAG retrieval against expert-annotated spans and Melville abstention on ground-truth absent clauses."
-            )
-
-            emb_prov = rep.get("embedding_provider", "Hybrid BM25 + Dense")
-            emb_model = rep.get("embedding_model_id", "text-embedding-005")
-            st.caption(
-                f"Active Dense Vector Index: **{emb_prov}** (`{emb_model}`) | Contracts: {rep.get('total_contracts_evaluated', 0)} (Train: {rep.get('train_contracts_count', 0)}, Val: {rep.get('val_contracts_count', 0)})"
-            )
-
-            # Metrics row 1: Retrieval
-            r1, r2, r3, r4 = st.columns(4)
-            r1.metric("Recall @ 1", f"{rep.get('recall_at_1', 0.0) * 100:.1f}%", "Top-1 candidate")
-            r2.metric("Recall @ 3", f"{rep.get('recall_at_3', 0.0) * 100:.1f}%", "Top-3 candidate")
-            r3.metric("Recall @ 5", f"{rep.get('recall_at_5', 0.0) * 100:.1f}%", "Top-5 candidate")
-            r4.metric("Mean Reciprocal Rank", f"{rep.get('mean_reciprocal_rank', 0.0):.4f}", "MRR")
-
-            # Metrics row 2: Bartleby Dual-Sided Abstention & Latency
-            abs_ci = rep.get("bartleby_correct_abstention_ci95", [0.0, 0.0])
-            false_abs_ci = rep.get("bartleby_false_abstention_ci95", [0.0, 0.0])
-            b1, b2, b3, b4 = st.columns(4)
-            b1.metric(
-                "Correct Abstention (Negatives)",
-                f"{rep.get('bartleby_correct_abstention_rate', 0.0) * 100:.1f}%",
-                f"95% CI: [{abs_ci[0] * 100:.1f}%, {abs_ci[1] * 100:.1f}%]",
-            )
-            b2.metric(
-                "False Abstention (Present)",
-                f"{rep.get('bartleby_false_abstention_rate', 0.0) * 100:.1f}%",
-                f"95% CI: [{false_abs_ci[0] * 100:.1f}%, {false_abs_ci[1] * 100:.1f}%]",
-            )
-            b3.metric(
-                "Spurious False Assertion",
-                f"{rep.get('bartleby_false_assertion_rate', 0.0) * 100:.1f}%",
-                "Target: <3.0%",
-            )
-            b4.metric(
-                "Mean Retrieval Latency",
-                f"{rep.get('mean_retrieval_latency_ms', 0.0):.1f} ms",
-                "SEC Full Texts",
-            )
-
-            st.divider()
-
-            # Retrieval depth bar chart
-            st.markdown("#### Retrieval Depth vs Dual-Sided Abstention")
-            chart_col1, chart_col2 = st.columns(2)
-            with chart_col1:
-                st.markdown("**Recall by Retrieval Depth (k)**")
-                recall_chart = {
-                    "Recall @ 1": [rep.get("recall_at_1", 0.0) * 100],
-                    "Recall @ 3": [rep.get("recall_at_3", 0.0) * 100],
-                    "Recall @ 5": [rep.get("recall_at_5", 0.0) * 100],
-                }
-                st.bar_chart(recall_chart)
-            with chart_col2:
-                st.markdown(
-                    "**Bartleby Abstention Integrity (Ground-Truth Negatives vs Positives)**"
+        _render_oos_cuad_results()
+        st.divider()
+        with st.expander("Corrida temprana con embeddings stub (no es la medición definitiva)"):
+            cuad_report_path = Path("evals/reports/cuad_benchmark_latest.json")
+            if not cuad_report_path.exists():
+                st.warning(
+                    "CUAD benchmark report not found at `evals/reports/cuad_benchmark_latest.json`. Run `make eval-cuad` to produce it."
                 )
-                abstain_chart = {
-                    "Correct Abstention on Negatives (%)": [
-                        rep.get("bartleby_correct_abstention_rate", 0.0) * 100
-                    ],
-                    "False Abstention on Present Clauses (%)": [
-                        rep.get("bartleby_false_abstention_rate", 0.0) * 100
-                    ],
-                }
-                st.bar_chart(abstain_chart)
+            else:
+                with cuad_report_path.open(encoding="utf-8") as f:
+                    cuad_data = json.load(f)
 
-            st.divider()
+                rep = cuad_data.get("report", {})
+                st.markdown("### Real-World Retrieval & Melville Abstention on SEC Contracts")
+                st.markdown(
+                    "Benchmark executed on authentic commercial contracts filed with the SEC, testing hybrid RAG retrieval against expert-annotated spans and Melville abstention on ground-truth absent clauses."
+                )
 
-            # Sample cases table
-            st.markdown("#### Sample Retrieval Benchmark Cases")
-            cases = cuad_data.get("sample_retrieval_cases", [])
-            if cases:
-                table_rows = []
-                for c in cases[:15]:
-                    table_rows.append(
+                emb_prov = rep.get("embedding_provider", "Hybrid BM25 + Dense")
+                emb_model = rep.get("embedding_model_id", "text-embedding-005")
+                st.caption(
+                    f"Active Dense Vector Index: **{emb_prov}** (`{emb_model}`) | Contracts: {rep.get('total_contracts_evaluated', 0)} (Train: {rep.get('train_contracts_count', 0)}, Val: {rep.get('val_contracts_count', 0)})"
+                )
+
+                # Metrics row 1: Retrieval
+                r1, r2, r3, r4 = st.columns(4)
+                r1.metric(
+                    "Recall @ 1", f"{rep.get('recall_at_1', 0.0) * 100:.1f}%", "Top-1 candidate"
+                )
+                r2.metric(
+                    "Recall @ 3", f"{rep.get('recall_at_3', 0.0) * 100:.1f}%", "Top-3 candidate"
+                )
+                r3.metric(
+                    "Recall @ 5", f"{rep.get('recall_at_5', 0.0) * 100:.1f}%", "Top-5 candidate"
+                )
+                r4.metric(
+                    "Mean Reciprocal Rank", f"{rep.get('mean_reciprocal_rank', 0.0):.4f}", "MRR"
+                )
+
+                # Metrics row 2: Bartleby Dual-Sided Abstention & Latency
+                abs_ci = rep.get("bartleby_correct_abstention_ci95", [0.0, 0.0])
+                false_abs_ci = rep.get("bartleby_false_abstention_ci95", [0.0, 0.0])
+                b1, b2, b3, b4 = st.columns(4)
+                b1.metric(
+                    "Correct Abstention (Negatives)",
+                    f"{rep.get('bartleby_correct_abstention_rate', 0.0) * 100:.1f}%",
+                    f"95% CI: [{abs_ci[0] * 100:.1f}%, {abs_ci[1] * 100:.1f}%]",
+                )
+                b2.metric(
+                    "False Abstention (Present)",
+                    f"{rep.get('bartleby_false_abstention_rate', 0.0) * 100:.1f}%",
+                    f"95% CI: [{false_abs_ci[0] * 100:.1f}%, {false_abs_ci[1] * 100:.1f}%]",
+                )
+                b3.metric(
+                    "Abstenciones no logradas (= 100 % − abstención correcta)",
+                    f"{rep.get('bartleby_false_assertion_rate', 0.0) * 100:.1f}%",
+                    delta_color="off",
+                )
+                b4.metric(
+                    "Mean Retrieval Latency",
+                    f"{rep.get('mean_retrieval_latency_ms', 0.0):.1f} ms",
+                    "SEC Full Texts",
+                )
+
+                st.divider()
+
+                # Retrieval depth bar chart
+                st.markdown("#### Retrieval Depth vs Dual-Sided Abstention")
+                chart_col1, chart_col2 = st.columns(2)
+                with chart_col1:
+                    st.markdown("**Recall by Retrieval Depth (k)**")
+                    _percent_bar_chart(
                         {
-                            "Contract ID": c.get("contract_id"),
-                            "Category": c.get("category"),
-                            "Query": c.get("query"),
-                            "GT Spans": c.get("num_ground_truth_spans"),
-                            "Hit @ 1": "✅" if c.get("hit_at_1") else "❌",
-                            "Hit @ 3": "✅" if c.get("hit_at_3") else "❌",
-                            "Hit @ 5": "✅" if c.get("hit_at_5") else "❌",
-                            "MRR": f"{c.get('reciprocal_rank', 0.0):.2f}",
-                            "Latency": f"{c.get('latency_ms', 0.0):.1f} ms",
+                            "Recall @ 1": rep.get("recall_at_1", 0.0) * 100,
+                            "Recall @ 3": rep.get("recall_at_3", 0.0) * 100,
+                            "Recall @ 5": rep.get("recall_at_5", 0.0) * 100,
                         }
                     )
-                st.dataframe(table_rows, use_container_width=True)
+                with chart_col2:
+                    st.markdown(
+                        "**Bartleby Abstention Integrity (Ground-Truth Negatives vs Positives)**"
+                    )
+                    _percent_bar_chart(
+                        {
+                            "Correct abstention (absent)": rep.get(
+                                "bartleby_correct_abstention_rate", 0.0
+                            )
+                            * 100,
+                            "False abstention (present)": rep.get(
+                                "bartleby_false_abstention_rate", 0.0
+                            )
+                            * 100,
+                        }
+                    )
 
-                st.markdown("##### Detailed Case Deep-Dive")
-                for c in cases[:5]:
-                    with st.expander(
-                        f"📜 {c.get('contract_id')} — {c.get('category')} (Hit@5: {c.get('hit_at_5')})"
-                    ):
+                st.divider()
+
+                # Sample cases table
+                st.markdown("#### Sample Retrieval Benchmark Cases")
+                cases = cuad_data.get("sample_retrieval_cases", [])
+                if cases:
+                    table_rows = []
+                    for c in cases[:15]:
+                        table_rows.append(
+                            {
+                                "Contract ID": c.get("contract_id"),
+                                "Category": c.get("category"),
+                                "Query": c.get("query"),
+                                "GT Spans": c.get("num_ground_truth_spans"),
+                                "Hit @ 1": "✅" if c.get("hit_at_1") else "❌",
+                                "Hit @ 3": "✅" if c.get("hit_at_3") else "❌",
+                                "Hit @ 5": "✅" if c.get("hit_at_5") else "❌",
+                                "MRR": f"{c.get('reciprocal_rank', 0.0):.2f}",
+                                "Latency": f"{c.get('latency_ms', 0.0):.1f} ms",
+                            }
+                        )
+                    st.dataframe(table_rows, use_container_width=True)
+
+                    st.markdown("##### Detailed Case Deep-Dive")
+                    for c in cases[:5]:
+                        st.markdown(
+                            f"**{c.get('contract_id')} — {c.get('category')} (Hit@5: {c.get('hit_at_5')})**"
+                        )
                         st.write(f"**Query:** `{c.get('query')}`")
                         st.write(f"**Ground Truth Spans:** {c.get('num_ground_truth_spans')}")
                         st.write("**Top Retrieved Clauses:**")
