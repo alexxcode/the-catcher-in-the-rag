@@ -23,6 +23,7 @@ from catcher_in_the_rag.ingest.cuad_loader import (
     resolve_cuad_path,
 )
 from catcher_in_the_rag.providers.factory import get_llm_provider, resolve_llm_provider
+from catcher_in_the_rag.providers.stub import StubEmbeddingProvider
 from catcher_in_the_rag.providers.tracing import is_tracing_enabled
 from catcher_in_the_rag.retrieve.retriever import ContractRetriever
 from catcher_in_the_rag.schemas import (
@@ -350,7 +351,7 @@ def load_cuad_contract_summaries(
 def build_simulated_cuad_package(
     cuad_contract: CUADContract,
     loader: CUADLoader,
-    scenario: str = "Clean / Compliant",
+    scenario: str = "Invoice matches contract",
 ) -> ProcurementPackage:
     """Create a realistic procurement package anchored to a real SEC CUAD contract."""
     contract = loader.to_catcher_contract(cuad_contract)
@@ -392,7 +393,7 @@ def build_simulated_cuad_package(
             )
         ]
         total_inv = Decimal("13500.00")
-    else:  # Clean
+    else:  # Invoice matches contract
         inv_items = [
             LineItem(
                 item_id="SKU-REAL",
@@ -1106,6 +1107,12 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                         guard = BartlebyGuard()
                         assessment = guard.evaluate_retrieval(retrieved, query_text)
 
+                        if isinstance(retriever.embedding_provider, StubEmbeddingProvider):
+                            st.info(
+                                "Modo demo: la puntuación vectorial es una huella determinista, "
+                                "no significado. Medidas reales en el README."
+                            )
+
                         st.markdown(
                             f"<div style='font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;'>"
                             f"Retrieved {len(retrieved)} candidate clauses in <strong>{retrieval_ms:.1f} ms</strong> across {len(cat_contract.clauses)} segmented contract sections.</div>",
@@ -1126,7 +1133,7 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                                         <strong>Abstention Reason:</strong> {assessment.reason}
                                     </div>
                                     <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.4rem;">
-                                        The highest candidate clause scored below the calibrated relevance threshold (0.50). The agent refuses to hallucinate authorization.
+                                        The highest candidate clause scored below the calibrated relevance threshold ({load_bartleby_thresholds()['min_relevance_score']:.2f}). The agent refuses to hallucinate authorization.
                                     </div>
                                 </div>
                                 """,
@@ -1181,7 +1188,7 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                         sim_scenario = st.selectbox(
                             "Select Procurement Package Scenario",
                             [
-                                "Clean / Compliant (All terms match agreement)",
+                                "Invoice matches contract (expiry may be unverifiable)",
                                 "Unauthorized Surcharge (A09 - Melville Guard Activates)",
                                 "Price Variance (A01 - Rate Sheet Violation)",
                             ],
@@ -1195,6 +1202,11 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                         )
 
                     sim_pkg = build_simulated_cuad_package(contract_obj, cuad_loader, sim_scenario)
+                    if sim_pkg.contract.expiration_date is None:
+                        st.caption(
+                            "This contract has no expiration date in CUAD, so A06 is "
+                            "NOT_VERIFIABLE and the audit goes to REVIEW."
+                        )
 
                     if run_sim_btn or f"sim_res_{contract_obj.contract_id}" in st.session_state:
                         st.session_state[f"sim_res_{contract_obj.contract_id}"] = sim_scenario
