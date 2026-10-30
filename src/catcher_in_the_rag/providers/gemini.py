@@ -61,6 +61,9 @@ def _consume_live_call() -> None:
     _live_calls_used += 1
 
 
+GLOBAL_ONLY_MODELS = ("gemini-3.5-flash", "gemini-3.8-flash")
+
+
 class GeminiProvider(LLMProvider):
     """Real GCP generative AI provider using Vertex AI (ADC credentials, no API keys).
 
@@ -98,15 +101,12 @@ class GeminiProvider(LLMProvider):
                 tb = None
         self.thinking_budget = tb
 
-        # Model location routing: Gemini 3.5 & 3.8 Flash GA endpoints are hosted in global / multi-region
-        default_region = self.config.get("region", "us-central1")
-        if (
-            self.model_id in ("gemini-3.5-flash", "gemini-3.8-flash")
-            and default_region == "us-central1"
-            and not os.getenv("GOOGLE_CLOUD_REGION")
-        ):
-            default_region = "global"
-        self.region = os.getenv("GOOGLE_CLOUD_REGION", default_region)
+        # Gemini 3.5 / 3.8 Flash are served from the global endpoint only (regional calls return
+        # 404 for this project), so they ignore GOOGLE_CLOUD_REGION; embeddings still follow it.
+        if self.model_id in GLOBAL_ONLY_MODELS:
+            self.region = "global"
+        else:
+            self.region = os.getenv("GOOGLE_CLOUD_REGION", self.config.get("region", "us-central1"))
 
         self._client: Any = None
         self._genai_client: Any = None
