@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import logging
 import re
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Annotated, Any, Protocol
 
@@ -10,6 +11,8 @@ from pydantic import BaseModel, Field
 from catcher_in_the_rag.providers.base import LLMProvider
 from catcher_in_the_rag.providers.factory import get_llm_provider
 from catcher_in_the_rag.schemas.contract import Clause, Contract, RateItem
+
+logger = logging.getLogger(__name__)
 
 WORD_TO_DAYS = {
     "fifteen": 15,
@@ -258,6 +261,7 @@ class HybridContractExtractor:
         self.llm_successes: int = 0
         self.fallbacks_used: int = 0
         self.last_method_used: str = "none"
+        self.last_error: str | None = None
 
     def extract(self, raw_text: str) -> Contract:
         """Extract Contract model from unstructured raw text.
@@ -270,6 +274,7 @@ class HybridContractExtractor:
             return self.rule_extractor.extract(raw_text)
 
         self.llm_attempts += 1
+        self.last_error = None
         try:
             contract = self.provider.extract_structured(
                 text=raw_text,
@@ -284,6 +289,7 @@ class HybridContractExtractor:
             self.last_method_used = "llm"
             return contract
         except Exception as err:
+            self._record_llm_error(err, raw_text)
             if not self.fallback_to_rules:
                 self.last_method_used = "failed"
                 msg = f"LLM contract extraction failed and fallback is disabled: {err}"
@@ -292,6 +298,31 @@ class HybridContractExtractor:
             self.fallbacks_used += 1
             self.last_method_used = "fallback_rule"
             return self.rule_extractor.extract(raw_text)
+
+    def _record_llm_error(self, err: Exception, raw_text: str) -> None:
+        """Keep the LLM failure visible: last_error, a warning log and a raw-log error record."""
+        from catcher_in_the_rag.providers.gemini import (
+            GeminiProvider,
+            _append_raw_record,
+            _raw_run_id,
+        )
+
+        self.last_error = f"{type(err).__name__}: {err}"
+        logger.warning("LLM contract extraction failed: %s", self.last_error)
+        if not isinstance(self.provider, GeminiProvider):
+            return  # the raw log only records real Vertex calls
+        _append_raw_record(
+            {
+                "run_id": _raw_run_id(self.provider),
+                "timestamp_utc": datetime.now(UTC).isoformat(),
+                "call_type": "contract_extraction",
+                "status": "error",
+                "model_id": getattr(self.provider, "model_id", None),
+                "error_type": type(err).__name__,
+                "error_message": str(err),
+                "input_chars": len(raw_text),
+            }
+        )
 
     def get_telemetry(self) -> dict[str, Any]:
         """Return transparent operational telemetry."""
