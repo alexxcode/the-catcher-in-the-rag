@@ -95,3 +95,9 @@ Reescribe el README:
 - Lista de "pendientes" y "NOT MEASURED".
 
 **Consecuencia:** cualquier dato sintetizado, reconstruido o inventado → se revierte todo el trabajo de esta ronda y se da por terminado.
+
+---
+
+## PENDIENTES
+
+- extract sobrescribe rate_sheet/expiration_date con vacío cuando el extractor no los encuentra; no se tocó porque afecta medidas.

@@ -7,8 +7,17 @@ from pathlib import Path
 
 import pytest
 
-from catcher_in_the_rag.ingest.cuad_loader import CUADLoader
+from catcher_in_the_rag.graph import audit_pipeline
+from catcher_in_the_rag.ingest.cuad_loader import DEMO_CUAD_PATH, CUADLoader
+from catcher_in_the_rag.ingest.cuad_simulation import (
+    SCENARIO_MATCH,
+    SCENARIO_PRICE_A01,
+    SCENARIO_SURCHARGE_A09,
+    build_simulated_cuad_package,
+)
 from catcher_in_the_rag.ingest.ocds_loader import OCDSLoader
+from catcher_in_the_rag.providers.factory import get_llm_provider
+from catcher_in_the_rag.schemas import AnomalyType, DecisionType, Finding
 from evals.cuad_benchmark import CUADBenchmarkRunner
 
 CUAD_PATH = Path("data/real/cuad/CUADv1.json")
@@ -165,3 +174,44 @@ def test_cuad_benchmark_live_dataset() -> None:
     assert report.total_contracts_evaluated == 2
     assert report.retrieval_cases_count > 0
     assert 0.0 <= report.recall_at_5 <= 1.0
+
+
+@pytest.mark.parametrize("contract_id", ["CUAD-0001", "CUAD-0002", "CUAD-0003"])
+def test_simulated_cuad_scenarios_offline(contract_id: str) -> None:
+    """The three UI simulation scenarios give their expected verdicts with the stub provider."""
+    loader = CUADLoader(cuad_json_path=DEMO_CUAD_PATH)
+    cuad = next(c for c in loader.load_contracts() if c.contract_id == contract_id)
+    stub = get_llm_provider(provider_type="stub")
+
+    def run(scenario: str) -> tuple[dict, list[Finding]]:
+        res = audit_pipeline(
+            build_simulated_cuad_package(cuad, loader, scenario), llm_provider=stub
+        )
+        return res, [*res["decision"].findings, *res["validated_findings"]]
+
+    res, findings = run(SCENARIO_PRICE_A01)
+    assert res["decision"].decision == DecisionType.REJECT
+    a01 = [f for f in findings if f.anomaly_type == AnomalyType.A01]
+    assert a01
+    raw_text = res["package"].contract.raw_text
+    for f in a01:
+        assert f.citation is not None
+        assert raw_text[f.citation.start_char : f.citation.end_char] == f.citation.text
+    assert raw_text.startswith(cuad.raw_text)
+
+    res, findings = run(SCENARIO_SURCHARGE_A09)
+    assert res["decision"].decision == DecisionType.ABSTAIN
+    assert any(f.anomaly_type == AnomalyType.A09 for f in findings)
+
+    res, findings = run(SCENARIO_MATCH)
+    types = {f.anomaly_type for f in findings}
+    assert AnomalyType.A01 not in types
+    assert AnomalyType.A09 not in types
+    assert types <= {AnomalyType.A06}
+    if types:
+        assert res["decision"].decision == DecisionType.REVIEW
+    else:
+        assert res["decision"].decision == DecisionType.APPROVE
+
+    with pytest.raises(ValueError):
+        build_simulated_cuad_package(cuad, loader, "Clean / Compliant")

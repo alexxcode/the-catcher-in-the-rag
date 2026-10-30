@@ -5,8 +5,7 @@ import re
 import secrets
 import time
 from collections.abc import Callable
-from datetime import date, datetime, timedelta
-from decimal import Decimal
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -22,20 +21,22 @@ from catcher_in_the_rag.ingest.cuad_loader import (
     CUADLoader,
     resolve_cuad_path,
 )
+from catcher_in_the_rag.ingest.cuad_simulation import (
+    SCENARIO_MATCH,
+    SCENARIO_PRICE_A01,
+    SIMULATION_SCENARIOS,
+    build_simulated_cuad_package,
+)
 from catcher_in_the_rag.providers.factory import get_llm_provider, resolve_llm_provider
 from catcher_in_the_rag.providers.stub import StubEmbeddingProvider
 from catcher_in_the_rag.providers.tracing import is_tracing_enabled
 from catcher_in_the_rag.retrieve.retriever import ContractRetriever
 from catcher_in_the_rag.schemas import (
+    AnomalyType,
     DecisionType,
     Finding,
-    GoodsReceipt,
-    Invoice,
-    LineItem,
     PackageLabels,
     ProcurementPackage,
-    PurchaseOrder,
-    ReceiptItem,
 )
 
 load_dotenv()
@@ -346,114 +347,6 @@ def load_cuad_contract_summaries(
             }
         )
     return summaries
-
-
-def build_simulated_cuad_package(
-    cuad_contract: CUADContract,
-    loader: CUADLoader,
-    scenario: str = "Invoice matches contract",
-) -> ProcurementPackage:
-    """Create a realistic procurement package anchored to a real SEC CUAD contract."""
-    contract = loader.to_catcher_contract(cuad_contract)
-    vendor_id = contract.vendor_id
-    vendor_name = contract.vendor_name
-    po_id = f"PO-{cuad_contract.contract_id}"
-    inv_id = f"INV-{cuad_contract.contract_id}"
-    rc_id = f"RC-{cuad_contract.contract_id}"
-
-    today = date.today()
-    due_date = today + timedelta(days=contract.payment_terms_days)
-
-    if scenario == "Unauthorized Surcharge (A09 - Melville Guard)":
-        inv_items = [
-            LineItem(
-                item_id="SKU-REAL",
-                description="Procured Commercial Services",
-                quantity=Decimal("10"),
-                unit_price=Decimal("1000.00"),
-                total_amount=Decimal("10000.00"),
-            ),
-            LineItem(
-                item_id="FEE-UNAUTH",
-                description="Expedited Delivery Surcharge",
-                quantity=Decimal("1"),
-                unit_price=Decimal("450.00"),
-                total_amount=Decimal("450.00"),
-            ),
-        ]
-        total_inv = Decimal("10450.00")
-    elif scenario == "Price Variance (A01 - Rate Sheet Violation)":
-        inv_items = [
-            LineItem(
-                item_id="SKU-REAL",
-                description="Procured Commercial Services",
-                quantity=Decimal("10"),
-                unit_price=Decimal("1350.00"),
-                total_amount=Decimal("13500.00"),
-            )
-        ]
-        total_inv = Decimal("13500.00")
-    else:  # Invoice matches contract
-        inv_items = [
-            LineItem(
-                item_id="SKU-REAL",
-                description="Procured Commercial Services",
-                quantity=Decimal("10"),
-                unit_price=Decimal("1000.00"),
-                total_amount=Decimal("10000.00"),
-            )
-        ]
-        total_inv = Decimal("10000.00")
-
-    po = PurchaseOrder(
-        po_id=po_id,
-        contract_id=contract.contract_id,
-        vendor_id=vendor_id,
-        vendor_name=vendor_name,
-        issue_date=today,
-        expected_delivery_date=today,
-        line_items=[
-            LineItem(
-                item_id="SKU-REAL",
-                description="Procured Commercial Services",
-                quantity=Decimal("10"),
-                unit_price=Decimal("1000.00"),
-                total_amount=Decimal("10000.00"),
-            )
-        ],
-        total_amount=Decimal("10000.00"),
-    )
-    receipt = GoodsReceipt(
-        receipt_id=rc_id,
-        po_id=po_id,
-        delivery_date=today,
-        received_by="Receiving Clerk",
-        items=[
-            ReceiptItem(
-                item_id="SKU-REAL",
-                quantity_received=Decimal("10"),
-                quantity_rejected=Decimal("0"),
-                condition="ACCEPTABLE",
-            )
-        ],
-    )
-    invoice = Invoice(
-        invoice_id=inv_id,
-        vendor_id=vendor_id,
-        vendor_name=vendor_name,
-        po_id=po_id,
-        invoice_date=today,
-        payment_due_date=due_date,
-        line_items=inv_items,
-        total_amount=total_inv,
-    )
-    return ProcurementPackage(
-        package_id=f"PKG-{cuad_contract.contract_id}-SIM",
-        contract=contract,
-        po=po,
-        receipt=receipt,
-        invoice=invoice,
-    )
 
 
 # ── Sidebar Navigation ────────────────────────────────────────────────────────
@@ -1133,7 +1026,7 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                                         <strong>Abstention Reason:</strong> {assessment.reason}
                                     </div>
                                     <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.4rem;">
-                                        The highest candidate clause scored below the calibrated relevance threshold ({load_bartleby_thresholds()['min_relevance_score']:.2f}). The agent refuses to hallucinate authorization.
+                                        The highest candidate clause scored below the calibrated relevance threshold ({load_bartleby_thresholds()["min_relevance_score"]:.2f}). The agent refuses to hallucinate authorization.
                                     </div>
                                 </div>
                                 """,
@@ -1187,11 +1080,7 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                     with col_sc1:
                         sim_scenario = st.selectbox(
                             "Select Procurement Package Scenario",
-                            [
-                                "Invoice matches contract (expiry may be unverifiable)",
-                                "Unauthorized Surcharge (A09 - Melville Guard Activates)",
-                                "Price Variance (A01 - Rate Sheet Violation)",
-                            ],
+                            SIMULATION_SCENARIOS,
                         )
                     with col_sc2:
                         st.markdown("<div style='height: 28px'></div>", unsafe_allow_html=True)
@@ -1202,10 +1091,11 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
                         )
 
                     sim_pkg = build_simulated_cuad_package(contract_obj, cuad_loader, sim_scenario)
-                    if sim_pkg.contract.expiration_date is None:
+                    if sim_scenario == SCENARIO_PRICE_A01:
                         st.caption(
-                            "This contract has no expiration date in CUAD, so A06 is "
-                            "NOT_VERIFIABLE and the audit goes to REVIEW."
+                            "Este escenario añade al final del contrato simulado un anexo "
+                            "«Simulated rate schedule (demo addendum)» con la tarifa de SKU-REAL; "
+                            "el texto original del contrato CUAD no cambia."
                         )
 
                     if run_sim_btn or f"sim_res_{contract_obj.contract_id}" in st.session_state:
@@ -1215,6 +1105,15 @@ elif selected_screen == "📜 CUAD Real SEC Contracts":
 
                         dec = audit_res["decision"]
                         findings_list = _all_findings(audit_res)
+                        if sim_scenario == SCENARIO_MATCH and any(
+                            f.anomaly_type == AnomalyType.A06
+                            and f.verification_status == "NOT_VERIFIABLE"
+                            for f in findings_list
+                        ):
+                            st.caption(
+                                "El contrato no trae una fecha de vencimiento que el sistema pueda "
+                                "extraer; por eso A06 queda sin verificar y la auditoría va a REVIEW."
+                            )
                         b_abstained = audit_res.get("bartleby_abstained", False)
 
                         dec_class = {
