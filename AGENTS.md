@@ -102,3 +102,4 @@ Reescribe el README:
 
 - extract sobrescribe rate_sheet/expiration_date con vacío cuando el extractor no los encuentra; no se tocó porque afecta medidas.
 - infra/terraform/main.tf pasa GOOGLE_CLOUD_REGION=var.region a Cloud Run (API y UI); los modelos Flash de GLOBAL_ONLY_MODELS (providers/gemini.py) ya la ignoran (siempre global) y solo afecta a embeddings. No se tocó Terraform.
+- bake-off medido con el esquema anterior (campos obligatorios); no re-medido.

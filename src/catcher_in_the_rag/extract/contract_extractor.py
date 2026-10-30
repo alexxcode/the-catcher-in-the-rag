@@ -194,15 +194,24 @@ class ExtractedContractTerms(BaseModel):
     vendor_id: str = Field(..., description="Vendor identifier")
     vendor_name: str = Field(..., description="Legal vendor name")
     effective_date: date = Field(..., description="Start date of agreement")
-    expiration_date: date = Field(..., description="Expiration date of agreement")
+    expiration_date: date | None = Field(
+        default=None, description="Expiration date written in the text; null if absent"
+    )
     auto_renew: bool = Field(default=False, description="Whether contract auto-renews")
-    payment_terms_days: Annotated[int, Field(ge=0, description="Agreed net payment terms (days)")]
-    late_delivery_penalty_pct_per_day: Annotated[
-        Decimal,
-        Field(default=Decimal("0.0"), ge=0, description="Penalty % per day for late delivery"),
+    payment_terms_days: Annotated[
+        int | None,
+        Field(
+            default=None, ge=0, description="Net payment days written in the text; null if absent"
+        ),
     ]
-    rate_sheet: list[RateItem] = Field(
-        default_factory=list, description="Contracted price ceiling per item"
+    late_delivery_penalty_pct_per_day: Annotated[
+        Decimal | None,
+        Field(
+            default=None, ge=0, description="Penalty % per day written in the text; null if absent"
+        ),
+    ]
+    rate_sheet: list[RateItem] | None = Field(
+        default=None, description="Contracted price ceiling per item; null if absent"
     )
 
 
@@ -224,7 +233,10 @@ class LLMContractExtractor:
                 "Extract contract governing terms (contract_id, vendor_id, vendor_name, "
                 "effective_date, expiration_date, auto_renew, payment_terms_days, "
                 "late_delivery_penalty_pct_per_day, rate_sheet) accurately from the contract text. "
-                "For each rate_sheet item, max_unit_price MUST be the full contracted numeric amount (e.g. 150.00, 225.50)."
+                "For each rate_sheet item, max_unit_price MUST be the full contracted numeric amount (e.g. 150.00, 225.50). "
+                "Extrae SOLO lo que el texto dice literalmente. No calcules ni deduzcas fechas "
+                "(por ejemplo, no sumes años de vigencia a la fecha de inicio). "
+                "Si el dato no aparece escrito, devuelve null."
             ),
         )
         rule_extractor = RuleBasedContractExtractor()
@@ -237,9 +249,15 @@ class LLMContractExtractor:
             effective_date=terms.effective_date,
             expiration_date=terms.expiration_date,
             auto_renew=terms.auto_renew,
-            payment_terms_days=terms.payment_terms_days,
-            late_delivery_penalty_pct_per_day=terms.late_delivery_penalty_pct_per_day,
-            rate_sheet=terms.rate_sheet,
+            # Not written in the text: rule parse for payment days, schema defaults otherwise.
+            payment_terms_days=(
+                terms.payment_terms_days
+                if terms.payment_terms_days is not None
+                else parsed.payment_terms_days
+            ),
+            late_delivery_penalty_pct_per_day=terms.late_delivery_penalty_pct_per_day
+            or Decimal("0.0"),
+            rate_sheet=terms.rate_sheet or [],
             clauses=parsed.clauses,
             raw_text=raw_text,
         )

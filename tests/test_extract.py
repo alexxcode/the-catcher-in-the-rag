@@ -8,12 +8,16 @@ from typing import Any
 
 import pytest
 
+from catcher_in_the_rag.apply_terms.evaluator import ContractTermsEvaluator
 from catcher_in_the_rag.extract.contract_extractor import (
     ExtractedContractTerms,
     HybridContractExtractor,
     RuleBasedContractExtractor,
 )
+from catcher_in_the_rag.ingest.cuad_loader import DEMO_CUAD_PATH, CUADLoader
+from catcher_in_the_rag.ingest.cuad_simulation import SCENARIO_MATCH, build_simulated_cuad_package
 from catcher_in_the_rag.providers.gemini import GeminiEmbeddingProvider, GeminiProvider
+from catcher_in_the_rag.schemas import AnomalyType
 from datagen.templates import render_contract_text
 
 
@@ -186,3 +190,46 @@ def test_hybrid_llm_path_requests_extracted_contract_terms(monkeypatch: pytest.M
     assert contract.payment_terms_days == 45
     assert contract.clauses == RuleBasedContractExtractor().extract(raw_text).clauses
     assert contract.raw_text == raw_text
+
+
+def test_null_expiration_from_llm_is_not_verifiable_never_expired(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """LLM returns expiration_date null: Contract keeps None and A06 is NOT_VERIFIABLE only."""
+    loader = CUADLoader(cuad_json_path=DEMO_CUAD_PATH)
+    # CUAD-0002's annotations carry a past date (2021-12-31): a guessed date would read as expired.
+    cuad = next(c for c in loader.load_contracts() if c.contract_id == "CUAD-0002")
+    package = build_simulated_cuad_package(cuad, loader, SCENARIO_MATCH)
+
+    def _fake(text: str, schema: Any, system_prompt: str | None = None, **kwargs: Any) -> Any:
+        assert "devuelve null" in (system_prompt or "")
+        return schema.model_validate(
+            {
+                "contract_id": "CUAD-0002",
+                "vendor_id": "VND-X",
+                "vendor_name": "Vendor X",
+                "effective_date": "2019-01-01",
+                "expiration_date": None,
+                "payment_terms_days": None,
+                "late_delivery_penalty_pct_per_day": None,
+                "rate_sheet": None,
+            }
+        )
+
+    provider = GeminiProvider(config={})  # no network: extract_structured is replaced
+    monkeypatch.setattr(provider, "extract_structured", _fake)
+    extractor = HybridContractExtractor(provider=provider)
+    contract = extractor.extract(package.contract.raw_text)
+
+    assert extractor.last_method_used == "llm"
+    assert contract.expiration_date is None
+    assert contract.rate_sheet == []
+    assert contract.late_delivery_penalty_pct_per_day == Decimal("0.0")
+
+    findings, _, _ = ContractTermsEvaluator().evaluate(
+        package.model_copy(update={"contract": contract})
+    )
+    a06 = [f for f in findings if f.anomaly_type == AnomalyType.A06]
+    assert a06
+    assert all(f.verification_status == "NOT_VERIFIABLE" for f in a06)
+    assert not any("subsequent to" in f.description for f in a06)
